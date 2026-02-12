@@ -4,7 +4,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ROIChart } from "@/components/charts/ROIChart";
 import { PnLChart } from "@/components/charts/PnLChart";
 import { RevenueChart } from "@/components/charts/RevenueChart";
-import { CostPerAttendeeChart } from "@/components/charts/CostPerAttendeeChart";
 import { ProfitMarginChart } from "@/components/charts/ProfitMarginChart";
 import { ProfitPerAttendeeChart } from "@/components/charts/ProfitPerAttendeeChart";
 import { CostCoverageChart } from "@/components/charts/CostCoverageChart";
@@ -138,7 +137,6 @@ function SingleScenarioTable({
           <ROIChart metrics={metrics} />
           <PnLChart metrics={metrics} profitTarget={profitTarget} />
           <RevenueChart metrics={metrics} />
-          <CostPerAttendeeChart metrics={metrics} />
           <ProfitMarginChart metrics={metrics} />
           <ProfitPerAttendeeChart metrics={metrics} />
           <CostCoverageChart metrics={metrics} />
