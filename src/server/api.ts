@@ -33,38 +33,241 @@ export const api = {
   events: {
     list: async () => {
       const db = getDb();
-      const rows = db.query("SELECT * FROM events ORDER BY year DESC, name").all();
-      return rows as Array<{ id: string; name: string; description: string | null; year: number | null; created_at: string }>;
+      const rows = db.query("SELECT * FROM events ORDER BY year DESC, name").all() as Array<Record<string, unknown>>;
+      return rows.map((e) => ({
+        id: e.id,
+        name: e.name,
+        description: e.description ?? null,
+        year: e.year ?? null,
+        event_date: e.event_date ?? null,
+        event_url: e.event_url ?? null,
+        event_location: e.event_location ?? null,
+        ga_ticket_cost: e.ga_ticket_cost != null ? Number(e.ga_ticket_cost) : null,
+        day_pass_cost: e.day_pass_cost != null ? Number(e.day_pass_cost) : null,
+        ga_tickets_sold: e.ga_tickets_sold != null ? Number(e.ga_tickets_sold) : null,
+        day_passes_sold: e.day_passes_sold != null ? Number(e.day_passes_sold) : null,
+        budget_id: e.budget_id ?? null,
+        scenario_id: e.scenario_id ?? null,
+        planning_notes: e.planning_notes ?? null,
+        created_at: e.created_at as string | undefined,
+      }));
     },
     get: async (id: string) => {
       const db = getDb();
       const row = db.query("SELECT * FROM events WHERE id = ?").get(id);
-      return row as { id: string; name: string; description: string | null; year: number | null; created_at: string } | null;
+      if (!row) return null;
+      const e = row as Record<string, unknown>;
+      const milestones = db
+        .query("SELECT * FROM event_planning_milestones WHERE event_id = ? ORDER BY year, month, sort_order")
+        .all(id) as Array<Record<string, unknown>>;
+      const packing = db
+        .query("SELECT * FROM event_packing_items WHERE event_id = ? ORDER BY category, sort_order, name")
+        .all(id) as Array<Record<string, unknown>>;
+      const volunteers = db
+        .query("SELECT * FROM event_volunteers WHERE event_id = ? ORDER BY department, sort_order, name")
+        .all(id) as Array<Record<string, unknown>>;
+      return {
+        ...e,
+        event_date: e.event_date ?? null,
+        event_url: e.event_url ?? null,
+        event_location: e.event_location ?? null,
+        ga_ticket_cost: e.ga_ticket_cost != null ? Number(e.ga_ticket_cost) : null,
+        day_pass_cost: e.day_pass_cost != null ? Number(e.day_pass_cost) : null,
+        ga_tickets_sold: e.ga_tickets_sold != null ? Number(e.ga_tickets_sold) : null,
+        day_passes_sold: e.day_passes_sold != null ? Number(e.day_passes_sold) : null,
+        budget_id: e.budget_id ?? null,
+        scenario_id: e.scenario_id ?? null,
+        planning_notes: e.planning_notes ?? null,
+        milestones: milestones.map((m) => ({
+          id: m.id,
+          event_id: m.event_id,
+          month: m.month,
+          year: m.year,
+          description: m.description,
+          sort_order: m.sort_order ?? 0,
+        })),
+        packingItems: packing.map((p) => ({
+          id: p.id,
+          event_id: p.event_id,
+          category: p.category,
+          name: p.name,
+          sort_order: p.sort_order ?? 0,
+        })),
+        volunteers: volunteers.map((v) => ({
+          id: v.id,
+          event_id: v.event_id,
+          name: v.name,
+          department: v.department,
+          sort_order: v.sort_order ?? 0,
+        })),
+      };
     },
-    create: async (body: { name: string; description?: string; year?: number }) => {
+    create: async (body: {
+      name: string;
+      description?: string;
+      year?: number;
+      event_date?: string;
+      event_url?: string;
+      event_location?: string;
+      ga_ticket_cost?: number;
+      day_pass_cost?: number;
+      ga_tickets_sold?: number;
+      day_passes_sold?: number;
+      budget_id?: string;
+      scenario_id?: string;
+      planning_notes?: string;
+    }) => {
       const db = getDb();
       const id = uuid();
       db.run(
-        "INSERT INTO events (id, name, description, year) VALUES (?, ?, ?, ?)",
-        [id, body.name, body.description ?? null, body.year ?? null]
+        `INSERT INTO events (id, name, description, year, event_date, event_url, event_location, ga_ticket_cost, day_pass_cost, ga_tickets_sold, day_passes_sold, budget_id, scenario_id, planning_notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          id,
+          body.name,
+          body.description ?? null,
+          body.year ?? null,
+          body.event_date ?? null,
+          body.event_url ?? null,
+          body.event_location ?? null,
+          body.ga_ticket_cost ?? null,
+          body.day_pass_cost ?? null,
+          body.ga_tickets_sold ?? null,
+          body.day_passes_sold ?? null,
+          body.budget_id ?? null,
+          body.scenario_id ?? null,
+          body.planning_notes ?? null,
+        ]
       );
-      return { id, name: body.name, description: body.description ?? null, year: body.year ?? null };
+      return api.events.get(id)!;
     },
-    update: async (id: string, body: { name?: string; description?: string; year?: number }) => {
+    update: async (id: string, body: Partial<{
+      name: string;
+      description: string;
+      year: number;
+      event_date: string;
+      event_url: string;
+      event_location: string;
+      ga_ticket_cost: number;
+      day_pass_cost: number;
+      ga_tickets_sold: number;
+      day_passes_sold: number;
+      budget_id: string;
+      scenario_id: string;
+      planning_notes: string;
+    }>) => {
       const db = getDb();
       const existing = db.query("SELECT * FROM events WHERE id = ?").get(id);
       if (!existing) return null;
       const row = existing as Record<string, unknown>;
-      const name = (body.name ?? row.name) as string;
-      const description = (body.description !== undefined ? body.description : row.description) as string | null;
-      const year = (body.year !== undefined ? body.year : row.year) as number | null;
-      db.run("UPDATE events SET name = ?, description = ?, year = ? WHERE id = ?", [name, description, year, id]);
-      return { id, name, description, year };
+      const get = (k: string, def: unknown) => (body[k as keyof typeof body] !== undefined ? body[k as keyof typeof body] : row[k] ?? def);
+      const name = get("name", row.name) as string;
+      const description = get("description", null) as string | null;
+      const year = get("year", null) as number | null;
+      const event_date = get("event_date", null) as string | null;
+      const event_url = get("event_url", null) as string | null;
+      const event_location = get("event_location", null) as string | null;
+      const ga_ticket_cost = get("ga_ticket_cost", null) as number | null;
+      const day_pass_cost = get("day_pass_cost", null) as number | null;
+      const ga_tickets_sold = get("ga_tickets_sold", null) as number | null;
+      const day_passes_sold = get("day_passes_sold", null) as number | null;
+      const budget_id = get("budget_id", null) as string | null;
+      const scenario_id = get("scenario_id", null) as string | null;
+      const planning_notes = get("planning_notes", null) as string | null;
+      db.run(
+        `UPDATE events SET name = ?, description = ?, year = ?, event_date = ?, event_url = ?, event_location = ?, ga_ticket_cost = ?, day_pass_cost = ?, ga_tickets_sold = ?, day_passes_sold = ?, budget_id = ?, scenario_id = ?, planning_notes = ? WHERE id = ?`,
+        [name, description, year, event_date, event_url, event_location, ga_ticket_cost, day_pass_cost, ga_tickets_sold, day_passes_sold, budget_id, scenario_id, planning_notes, id]
+      );
+      return api.events.get(id)!;
     },
     delete: async (id: string) => {
       const db = getDb();
+      db.run("DELETE FROM event_planning_milestones WHERE event_id = ?", [id]);
+      db.run("DELETE FROM event_packing_items WHERE event_id = ?", [id]);
+      db.run("DELETE FROM event_volunteers WHERE event_id = ?", [id]);
       db.run("DELETE FROM events WHERE id = ?", [id]);
       return { ok: true };
+    },
+    milestones: {
+      create: async (eventId: string, body: { month: number; year: number; description: string }) => {
+        const db = getDb();
+        const id = uuid();
+        const maxOrder = db.query("SELECT COALESCE(MAX(sort_order), 0) as m FROM event_planning_milestones WHERE event_id = ?").get(eventId) as { m: number };
+        db.run(
+          "INSERT INTO event_planning_milestones (id, event_id, month, year, description, sort_order) VALUES (?, ?, ?, ?, ?, ?)",
+          [id, eventId, body.month, body.year, body.description, (maxOrder?.m ?? 0) + 1]
+        );
+        return { id, event_id: eventId, ...body, sort_order: (maxOrder?.m ?? 0) + 1 };
+      },
+      update: async (eventId: string, mid: string, body: { month?: number; year?: number; description?: string }) => {
+        const db = getDb();
+        const existing = db.query("SELECT * FROM event_planning_milestones WHERE id = ? AND event_id = ?").get(mid, eventId);
+        if (!existing) return null;
+        const row = existing as Record<string, unknown>;
+        const month = body.month ?? (row.month as number);
+        const year = body.year ?? (row.year as number);
+        const description = body.description ?? (row.description as string);
+        db.run("UPDATE event_planning_milestones SET month = ?, year = ?, description = ? WHERE id = ? AND event_id = ?", [month, year, description, mid, eventId]);
+        return { id: mid, event_id: eventId, month, year, description, sort_order: row.sort_order };
+      },
+      delete: async (eventId: string, mid: string) => {
+        const db = getDb();
+        db.run("DELETE FROM event_planning_milestones WHERE id = ? AND event_id = ?", [mid, eventId]);
+        return { ok: true };
+      },
+    },
+    packingItems: {
+      create: async (eventId: string, body: { category: string; name: string }) => {
+        const db = getDb();
+        const id = uuid();
+        const maxOrder = db.query("SELECT COALESCE(MAX(sort_order), 0) as m FROM event_packing_items WHERE event_id = ? AND category = ?").get(eventId, body.category) as { m: number };
+        db.run(
+          "INSERT INTO event_packing_items (id, event_id, category, name, sort_order) VALUES (?, ?, ?, ?, ?)",
+          [id, eventId, body.category, body.name, (maxOrder?.m ?? 0) + 1]
+        );
+        return { id, event_id: eventId, ...body, sort_order: (maxOrder?.m ?? 0) + 1 };
+      },
+      update: async (eventId: string, pid: string, body: { category?: string; name?: string }) => {
+        const db = getDb();
+        const existing = db.query("SELECT * FROM event_packing_items WHERE id = ? AND event_id = ?").get(pid, eventId);
+        if (!existing) return null;
+        const row = existing as Record<string, unknown>;
+        const category = body.category ?? (row.category as string);
+        const name = body.name ?? (row.name as string);
+        db.run("UPDATE event_packing_items SET category = ?, name = ? WHERE id = ? AND event_id = ?", [category, name, pid, eventId]);
+        return { id: pid, event_id: eventId, category, name, sort_order: row.sort_order };
+      },
+      delete: async (eventId: string, pid: string) => {
+        const db = getDb();
+        db.run("DELETE FROM event_packing_items WHERE id = ? AND event_id = ?", [pid, eventId]);
+        return { ok: true };
+      },
+    },
+    volunteers: {
+      create: async (eventId: string, body: { name: string; department: string }) => {
+        const db = getDb();
+        const id = uuid();
+        const maxOrder = db.query("SELECT COALESCE(MAX(sort_order), 0) as m FROM event_volunteers WHERE event_id = ?").get(eventId) as { m: number };
+        db.run(
+          "INSERT INTO event_volunteers (id, event_id, name, department, sort_order) VALUES (?, ?, ?, ?, ?)",
+          [id, eventId, body.name, body.department, (maxOrder?.m ?? 0) + 1]
+        );
+        return { id, event_id: eventId, ...body, sort_order: (maxOrder?.m ?? 0) + 1 };
+      },
+      update: async (eventId: string, vid: string, body: { name?: string; department?: string }) => {
+        const db = getDb();
+        const existing = db.query("SELECT * FROM event_volunteers WHERE id = ? AND event_id = ?").get(vid, eventId);
+        if (!existing) return null;
+        const row = existing as Record<string, unknown>;
+        const name = body.name ?? (row.name as string);
+        const department = body.department ?? (row.department as string);
+        db.run("UPDATE event_volunteers SET name = ?, department = ? WHERE id = ? AND event_id = ?", [name, department, vid, eventId]);
+        return { id: vid, event_id: eventId, name, department, sort_order: row.sort_order };
+      },
+      delete: async (eventId: string, vid: string) => {
+        const db = getDb();
+        db.run("DELETE FROM event_volunteers WHERE id = ? AND event_id = ?", [vid, eventId]);
+        return { ok: true };
+      },
     },
   },
   budgets: {

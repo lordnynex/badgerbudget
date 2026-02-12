@@ -1,4 +1,14 @@
-import type { Budget, BudgetSummary, Event, LineItem, Scenario, ScenarioSummary } from "@/types/budget";
+import type {
+  Budget,
+  BudgetSummary,
+  Event,
+  EventPackingItem,
+  EventPlanningMilestone,
+  EventVolunteer,
+  LineItem,
+  Scenario,
+  ScenarioSummary,
+} from "@/types/budget";
 
 const BASE = "";
 
@@ -23,11 +33,53 @@ export const api = {
   events: {
     list: () => fetchJson<Event[]>("/api/events"),
     get: (id: string) => fetchJson<Event | null>(`/api/events/${id}`),
-    create: (body: { name: string; description?: string; year?: number }) =>
+    create: (body: Partial<Event>) =>
       fetchJson<Event>("/api/events", { method: "POST", body: JSON.stringify(body) }),
-    update: (id: string, body: { name?: string; description?: string; year?: number }) =>
+    update: (id: string, body: Partial<Event>) =>
       fetchJson<Event>(`/api/events/${id}`, { method: "PUT", body: JSON.stringify(body) }),
     delete: (id: string) => fetchJson<{ ok: boolean }>(`/api/events/${id}`, { method: "DELETE" }),
+    milestones: {
+      create: (eventId: string, body: { month: number; year: number; description: string }) =>
+        fetchJson<EventPlanningMilestone>(`/api/events/${eventId}/milestones`, {
+          method: "POST",
+          body: JSON.stringify(body),
+        }),
+      update: (eventId: string, mid: string, body: { month?: number; year?: number; description?: string }) =>
+        fetchJson<EventPlanningMilestone>(`/api/events/${eventId}/milestones/${mid}`, {
+          method: "PUT",
+          body: JSON.stringify(body),
+        }),
+      delete: (eventId: string, mid: string) =>
+        fetchJson<{ ok: boolean }>(`/api/events/${eventId}/milestones/${mid}`, { method: "DELETE" }),
+    },
+    packingItems: {
+      create: (eventId: string, body: { category: string; name: string }) =>
+        fetchJson<EventPackingItem>(`/api/events/${eventId}/packing-items`, {
+          method: "POST",
+          body: JSON.stringify(body),
+        }),
+      update: (eventId: string, pid: string, body: { category?: string; name?: string }) =>
+        fetchJson<EventPackingItem>(`/api/events/${eventId}/packing-items/${pid}`, {
+          method: "PUT",
+          body: JSON.stringify(body),
+        }),
+      delete: (eventId: string, pid: string) =>
+        fetchJson<{ ok: boolean }>(`/api/events/${eventId}/packing-items/${pid}`, { method: "DELETE" }),
+    },
+    volunteers: {
+      create: (eventId: string, body: { name: string; department: string }) =>
+        fetchJson<EventVolunteer>(`/api/events/${eventId}/volunteers`, {
+          method: "POST",
+          body: JSON.stringify(body),
+        }),
+      update: (eventId: string, vid: string, body: { name?: string; department?: string }) =>
+        fetchJson<EventVolunteer>(`/api/events/${eventId}/volunteers/${vid}`, {
+          method: "PUT",
+          body: JSON.stringify(body),
+        }),
+      delete: (eventId: string, vid: string) =>
+        fetchJson<{ ok: boolean }>(`/api/events/${eventId}/volunteers/${vid}`, { method: "DELETE" }),
+    },
   },
 
   budgets: {

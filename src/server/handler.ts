@@ -36,7 +36,21 @@ export async function handleApiRequest(req: Request): Promise<Response | null> {
     return json(list);
   }
   if (path === "/api/events" && method === "POST") {
-    const body = await jsonBody<{ name: string; description?: string; year?: number }>(req);
+    const body = await jsonBody<{
+      name: string;
+      description?: string;
+      year?: number;
+      event_date?: string;
+      event_url?: string;
+      event_location?: string;
+      ga_ticket_cost?: number;
+      day_pass_cost?: number;
+      ga_tickets_sold?: number;
+      day_passes_sold?: number;
+      budget_id?: string;
+      scenario_id?: string;
+      planning_notes?: string;
+    }>(req);
     const created = await api.events.create(body);
     return json(created);
   }
@@ -51,13 +65,91 @@ export async function handleApiRequest(req: Request): Promise<Response | null> {
       return json(event);
     }
     if (method === "PUT") {
-      const body = await jsonBody<{ name?: string; description?: string; year?: number }>(req);
+      const body = await jsonBody<Record<string, unknown>>(req);
       const updated = await api.events.update(id, body);
       if (!updated) return notFound();
       return json(updated);
     }
     if (method === "DELETE") {
       await api.events.delete(id);
+      return json({ ok: true });
+    }
+  }
+
+  // /api/events/:id/milestones
+  const eventMilestonesMatch = path.match(/^\/api\/events\/([^/]+)\/milestones$/);
+  if (eventMilestonesMatch && method === "POST") {
+    const eventId = eventMilestonesMatch[1]!;
+    const body = await jsonBody<{ month: number; year: number; description: string }>(req);
+    const created = await api.events.milestones.create(eventId, body);
+    return json(created);
+  }
+
+  // /api/events/:id/milestones/:mid
+  const eventMilestoneMatch = path.match(/^\/api\/events\/([^/]+)\/milestones\/([^/]+)$/);
+  if (eventMilestoneMatch) {
+    const eventId = eventMilestoneMatch[1]!;
+    const mid = eventMilestoneMatch[2]!;
+    if (method === "PUT") {
+      const body = await jsonBody<{ month?: number; year?: number; description?: string }>(req);
+      const updated = await api.events.milestones.update(eventId, mid, body);
+      if (!updated) return notFound();
+      return json(updated);
+    }
+    if (method === "DELETE") {
+      await api.events.milestones.delete(eventId, mid);
+      return json({ ok: true });
+    }
+  }
+
+  // /api/events/:id/packing-items
+  const eventPackingMatch = path.match(/^\/api\/events\/([^/]+)\/packing-items$/);
+  if (eventPackingMatch && method === "POST") {
+    const eventId = eventPackingMatch[1]!;
+    const body = await jsonBody<{ category: string; name: string }>(req);
+    const created = await api.events.packingItems.create(eventId, body);
+    return json(created);
+  }
+
+  // /api/events/:id/packing-items/:pid
+  const eventPackingItemMatch = path.match(/^\/api\/events\/([^/]+)\/packing-items\/([^/]+)$/);
+  if (eventPackingItemMatch) {
+    const eventId = eventPackingItemMatch[1]!;
+    const pid = eventPackingItemMatch[2]!;
+    if (method === "PUT") {
+      const body = await jsonBody<{ category?: string; name?: string }>(req);
+      const updated = await api.events.packingItems.update(eventId, pid, body);
+      if (!updated) return notFound();
+      return json(updated);
+    }
+    if (method === "DELETE") {
+      await api.events.packingItems.delete(eventId, pid);
+      return json({ ok: true });
+    }
+  }
+
+  // /api/events/:id/volunteers
+  const eventVolunteersMatch = path.match(/^\/api\/events\/([^/]+)\/volunteers$/);
+  if (eventVolunteersMatch && method === "POST") {
+    const eventId = eventVolunteersMatch[1]!;
+    const body = await jsonBody<{ name: string; department: string }>(req);
+    const created = await api.events.volunteers.create(eventId, body);
+    return json(created);
+  }
+
+  // /api/events/:id/volunteers/:vid
+  const eventVolunteerMatch = path.match(/^\/api\/events\/([^/]+)\/volunteers\/([^/]+)$/);
+  if (eventVolunteerMatch) {
+    const eventId = eventVolunteerMatch[1]!;
+    const vid = eventVolunteerMatch[2]!;
+    if (method === "PUT") {
+      const body = await jsonBody<{ name?: string; department?: string }>(req);
+      const updated = await api.events.volunteers.update(eventId, vid, body);
+      if (!updated) return notFound();
+      return json(updated);
+    }
+    if (method === "DELETE") {
+      await api.events.volunteers.delete(eventId, vid);
       return json({ ok: true });
     }
   }

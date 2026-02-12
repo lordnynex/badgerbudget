@@ -4,6 +4,7 @@ import { AppStateProvider, useAppState } from "@/state/AppState";
 import { api } from "@/data/api";
 import { Header } from "@/components/layout/Header";
 import { Main } from "@/components/layout/Main";
+import { EventDetailPage } from "@/components/events/EventDetailPage";
 import { ProjectionsSubNav } from "@/components/layout/ProjectionsSubNav";
 import { PrintView } from "@/components/export/PrintView";
 import { EmailView } from "@/components/export/EmailView";
@@ -59,6 +60,14 @@ function AppContent() {
             <Route
               path="/events"
               element={<Main activeTab="events" onPrint={onPrint} onEmail={onEmail} />}
+            />
+            <Route
+              path="/events/:id"
+              element={
+                <main className="space-y-6 p-4 md:p-6">
+                  <EventDetailPage />
+                </main>
+              }
             />
             <Route
               path="/projections"

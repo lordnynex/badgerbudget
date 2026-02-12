@@ -12,6 +12,11 @@ export function getDb(): Database {
   return db;
 }
 
+function hasColumn(db: Database, table: string, col: string): boolean {
+  const rows = db.query(`SELECT name FROM pragma_table_info(?) WHERE name = ?`).all(table, col) as { name: string }[];
+  return rows.length > 0;
+}
+
 function initSchema(database: Database) {
   database.run(`
     CREATE TABLE IF NOT EXISTS events (
@@ -20,6 +25,59 @@ function initSchema(database: Database) {
       description TEXT,
       year INTEGER,
       created_at TEXT DEFAULT (datetime('now'))
+    )
+  `);
+  // Migrate events table with new columns
+  const eventCols: [string, string][] = [
+    ["event_date", "TEXT"],
+    ["event_url", "TEXT"],
+    ["event_location", "TEXT"],
+    ["ga_ticket_cost", "REAL"],
+    ["day_pass_cost", "REAL"],
+    ["ga_tickets_sold", "REAL"],
+    ["day_passes_sold", "REAL"],
+    ["budget_id", "TEXT"],
+    ["scenario_id", "TEXT"],
+    ["planning_notes", "TEXT"],
+  ];
+  for (const [col, typ] of eventCols) {
+    if (!hasColumn(database, "events", col)) {
+      try {
+        database.run(`ALTER TABLE events ADD COLUMN ${col} ${typ}`);
+      } catch {
+        // Column may already exist
+      }
+    }
+  }
+  database.run(`
+    CREATE TABLE IF NOT EXISTS event_planning_milestones (
+      id TEXT PRIMARY KEY,
+      event_id TEXT NOT NULL,
+      month INTEGER NOT NULL,
+      year INTEGER NOT NULL,
+      description TEXT NOT NULL,
+      sort_order INTEGER DEFAULT 0,
+      FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE
+    )
+  `);
+  database.run(`
+    CREATE TABLE IF NOT EXISTS event_packing_items (
+      id TEXT PRIMARY KEY,
+      event_id TEXT NOT NULL,
+      category TEXT NOT NULL,
+      name TEXT NOT NULL,
+      sort_order INTEGER DEFAULT 0,
+      FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE
+    )
+  `);
+  database.run(`
+    CREATE TABLE IF NOT EXISTS event_volunteers (
+      id TEXT PRIMARY KEY,
+      event_id TEXT NOT NULL,
+      name TEXT NOT NULL,
+      department TEXT NOT NULL,
+      sort_order INTEGER DEFAULT 0,
+      FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE
     )
   `);
   database.run(`
