@@ -111,4 +111,6 @@ export interface ScenarioMetrics {
   profitTargetCoverage: number | null;
   /** Attendance % needed to break even at this ticket/staff price */
   breakEvenAttendancePercent: number | null;
+  /** Total attendees (paid + comp) needed to break even */
+  breakEvenTotalAttendees: number | null;
 }

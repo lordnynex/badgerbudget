@@ -58,12 +58,25 @@ export function SummarySection({ metrics, filteredMetrics }: SummarySectionProps
     : null;
 
   const breakEvenAtMostAccessible = mostAccessible?.breakEvenAttendancePercent;
+  const breakEvenTicketsAtMostAccessible = mostAccessible?.breakEvenTotalAttendees;
 
   const breakEvenAttendances = filteredMetrics
     .filter((m) => m.breakEvenAttendancePercent != null && m.breakEvenAttendancePercent >= 0 && m.breakEvenAttendancePercent <= 100)
     .map((m) => m.breakEvenAttendancePercent!);
   const breakEvenMin = breakEvenAttendances.length > 0 ? Math.min(...breakEvenAttendances) : null;
   const breakEvenMax = breakEvenAttendances.length > 0 ? Math.max(...breakEvenAttendances) : null;
+
+  const breakEvenTicketCounts = filteredMetrics
+    .filter((m) => m.breakEvenTotalAttendees != null && m.breakEvenAttendancePercent != null && m.breakEvenAttendancePercent >= 0 && m.breakEvenAttendancePercent <= 100)
+    .map((m) => m.breakEvenTotalAttendees!);
+  const breakEvenTicketsMin = breakEvenTicketCounts.length > 0 ? Math.min(...breakEvenTicketCounts) : null;
+  const breakEvenTicketsMax = breakEvenTicketCounts.length > 0 ? Math.max(...breakEvenTicketCounts) : null;
+
+  const complimentaryTickets = inputs.complimentaryTickets ?? 0;
+  const gaTicketsAvailable = Math.max(0, maxOccupancy - staffCount);
+  const revenueLostToComps = mostAccessible
+    ? complimentaryTickets * mostAccessible.ticketPrice
+    : complimentaryTickets * (inputs.ticketPrices.proposedPrice1 || 0);
 
   const bestScenario = filteredMetrics.length > 0
     ? filteredMetrics.reduce((a, b) => (b.profit > a.profit ? b : a))
@@ -100,6 +113,20 @@ export function SummarySection({ metrics, filteredMetrics }: SummarySectionProps
           </p>
           <p className="text-muted-foreground text-xs mt-1">
             Gross revenue needed to meet profit target
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-2">
+          <h3 className="text-sm font-medium text-muted-foreground">GA tickets available</h3>
+        </CardHeader>
+        <CardContent>
+          <p className="text-2xl font-bold">
+            {gaTicketsAvailable}
+          </p>
+          <p className="text-muted-foreground text-xs mt-1">
+            Max capacity ({maxOccupancy}) − staff ({staffCount})
           </p>
         </CardContent>
       </Card>
@@ -158,6 +185,34 @@ export function SummarySection({ metrics, filteredMetrics }: SummarySectionProps
         </Card>
       )}
 
+      <Card>
+        <CardHeader className="pb-2">
+          <h3 className="text-sm font-medium text-muted-foreground">Complimentary tickets</h3>
+        </CardHeader>
+        <CardContent>
+          <p className="text-2xl font-bold">
+            {complimentaryTickets}
+          </p>
+          <p className="text-muted-foreground text-xs mt-1">
+            Yield $0 revenue
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-2">
+          <h3 className="text-sm font-medium text-muted-foreground">Revenue lost to comps</h3>
+        </CardHeader>
+        <CardContent>
+          <p className="text-2xl font-bold">
+            ${revenueLostToComps.toLocaleString()}
+          </p>
+          <p className="text-muted-foreground text-xs mt-1">
+            {complimentaryTickets} × {mostAccessible ? `$${mostAccessible.ticketPrice}` : `$${inputs.ticketPrices.proposedPrice1}`}/ticket
+          </p>
+        </CardContent>
+      </Card>
+
       {(breakEvenMin != null || (mostAccessible && breakEvenAtMostAccessible != null && breakEvenAtMostAccessible <= 100)) && (
         <Card>
           <CardHeader className="pb-2">
@@ -165,16 +220,18 @@ export function SummarySection({ metrics, filteredMetrics }: SummarySectionProps
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold">
-              {mostAccessible && breakEvenAtMostAccessible != null && breakEvenAtMostAccessible <= 100
-                ? `${Math.round(breakEvenAtMostAccessible)}%`
-                : breakEvenMin === breakEvenMax
-                  ? `${Math.round(breakEvenMin!)}%`
-                  : `${Math.round(breakEvenMin!)}–${Math.round(breakEvenMax!)}%`}
+              {mostAccessible && breakEvenTicketsAtMostAccessible != null && breakEvenAtMostAccessible != null && breakEvenAtMostAccessible <= 100
+                ? `${breakEvenTicketsAtMostAccessible} tickets`
+                : breakEvenTicketsMin != null && breakEvenTicketsMax != null
+                  ? breakEvenTicketsMin === breakEvenTicketsMax
+                    ? `${breakEvenTicketsMin} tickets`
+                    : `${breakEvenTicketsMin}–${breakEvenTicketsMax} tickets`
+                  : "—"}
             </p>
             <p className="text-muted-foreground text-xs mt-1">
               {mostAccessible && breakEvenAtMostAccessible != null && breakEvenAtMostAccessible <= 100
-                ? `At $${mostAccessible.ticketPrice} ticket / $${mostAccessible.staffPrice} staff`
-                : "Attendance % needed to break even across ticket/staff combos"}
+                ? `${Math.round(breakEvenAtMostAccessible)}% of capacity · At $${mostAccessible.ticketPrice} ticket / $${mostAccessible.staffPrice} staff`
+                : "Total attendees (paid + comp) needed to break even"}
             </p>
           </CardContent>
         </Card>
@@ -238,9 +295,8 @@ export function SummarySection({ metrics, filteredMetrics }: SummarySectionProps
               <span className="font-medium">{revenueMixScenario.revenueMixAttendee.toFixed(0)}%</span> attendees
               {" · "}
               <span className="font-medium">{revenueMixScenario.revenueMixStaff.toFixed(0)}%</span> staff
-              {revenueMixScenario.revenueMixDayPass > 0 && (
-                <> · <span className="font-medium">{revenueMixScenario.revenueMixDayPass.toFixed(0)}%</span> day pass</>
-              )}
+              {" · "}
+              <span className="font-medium">{revenueMixScenario.revenueMixDayPass.toFixed(0)}%</span> day pass
             </p>
             <p className="text-muted-foreground text-xs mt-1">
               At most accessible scenario

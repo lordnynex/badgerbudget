@@ -68,16 +68,18 @@ export function useScenarioMetrics(
               : null;
 
           let breakEvenAttendancePercent: number | null = null;
+          let breakEvenTotalAttendees: number | null = null;
           if (ticketPrice > 0) {
             const breakEvenPaidAttendees =
               (totalCosts - staffRevenue - dayPassRevenue) / ticketPrice;
             if (breakEvenPaidAttendees < 0) {
               breakEvenAttendancePercent = 0;
+              breakEvenTotalAttendees = complimentaryTickets;
             } else {
-              const breakEvenTotalAttendees =
-                breakEvenPaidAttendees + complimentaryTickets;
+              const total = breakEvenPaidAttendees + complimentaryTickets;
+              breakEvenTotalAttendees = Math.ceil(total);
               breakEvenAttendancePercent =
-                (breakEvenTotalAttendees / maxOccupancy) * 100;
+                (total / maxOccupancy) * 100;
             }
           }
 
@@ -106,6 +108,7 @@ export function useScenarioMetrics(
             revenueMixDayPass,
             profitTargetCoverage,
             breakEvenAttendancePercent,
+            breakEvenTotalAttendees,
           });
         }
       }
