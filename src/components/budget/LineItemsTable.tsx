@@ -57,7 +57,7 @@ export function LineItemsTable() {
                 <th className="p-2 text-right font-medium">Total</th>
                 <th className="p-2 text-left font-medium">Category</th>
                 <th className="p-2 text-left font-medium">Comments</th>
-                <th className="p-2 w-12" />
+                <th className="p-2 min-w-[72px]" />
               </tr>
             </thead>
             <tbody>
