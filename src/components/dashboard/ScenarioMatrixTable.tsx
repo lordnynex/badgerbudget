@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ROIChart } from "@/components/charts/ROIChart";
@@ -162,18 +163,15 @@ export function ScenarioMatrixTable({ metrics, profitTarget }: ScenarioMatrixTab
     .map(Number)
     .sort((a, b) => a - b);
 
-  const mostAccessibleProfitable = metrics
-    .filter((m) => m.profit >= 0)
-    .sort((a, b) => {
-      if (a.ticketPrice !== b.ticketPrice) return a.ticketPrice - b.ticketPrice;
-      return a.staffPrice - b.staffPrice;
-    })[0];
-  const firstProfitableTab = mostAccessibleProfitable
-    ? String(mostAccessibleProfitable.attendancePercent)
-    : String(
-        attendanceLevels.find((pct) => byAttendance[pct].some((m) => m.profit >= 0)) ??
-        attendanceLevels[0]
-      );
+  const firstProfitableTab = String(
+    attendanceLevels.find((pct) => byAttendance[pct].some((m) => m.profit >= 0)) ??
+    attendanceLevels[0]
+  );
+
+  const [activeTab, setActiveTab] = useState(firstProfitableTab);
+  useEffect(() => {
+    setActiveTab(firstProfitableTab);
+  }, [firstProfitableTab]);
 
   const tabColorClasses = {
     profit:
@@ -196,7 +194,7 @@ export function ScenarioMatrixTable({ metrics, profitTarget }: ScenarioMatrixTab
   return (
     <div className="space-y-4">
       <h2 className="text-lg font-semibold">Scenario matrix</h2>
-      <Tabs defaultValue={String(firstProfitableTab)} className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="flex flex-wrap gap-1">
           {attendanceLevels.map((pct) => {
             const tabMetrics = byAttendance[pct];
