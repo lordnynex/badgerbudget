@@ -5,6 +5,8 @@ import { ROIChart } from "@/components/charts/ROIChart";
 import { PnLChart } from "@/components/charts/PnLChart";
 import { RevenueChart } from "@/components/charts/RevenueChart";
 import { CostPerAttendeeChart } from "@/components/charts/CostPerAttendeeChart";
+import { CostPerCategoryChart } from "@/components/charts/CostPerCategoryChart";
+import { CostPerCategoryBarChart } from "@/components/charts/CostPerCategoryBarChart";
 import { useAppState } from "@/state/AppState";
 import { useScenarioMetrics } from "@/hooks/useScenarioMetrics";
 import {
@@ -51,6 +53,10 @@ export function Main({ activeTab }: MainProps) {
             filter={filter}
             onFilterChange={setFilter}
           />
+          <section className="grid gap-6 md:grid-cols-2">
+            <CostPerCategoryChart lineItems={state.lineItems} />
+            <CostPerCategoryBarChart lineItems={state.lineItems} />
+          </section>
           {filteredMetrics.length === 1 ? (
             <ScenarioDetailCard metric={filteredMetrics[0]} />
           ) : filteredMetrics.length > 1 && filteredMetrics.length <= 12 ? (

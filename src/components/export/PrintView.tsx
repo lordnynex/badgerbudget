@@ -39,6 +39,13 @@ export function PrintView({ state, metrics }: PrintViewProps) {
                 {state.inputs.ticketPrices.staffPrice3})
               </td>
             </tr>
+            <tr>
+              <td className="border-b py-2 font-medium">Day Pass</td>
+              <td className="border-b py-2">
+                ${state.inputs.dayPassPrice} × {state.inputs.dayPassesSold} = $
+                {(state.inputs.dayPassPrice * state.inputs.dayPassesSold).toLocaleString()}
+              </td>
+            </tr>
           </tbody>
         </table>
       </section>

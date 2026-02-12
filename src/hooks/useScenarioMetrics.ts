@@ -26,6 +26,8 @@ export function useScenarioMetrics(
     ];
     const staffCount = inputs.staffCount;
     const maxOccupancy = inputs.maxOccupancy;
+    const dayPassRevenue =
+      (inputs.dayPassPrice ?? 0) * (inputs.dayPassesSold ?? 0);
 
     const results: ScenarioMetrics[] = [];
 
@@ -33,7 +35,10 @@ export function useScenarioMetrics(
       const attendees = Math.round(maxOccupancy * mult);
       for (const ticketPrice of attendeePrices) {
         for (const staffPrice of staffPrices) {
-          const revenue = attendees * ticketPrice + staffCount * staffPrice;
+          const revenue =
+            attendees * ticketPrice +
+            staffCount * staffPrice +
+            dayPassRevenue;
           const profit = revenue - totalCosts;
           const profitVsBreakEven = revenue - totalCostsWithProfitTarget;
           const totalPeople = attendees + staffCount;

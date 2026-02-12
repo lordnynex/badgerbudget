@@ -2,6 +2,8 @@ export interface Inputs {
   profitTarget: number;
   staffCount: number;
   maxOccupancy: number;
+  dayPassPrice: number;
+  dayPassesSold: number;
   ticketPrices: {
     proposedPrice1: number;
     proposedPrice2: number;

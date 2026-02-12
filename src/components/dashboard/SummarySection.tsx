@@ -36,6 +36,9 @@ export function SummarySection({ metrics, filteredMetrics }: SummarySectionProps
     ? Math.min(...meetingTargetScenarios.map((m) => m.ticketPrice))
     : null;
 
+  const dayPassRevenue =
+    (state.inputs.dayPassPrice ?? 0) * (state.inputs.dayPassesSold ?? 0);
+
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       <Card>
@@ -103,6 +106,22 @@ export function SummarySection({ metrics, filteredMetrics }: SummarySectionProps
           )}
         </CardContent>
       </Card>
+
+      {dayPassRevenue > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <h3 className="text-sm font-medium text-muted-foreground">Day pass revenue</h3>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold">
+              ${dayPassRevenue.toLocaleString()}
+            </p>
+            <p className="text-muted-foreground text-xs mt-1">
+              {state.inputs.dayPassesSold} passes × ${state.inputs.dayPassPrice}
+            </p>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

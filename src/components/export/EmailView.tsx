@@ -34,6 +34,7 @@ export function EmailView({ state, metrics }: EmailViewProps) {
     <tr><td style="padding: 6px 0; border-bottom: 1px solid #eee;">Max Occupancy</td><td style="padding: 6px 0; border-bottom: 1px solid #eee;">${state.inputs.maxOccupancy}</td></tr>
     <tr><td style="padding: 6px 0; border-bottom: 1px solid #eee;">Staff Count</td><td style="padding: 6px 0; border-bottom: 1px solid #eee;">${state.inputs.staffCount}</td></tr>
     <tr><td style="padding: 6px 0; border-bottom: 1px solid #eee;">Ticket Prices</td><td style="padding: 6px 0; border-bottom: 1px solid #eee;">$${state.inputs.ticketPrices.proposedPrice1} / $${state.inputs.ticketPrices.proposedPrice2} / $${state.inputs.ticketPrices.proposedPrice3} (Staff: $${state.inputs.ticketPrices.staffPrice1} / $${state.inputs.ticketPrices.staffPrice2} / $${state.inputs.ticketPrices.staffPrice3})</td></tr>
+    <tr><td style="padding: 6px 0; border-bottom: 1px solid #eee;">Day Pass</td><td style="padding: 6px 0; border-bottom: 1px solid #eee;">$${state.inputs.dayPassPrice} × ${state.inputs.dayPassesSold} = $${(state.inputs.dayPassPrice * state.inputs.dayPassesSold).toLocaleString()}</td></tr>
   </table>
 
   <h2 style="font-size: 18px; margin-top: 24px; margin-bottom: 8px;">Budget Total</h2>

@@ -42,6 +42,8 @@ export function InputsPanel() {
               {state.inputs.ticketPrices.staffPrice1}/$
               {state.inputs.ticketPrices.staffPrice2}/$
               {state.inputs.ticketPrices.staffPrice3}
+              {(state.inputs.dayPassesSold ?? 0) > 0 &&
+                ` · Day passes: ${state.inputs.dayPassesSold} @ $${state.inputs.dayPassPrice}`}
             </CardDescription>
           )}
         </CardHeader>
@@ -64,6 +66,18 @@ export function InputsPanel() {
                 label="Profit Target ($)"
                 value={state.inputs.profitTarget}
                 onChange={(v) => updateInputs({ profitTarget: v })}
+                min={0}
+              />
+              <EditableNumberInput
+                label="Day Pass Price ($)"
+                value={state.inputs.dayPassPrice}
+                onChange={(v) => updateInputs({ dayPassPrice: v })}
+                min={0}
+              />
+              <EditableNumberInput
+                label="Estimated Day Passes Sold"
+                value={state.inputs.dayPassesSold}
+                onChange={(v) => updateInputs({ dayPassesSold: v })}
                 min={0}
               />
             </div>

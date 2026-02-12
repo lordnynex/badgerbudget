@@ -110,6 +110,8 @@ function migrateInputs(legacy: LegacyExport): Inputs {
     profitTarget: bs?.profit_target ?? 2500,
     staffCount: bs?.staff_count ?? 14,
     maxOccupancy: bs?.max_occupancy ?? 75,
+    dayPassPrice: (bs as { day_pass_price?: number })?.day_pass_price ?? 50,
+    dayPassesSold: (bs as { day_passes_sold?: number })?.day_passes_sold ?? 0,
     ticketPrices: ensureTicketPrices({
       proposedPrice1: tp?.proposed_price_1 ?? 200,
       proposedPrice2: tp?.proposed_price_2 ?? 250,
@@ -149,12 +151,19 @@ export function migrateLegacyExport(legacy: LegacyExport): BadgerBudgetState {
 
 function normalizeMigratedState(raw: BadgerBudgetState): BadgerBudgetState {
   const tp = raw.inputs.ticketPrices as Record<string, number>;
-  if (tp.staffPrice1 && tp.staffPrice2 && tp.staffPrice3) return raw;
+  const hasDayPass =
+    "dayPassPrice" in raw.inputs && "dayPassesSold" in raw.inputs;
+  const needsTicketFix = !(tp.staffPrice1 && tp.staffPrice2 && tp.staffPrice3);
+  if (!needsTicketFix && hasDayPass) return raw;
   return {
     ...raw,
     inputs: {
       ...raw.inputs,
-      ticketPrices: ensureTicketPrices(tp),
+      ...(needsTicketFix && { ticketPrices: ensureTicketPrices(tp) }),
+      ...(!hasDayPass && {
+        dayPassPrice: 50,
+        dayPassesSold: 0,
+      }),
     },
   };
 }
