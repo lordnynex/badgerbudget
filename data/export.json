@@ -1,0 +1,200 @@
+{
+  "BadgerSouth": {
+    "inputs": {
+      "profit_target": 2500,
+      "staff_count": 14,
+      "max_occupancy": 75,
+      "ticket_prices": {
+        "proposed_price_1": 200,
+        "proposed_price_2": 250,
+        "proposed_price_3": 300,
+        "staff_price": 150
+      }
+    },
+    "attendance_scenarios": {
+      "with_staff_price_tickets": {
+        "ticket_prices": [200, 250, 300],
+        "attendance_levels": {
+          "100_percent": [14300, 17350, 20400],
+          "75_percent": [10500, 12600, 14700],
+          "50_percent": [6900, 8100, 9300],
+          "25_percent": [3100, 3350, 3600]
+        }
+      }
+    },
+    "derived_fields": {
+      "attendees_25_percent": {
+        "total_attendees": 19,
+        "staff": 5
+      }
+    }
+  },
+
+  "BadgerComparisonBudget": {
+    "line_items": [
+      {
+        "item": "Campground",
+        "badger_south": 1468,
+        "badger_60": 1713,
+        "badger_59": 1705
+      },
+      {
+        "item": "Trash bags (individual)",
+        "badger_south": 15,
+        "badger_60": null,
+        "badger_59": 10
+      },
+      {
+        "item": "Large white envelopes",
+        "badger_south": 20,
+        "badger_60": 65,
+        "badger_59": 0
+      },
+      {
+        "item": "Food",
+        "badger_south": 2500,
+        "badger_60": 4000,
+        "badger_59": 2500
+      },
+      {
+        "item": "Bar",
+        "badger_south": 700,
+        "badger_60": 1000,
+        "badger_59": 1000
+      },
+      {
+        "item": "Coffee",
+        "badger_south": 75,
+        "badger_60": 150,
+        "badger_59": 75
+      },
+      {
+        "item": "Ice",
+        "badger_south": 750,
+        "badger_60": 750,
+        "badger_59": 500
+      },
+      {
+        "item": "First Aid Restock",
+        "badger_south": 50,
+        "badger_60": 150,
+        "badger_59": 125
+      },
+      { "item": "O2", "badger_south": 125, "badger_60": 150, "badger_59": 125 },
+      {
+        "item": "Run Gift",
+        "badger_south": 1250,
+        "badger_60": 1200,
+        "badger_59": 800
+      },
+      {
+        "item": "Run Pins",
+        "badger_south": 400,
+        "badger_60": 750,
+        "badger_59": 500
+      },
+      {
+        "item": "Program Print",
+        "badger_south": 75,
+        "badger_60": 400,
+        "badger_59": 300
+      },
+      {
+        "item": "Trash Service",
+        "badger_south": 400,
+        "badger_60": 1450,
+        "badger_59": 525
+      },
+      {
+        "item": "Firewood",
+        "badger_south": 450,
+        "badger_60": 500,
+        "badger_59": 500
+      },
+      {
+        "item": "Propane",
+        "badger_south": 200,
+        "badger_60": 330,
+        "badger_59": 330
+      },
+      {
+        "item": "Generator Gas",
+        "badger_south": 100,
+        "badger_60": 450,
+        "badger_59": 400
+      },
+      {
+        "item": "Truck Fuel",
+        "badger_south": 275,
+        "badger_60": 450,
+        "badger_59": 750
+      },
+      {
+        "item": "Truck Rental",
+        "badger_south": 2300,
+        "badger_60": 2500,
+        "badger_59": 2200
+      },
+      {
+        "item": "Labor Loading/Unloading",
+        "badger_south": 0,
+        "badger_60": 1000,
+        "badger_59": 800
+      },
+      {
+        "item": "Miscellaneous",
+        "badger_south": 500,
+        "badger_60": 250,
+        "badger_59": 250
+      },
+      {
+        "item": "Garage Rent",
+        "badger_south": 2800,
+        "badger_60": 2400,
+        "badger_59": 1200
+      },
+      {
+        "item": "Merchant Fees",
+        "badger_south": 40,
+        "badger_60": 40,
+        "badger_59": 40
+      },
+      {
+        "item": "PayPal Fees",
+        "badger_south": 200,
+        "badger_60": 600,
+        "badger_59": 500
+      },
+      {
+        "item": "Postage",
+        "badger_south": 0,
+        "badger_60": 750,
+        "badger_59": 1000
+      }
+    ],
+    "totals": {
+      "badger_south": 16420,
+      "badger_60": 26288,
+      "badger_59": 18655
+    },
+    "derived_metrics": {
+      "cost_per_person_75_guests": 218.93,
+      "food_cost_per_person": {
+        "badger_south": 33.33,
+        "badger_60": 40.0,
+        "badger_59": 31.25
+      }
+    }
+  },
+
+  "Badger60": {
+    "total_expenses": 26338,
+    "line_items": "See BadgerComparisonBudget.badger_60"
+  },
+
+  "Badger59": {
+    "total_expenses": 18655,
+    "andys_contribution": 3030,
+    "line_items": "See BadgerComparisonBudget.badger_59"
+  }
+}
