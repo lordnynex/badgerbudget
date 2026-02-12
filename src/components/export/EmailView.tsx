@@ -64,6 +64,13 @@ export function EmailView({ state, metrics }: EmailViewProps) {
                 <td style="padding: 8px; border-bottom: 1px solid #eee;">${m.attendancePercent}%</td>
                 <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">$${m.revenue.toLocaleString()}</td>
                 <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right; color: ${m.profit >= 0 ? "#16a34a" : "#dc2626"}; font-weight: 600;">$${m.profit.toLocaleString()}</td>
+                <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">${m.profitMargin.toFixed(1)}%</td>
+                <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">$${m.profitPerAttendee.toFixed(0)}</td>
+                <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">${m.costCoverageRatio.toFixed(2)}×</td>
+                <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">$${m.avgRevenuePerTicket.toFixed(0)}</td>
+                <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">${m.revenueMixAttendee.toFixed(0)}%</td>
+                <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">${m.breakEvenAttendancePercent != null ? Math.round(m.breakEvenAttendancePercent) + "%" : "—"}</td>
+                <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">${m.profitTargetCoverage != null ? m.profitTargetCoverage.toFixed(0) + "%" : "—"}</td>
                 <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">${m.profitVsBreakEven >= 0 ? "Yes" : "No"}</td>
                 <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">$${m.costPerAttendee.toFixed(0)}</td>
               </tr>`
@@ -79,6 +86,13 @@ export function EmailView({ state, metrics }: EmailViewProps) {
               <th style="padding: 8px; text-align: left; font-size: 12px;">Attendance</th>
               <th style="padding: 8px; text-align: right; font-size: 12px;">Gross Revenue</th>
               <th style="padding: 8px; text-align: right; font-size: 12px;">Net Revenue</th>
+              <th style="padding: 8px; text-align: right; font-size: 12px;">Profit Margin</th>
+              <th style="padding: 8px; text-align: right; font-size: 12px;">Profit/Attendee</th>
+              <th style="padding: 8px; text-align: right; font-size: 12px;">Cost Coverage</th>
+              <th style="padding: 8px; text-align: right; font-size: 12px;">Rev/Ticket</th>
+              <th style="padding: 8px; text-align: right; font-size: 12px;">Attendee %</th>
+              <th style="padding: 8px; text-align: right; font-size: 12px;">Break-ev Att %</th>
+              <th style="padding: 8px; text-align: right; font-size: 12px;">Target Cov %</th>
               <th style="padding: 8px; text-align: right; font-size: 12px;">Meets Target</th>
               <th style="padding: 8px; text-align: right; font-size: 12px;">Cost/Person</th>
             </tr>

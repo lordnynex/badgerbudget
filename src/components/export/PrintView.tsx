@@ -394,6 +394,13 @@ export function PrintView({ state, metrics }: PrintViewProps) {
                     <th className="border p-2 text-left">Attendance</th>
                     <th className="border p-2 text-right">Gross Revenue</th>
                     <th className="border p-2 text-right">Net Revenue</th>
+                    <th className="border p-2 text-right">Profit Margin</th>
+                    <th className="border p-2 text-right">Profit/Attendee</th>
+                    <th className="border p-2 text-right">Cost Coverage</th>
+                    <th className="border p-2 text-right">Rev/Ticket</th>
+                    <th className="border p-2 text-right">Attendee %</th>
+                    <th className="border p-2 text-right">Break-ev Att %</th>
+                    <th className="border p-2 text-right">Target Cov %</th>
                     <th className="border p-2 text-right">Meets Target</th>
                     <th className="border p-2 text-right">Cost/Person</th>
                   </tr>
@@ -416,6 +423,31 @@ export function PrintView({ state, metrics }: PrintViewProps) {
                         }`}
                       >
                         ${m.profit.toLocaleString()}
+                      </td>
+                      <td className="border p-2 text-right">
+                        {m.profitMargin.toFixed(1)}%
+                      </td>
+                      <td className="border p-2 text-right">
+                        ${m.profitPerAttendee.toFixed(0)}
+                      </td>
+                      <td className="border p-2 text-right">
+                        {m.costCoverageRatio.toFixed(2)}×
+                      </td>
+                      <td className="border p-2 text-right">
+                        ${m.avgRevenuePerTicket.toFixed(0)}
+                      </td>
+                      <td className="border p-2 text-right">
+                        {m.revenueMixAttendee.toFixed(0)}%
+                      </td>
+                      <td className="border p-2 text-right">
+                        {m.breakEvenAttendancePercent != null
+                          ? `${Math.round(m.breakEvenAttendancePercent)}%`
+                          : "—"}
+                      </td>
+                      <td className="border p-2 text-right">
+                        {m.profitTargetCoverage != null
+                          ? `${m.profitTargetCoverage.toFixed(0)}%`
+                          : "—"}
                       </td>
                       <td className="border p-2 text-right">
                         {m.profitVsBreakEven >= 0 ? "Yes" : "No"}

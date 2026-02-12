@@ -4,6 +4,9 @@ import { ROIChart } from "@/components/charts/ROIChart";
 import { PnLChart } from "@/components/charts/PnLChart";
 import { RevenueChart } from "@/components/charts/RevenueChart";
 import { CostPerAttendeeChart } from "@/components/charts/CostPerAttendeeChart";
+import { ProfitMarginChart } from "@/components/charts/ProfitMarginChart";
+import { ProfitPerAttendeeChart } from "@/components/charts/ProfitPerAttendeeChart";
+import { CostCoverageChart } from "@/components/charts/CostCoverageChart";
 import { cn } from "@/lib/utils";
 import type { ScenarioMetrics } from "@/types/budget";
 
@@ -51,6 +54,13 @@ function SingleScenarioTable({
                 <th className="p-2 text-left font-medium">Attendance</th>
                 <th className="p-2 text-right font-medium">Gross Revenue</th>
                 <th className="p-2 text-right font-medium">Net Revenue</th>
+                <th className="p-2 text-right font-medium">Profit Margin</th>
+                <th className="p-2 text-right font-medium">Profit/Attendee</th>
+                <th className="p-2 text-right font-medium">Cost Coverage</th>
+                <th className="p-2 text-right font-medium">Rev/Ticket</th>
+                <th className="p-2 text-right font-medium">Attendee %</th>
+                <th className="p-2 text-right font-medium">Break-ev Att %</th>
+                <th className="p-2 text-right font-medium">Target Cov %</th>
                 <th className="p-2 text-right font-medium">Meets target</th>
                 <th className="p-2 text-right font-medium">Cost/person</th>
               </tr>
@@ -76,6 +86,31 @@ function SingleScenarioTable({
                   >
                     ${m.profit.toLocaleString()}
                   </td>
+                  <td className="p-2 text-right tabular-nums">
+                    {m.profitMargin.toFixed(1)}%
+                  </td>
+                  <td className="p-2 text-right tabular-nums">
+                    ${m.profitPerAttendee.toFixed(0)}
+                  </td>
+                  <td className="p-2 text-right tabular-nums">
+                    {m.costCoverageRatio.toFixed(2)}×
+                  </td>
+                  <td className="p-2 text-right tabular-nums">
+                    ${m.avgRevenuePerTicket.toFixed(0)}
+                  </td>
+                  <td className="p-2 text-right tabular-nums">
+                    {m.revenueMixAttendee.toFixed(0)}%
+                  </td>
+                  <td className="p-2 text-right tabular-nums">
+                    {m.breakEvenAttendancePercent != null
+                      ? `${Math.round(m.breakEvenAttendancePercent)}%`
+                      : "—"}
+                  </td>
+                  <td className="p-2 text-right tabular-nums">
+                    {m.profitTargetCoverage != null
+                      ? `${m.profitTargetCoverage.toFixed(0)}%`
+                      : "—"}
+                  </td>
                   <td className="p-2 text-right">
                     {m.profitVsBreakEven >= 0 ? (
                       <span className="text-green-600">Yes</span>
@@ -99,6 +134,9 @@ function SingleScenarioTable({
           <PnLChart metrics={metrics} profitTarget={profitTarget} />
           <RevenueChart metrics={metrics} />
           <CostPerAttendeeChart metrics={metrics} />
+          <ProfitMarginChart metrics={metrics} />
+          <ProfitPerAttendeeChart metrics={metrics} />
+          <CostCoverageChart metrics={metrics} />
         </section>
       )}
     </div>

@@ -41,6 +41,21 @@ export function SummarySection({ metrics, filteredMetrics }: SummarySectionProps
   const dayPassRevenue =
     (inputs.dayPassPrice ?? 0) * (inputs.dayPassesSold ?? 0);
 
+  const breakEvenAttendances = filteredMetrics
+    .filter((m) => m.breakEvenAttendancePercent != null && m.breakEvenAttendancePercent >= 0 && m.breakEvenAttendancePercent <= 100)
+    .map((m) => m.breakEvenAttendancePercent!);
+  const breakEvenMin = breakEvenAttendances.length > 0 ? Math.min(...breakEvenAttendances) : null;
+  const breakEvenMax = breakEvenAttendances.length > 0 ? Math.max(...breakEvenAttendances) : null;
+
+  const bestScenario = filteredMetrics.length > 0
+    ? filteredMetrics.reduce((a, b) => (b.profit > a.profit ? b : a))
+    : null;
+  const worstProfitable = profitableScenarios.length > 0
+    ? profitableScenarios.reduce((a, b) => (b.profit < a.profit ? b : a))
+    : null;
+
+  const revenueMixScenario = bestScenario ?? filteredMetrics.find((m) => m.attendancePercent === 100);
+
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       <Card>
@@ -120,6 +135,77 @@ export function SummarySection({ metrics, filteredMetrics }: SummarySectionProps
             </p>
             <p className="text-muted-foreground text-xs mt-1">
               {inputs.dayPassesSold} passes × ${inputs.dayPassPrice}
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {breakEvenMin != null && (
+        <Card>
+          <CardHeader className="pb-2">
+            <h3 className="text-sm font-medium text-muted-foreground">Break-even attendance</h3>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold">
+              {breakEvenMin === breakEvenMax
+                ? `${Math.round(breakEvenMin)}%`
+                : `${Math.round(breakEvenMin)}–${Math.round(breakEvenMax)}%`}
+            </p>
+            <p className="text-muted-foreground text-xs mt-1">
+              Attendance % needed to break even across ticket/staff combos
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {bestScenario && (
+        <Card>
+          <CardHeader className="pb-2">
+            <h3 className="text-sm font-medium text-muted-foreground">Best scenario</h3>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-green-600">
+              ${bestScenario.profit.toLocaleString()}
+            </p>
+            <p className="text-muted-foreground text-xs mt-1">
+              ${bestScenario.ticketPrice} / Staff ${bestScenario.staffPrice} / {bestScenario.attendancePercent}%
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {worstProfitable && worstProfitable !== bestScenario && (
+        <Card>
+          <CardHeader className="pb-2">
+            <h3 className="text-sm font-medium text-muted-foreground">Worst profitable</h3>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold">
+              ${worstProfitable.profit.toLocaleString()}
+            </p>
+            <p className="text-muted-foreground text-xs mt-1">
+              Lowest profit among break-even+ scenarios
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {revenueMixScenario && (
+        <Card>
+          <CardHeader className="pb-2">
+            <h3 className="text-sm font-medium text-muted-foreground">Revenue mix</h3>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm">
+              <span className="font-medium">{revenueMixScenario.revenueMixAttendee.toFixed(0)}%</span> attendees
+              {" · "}
+              <span className="font-medium">{revenueMixScenario.revenueMixStaff.toFixed(0)}%</span> staff
+              {revenueMixScenario.revenueMixDayPass > 0 && (
+                <> · <span className="font-medium">{revenueMixScenario.revenueMixDayPass.toFixed(0)}%</span> day pass</>
+              )}
+            </p>
+            <p className="text-muted-foreground text-xs mt-1">
+              At best scenario
             </p>
           </CardContent>
         </Card>

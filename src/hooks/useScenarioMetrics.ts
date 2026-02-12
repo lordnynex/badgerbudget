@@ -35,16 +35,49 @@ export function useScenarioMetrics(
       const attendees = Math.round(maxOccupancy * mult);
       for (const ticketPrice of attendeePrices) {
         for (const staffPrice of staffPrices) {
-          const revenue =
-            attendees * ticketPrice +
-            staffCount * staffPrice +
-            dayPassRevenue;
+          const attendeeRevenue = attendees * ticketPrice;
+          const staffRevenue = staffCount * staffPrice;
+          const revenue = attendeeRevenue + staffRevenue + dayPassRevenue;
           const profit = revenue - totalCosts;
           const profitVsBreakEven = revenue - totalCostsWithProfitTarget;
           const totalPeople = attendees + staffCount;
           const roi = totalCosts > 0 ? profit / totalCosts : 0;
           const costPerAttendee =
             totalPeople > 0 ? totalCosts / totalPeople : 0;
+
+          const profitMargin =
+            revenue > 0 ? (profit / revenue) * 100 : 0;
+          const profitPerAttendee = attendees > 0 ? profit / attendees : 0;
+          const avgRevenuePerTicket =
+            totalPeople > 0 ? revenue / totalPeople : 0;
+          const costCoverageRatio =
+            totalCosts > 0 ? revenue / totalCosts : 0;
+
+          const revenueMixAttendee =
+            revenue > 0 ? (attendeeRevenue / revenue) * 100 : 0;
+          const revenueMixStaff =
+            revenue > 0 ? (staffRevenue / revenue) * 100 : 0;
+          const revenueMixDayPass =
+            revenue > 0 ? (dayPassRevenue / revenue) * 100 : 0;
+
+          const profitTargetCoverage =
+            profitVsBreakEven >= 0 && inputs.profitTarget > 0
+              ? (profit / inputs.profitTarget) * 100
+              : null;
+
+          let breakEvenAttendancePercent: number | null = null;
+          if (ticketPrice > 0) {
+            const breakEvenAttendees =
+              (totalCosts - staffRevenue - dayPassRevenue) / ticketPrice;
+            if (breakEvenAttendees >= 0 && breakEvenAttendees <= maxOccupancy) {
+              breakEvenAttendancePercent =
+                (breakEvenAttendees / maxOccupancy) * 100;
+            } else if (breakEvenAttendees < 0) {
+              breakEvenAttendancePercent = 0;
+            } else {
+              breakEvenAttendancePercent = (breakEvenAttendees / maxOccupancy) * 100;
+            }
+          }
 
           const percentLabel = `${Math.round(mult * 100)}%`;
           const scenarioKey = `$${ticketPrice} / Staff $${staffPrice} / ${percentLabel}`;
@@ -62,6 +95,15 @@ export function useScenarioMetrics(
             profitVsBreakEven,
             roi,
             costPerAttendee,
+            profitMargin,
+            profitPerAttendee,
+            avgRevenuePerTicket,
+            costCoverageRatio,
+            revenueMixAttendee,
+            revenueMixStaff,
+            revenueMixDayPass,
+            profitTargetCoverage,
+            breakEvenAttendancePercent,
           });
         }
       }
