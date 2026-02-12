@@ -5,15 +5,21 @@ interface ScenarioMatrixTableProps {
   metrics: ScenarioMetrics[];
 }
 
-export function ScenarioMatrixTable({ metrics }: ScenarioMatrixTableProps) {
+function SingleScenarioTable({
+  title,
+  metrics,
+}: {
+  title: string;
+  metrics: ScenarioMetrics[];
+}) {
   const sorted = [...metrics].sort((a, b) => a.profit - b.profit);
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Scenario matrix</CardTitle>
+        <CardTitle className="text-base">{title}</CardTitle>
         <CardDescription>
-          All scenarios sorted by profit. Find the lowest ticket price that breaks even.
+          {metrics[0]?.attendees} attendees. Gross = ticket income; Net = Gross − costs.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -21,9 +27,11 @@ export function ScenarioMatrixTable({ metrics }: ScenarioMatrixTableProps) {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-muted/50">
-                <th className="p-2 text-left font-medium">Scenario</th>
-                <th className="p-2 text-right font-medium">Revenue</th>
-                <th className="p-2 text-right font-medium">Profit</th>
+                <th className="p-2 text-left font-medium">Ticket Cost</th>
+                <th className="p-2 text-left font-medium">Staff Cost</th>
+                <th className="p-2 text-left font-medium">Attendance</th>
+                <th className="p-2 text-right font-medium">Gross Revenue</th>
+                <th className="p-2 text-right font-medium">Net Revenue</th>
                 <th className="p-2 text-right font-medium">Meets target</th>
                 <th className="p-2 text-right font-medium">Cost/person</th>
               </tr>
@@ -36,7 +44,9 @@ export function ScenarioMatrixTable({ metrics }: ScenarioMatrixTableProps) {
                     m.profit >= 0 ? "" : "bg-destructive/5"
                   }`}
                 >
-                  <td className="p-2">{m.scenarioKey}</td>
+                  <td className="p-2">${m.ticketPrice}</td>
+                  <td className="p-2">${m.staffPrice}</td>
+                  <td className="p-2">{m.attendancePercent}%</td>
                   <td className="p-2 text-right tabular-nums">
                     ${m.revenue.toLocaleString()}
                   </td>
@@ -64,5 +74,34 @@ export function ScenarioMatrixTable({ metrics }: ScenarioMatrixTableProps) {
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+export function ScenarioMatrixTable({ metrics }: ScenarioMatrixTableProps) {
+  const byAttendance = metrics.reduce(
+    (acc, m) => {
+      const key = m.attendancePercent;
+      if (!acc[key]) acc[key] = [];
+      acc[key].push(m);
+      return acc;
+    },
+    {} as Record<number, ScenarioMetrics[]>
+  );
+
+  const attendanceLevels = Object.keys(byAttendance)
+    .map(Number)
+    .sort((a, b) => a - b);
+
+  return (
+    <div className="space-y-6">
+      <h2 className="text-lg font-semibold">Scenario matrix</h2>
+      {attendanceLevels.map((pct) => (
+        <SingleScenarioTable
+          key={pct}
+          title={`${pct}% attendance`}
+          metrics={byAttendance[pct]}
+        />
+      ))}
+    </div>
   );
 }

@@ -87,8 +87,8 @@ export function PrintView({ state, metrics }: PrintViewProps) {
           <thead>
             <tr className="bg-gray-100">
               <th className="border p-2 text-left">Scenario</th>
-              <th className="border p-2 text-right">Revenue</th>
-              <th className="border p-2 text-right">Profit</th>
+              <th className="border p-2 text-right">Gross Revenue</th>
+              <th className="border p-2 text-right">Net Revenue</th>
               <th className="border p-2 text-right">Cost/Person</th>
             </tr>
           </thead>

@@ -5,6 +5,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import type { ScenarioMetrics } from "@/types/budget";
 
@@ -33,7 +34,12 @@ export function ScenarioFilter({
   const uniqueKeys = [...new Set(metrics.map((m) => m.scenarioKey))].sort();
 
   return (
-    <div className="flex flex-wrap items-end gap-4">
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base">Filter scenarios</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="flex flex-wrap items-end gap-4">
       <div className="space-y-2">
         <Label>Scenario</Label>
         <Select
@@ -127,6 +133,8 @@ export function ScenarioFilter({
           </SelectContent>
         </Select>
       </div>
-    </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

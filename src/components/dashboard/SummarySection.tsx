@@ -66,7 +66,7 @@ export function SummarySection({ metrics, filteredMetrics }: SummarySectionProps
             ${totalWithProfitTarget.toLocaleString("en-US", { minimumFractionDigits: 2 })}
           </p>
           <p className="text-muted-foreground text-xs mt-1">
-            Breakeven revenue to meet target
+            Gross revenue needed to meet profit target
           </p>
         </CardContent>
       </Card>
@@ -112,7 +112,7 @@ export function SummarySection({ metrics, filteredMetrics }: SummarySectionProps
       {dayPassRevenue > 0 && (
         <Card>
           <CardHeader className="pb-2">
-            <h3 className="text-sm font-medium text-muted-foreground">Day pass revenue</h3>
+            <h3 className="text-sm font-medium text-muted-foreground">Day pass (gross)</h3>
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold">

@@ -16,8 +16,6 @@ export function BudgetScenarioSelectors() {
     selectedScenarioId,
     selectBudget,
     selectScenario,
-    currentBudget,
-    currentScenario,
   } = useAppState();
 
   return (
@@ -39,11 +37,6 @@ export function BudgetScenarioSelectors() {
             ))}
           </SelectContent>
         </Select>
-        {currentBudget?.description && (
-          <p className="text-muted-foreground max-w-[220px] text-xs">
-            {currentBudget.description}
-          </p>
-        )}
       </div>
       <div className="space-y-2">
         <Label>Scenario</Label>
@@ -62,11 +55,6 @@ export function BudgetScenarioSelectors() {
             ))}
           </SelectContent>
         </Select>
-        {currentScenario?.description && (
-          <p className="text-muted-foreground max-w-[220px] text-xs">
-            {currentScenario.description}
-          </p>
-        )}
       </div>
     </div>
   );

@@ -40,12 +40,12 @@ export function EmailView({ state, metrics }: EmailViewProps) {
   <h2 style="font-size: 18px; margin-top: 24px; margin-bottom: 8px;">Budget Total</h2>
   <p style="font-size: 18px; font-weight: bold;">$${totalCosts.toLocaleString("en-US", { minimumFractionDigits: 2 })}</p>
 
-  <h2 style="font-size: 18px; margin-top: 24px; margin-bottom: 8px;">Top Scenarios by Profit</h2>
+  <h2 style="font-size: 18px; margin-top: 24px; margin-bottom: 8px;">Top Scenarios by Net Revenue</h2>
   <table style="width: 100%; border-collapse: collapse;">
     <tr style="background: #f5f5f5;">
       <th style="padding: 8px; text-align: left;">Scenario</th>
-      <th style="padding: 8px; text-align: right;">Revenue</th>
-      <th style="padding: 8px; text-align: right;">Profit</th>
+      <th style="padding: 8px; text-align: right;">Gross Revenue</th>
+      <th style="padding: 8px; text-align: right;">Net Revenue</th>
       <th style="padding: 8px; text-align: right;">Cost/Person</th>
     </tr>
     ${topScenarios

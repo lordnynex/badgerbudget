@@ -18,8 +18,10 @@ import {
   type ScenarioFilterState,
 } from "@/components/dashboard/ScenarioFilter";
 import { SummarySection } from "@/components/dashboard/SummarySection";
+import { FoodCostBreakdown } from "@/components/dashboard/FoodCostBreakdown";
 import { ScenarioDetailCard } from "@/components/dashboard/ScenarioDetailCard";
 import { ScenarioMatrixTable } from "@/components/dashboard/ScenarioMatrixTable";
+import { ScenarioProfitHeatmap } from "@/components/scenarios/ScenarioProfitHeatmap";
 
 interface MainProps {
   activeTab: string;
@@ -59,13 +61,14 @@ export function Main({ activeTab, onTabChange, onPrint, onEmail }: MainProps) {
               <ExportDropdown onPrint={onPrint} onEmail={onEmail} />
             )}
           </div>
-          <InputsPanel />
-          <SummarySection metrics={metrics} filteredMetrics={filteredMetrics} />
           <ScenarioFilter
             metrics={metrics}
             filter={filter}
             onFilterChange={setFilter}
           />
+          <InputsPanel />
+          <SummarySection metrics={metrics} filteredMetrics={filteredMetrics} />
+          <FoodCostBreakdown lineItems={getLineItems()} inputs={getInputs()} />
           <section className="grid gap-6 md:grid-cols-2">
             <CostPerCategoryChart lineItems={getLineItems()} />
             <CostPerCategoryBarChart lineItems={getLineItems()} />
@@ -74,6 +77,7 @@ export function Main({ activeTab, onTabChange, onPrint, onEmail }: MainProps) {
             <ScenarioDetailCard metric={filteredMetrics[0]} />
           ) : filteredMetrics.length > 1 && filteredMetrics.length <= 12 ? (
             <>
+              <ScenarioProfitHeatmap metrics={metrics} />
               <ScenarioMatrixTable metrics={filteredMetrics} />
               {showCharts && (
                 <section className="grid gap-6 md:grid-cols-2">
@@ -85,7 +89,10 @@ export function Main({ activeTab, onTabChange, onPrint, onEmail }: MainProps) {
               )}
             </>
           ) : (
-            <ScenarioMatrixTable metrics={filteredMetrics} />
+            <>
+              <ScenarioProfitHeatmap metrics={metrics} />
+              <ScenarioMatrixTable metrics={filteredMetrics} />
+            </>
           )}
         </>
       )}

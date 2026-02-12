@@ -13,7 +13,7 @@ export function PnLChart({ metrics }: PnLChartProps) {
 
   const series = [
     {
-      name: "Profit / Loss",
+      name: "Net Revenue",
       data: profit,
     },
   ];
@@ -45,7 +45,7 @@ export function PnLChart({ metrics }: PnLChartProps) {
       labels: { rotate: -45 },
     },
     yaxis: {
-      title: { text: "Profit / Loss ($)" },
+      title: { text: "Net Revenue ($)" },
     },
     grid: {
       borderColor: "rgba(255,255,255,0.1)",
@@ -56,9 +56,9 @@ export function PnLChart({ metrics }: PnLChartProps) {
 
   return (
     <ChartCard
-      title="Profit & Loss by Scenario"
-      description="Whether each scenario makes or loses money. Green bars mean profit; red bars mean loss."
-      calculationNote="Revenue − Total Costs"
+      title="Net Revenue by Scenario"
+      description="Gross revenue minus total costs. Green = profitable; red = loss."
+      calculationNote="Gross Revenue − Total Costs"
     >
       <Chart
         options={options}

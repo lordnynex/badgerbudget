@@ -19,16 +19,17 @@ export function ScenarioDetailCard({ metric }: ScenarioDetailCardProps) {
       </CardHeader>
       <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div>
-          <p className="text-muted-foreground text-xs">Revenue</p>
+          <p className="text-muted-foreground text-xs">Gross Revenue</p>
           <p className="text-lg font-semibold">${metric.revenue.toLocaleString()}</p>
+          <p className="text-muted-foreground text-xs">Ticket income</p>
         </div>
         <div>
-          <p className="text-muted-foreground text-xs">Profit (vs raw cost)</p>
+          <p className="text-muted-foreground text-xs">Net Revenue</p>
           <p className={`text-lg font-semibold ${profitable ? "text-green-500" : "text-red-500"}`}>
             ${metric.profit.toLocaleString()}
           </p>
           <p className="text-muted-foreground text-xs">
-            {profitable ? "Covers event costs" : "Does not cover costs"}
+            {profitable ? "Gross − costs" : "Does not cover costs"}
           </p>
         </div>
         <div>

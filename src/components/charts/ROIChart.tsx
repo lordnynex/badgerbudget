@@ -13,7 +13,7 @@ export function ROIChart({ metrics }: ROIChartProps) {
 
   const series = [
     {
-      name: "ROI (Profit/Costs)",
+      name: "ROI (Net Revenue/Costs)",
       data: roi.map((v) => Math.round(v * 100) / 100),
     },
   ];
@@ -56,8 +56,8 @@ export function ROIChart({ metrics }: ROIChartProps) {
   return (
     <ChartCard
       title="Return on Investment (ROI)"
-      description="How much profit you make for each dollar spent. Positive values mean the event is profitable relative to costs."
-      calculationNote="Profit ÷ Total Costs"
+      description="Net revenue per dollar of cost. Positive values mean the event is profitable."
+      calculationNote="Net Revenue ÷ Total Costs"
     >
       <Chart
         options={options}

@@ -44,7 +44,7 @@ export function RevenueChart({ metrics }: RevenueChartProps) {
       labels: { rotate: -45 },
     },
     yaxis: {
-      title: { text: "Revenue ($)" },
+      title: { text: "Gross Revenue ($)" },
     },
     grid: {
       borderColor: "rgba(255,255,255,0.1)",
@@ -56,7 +56,7 @@ export function RevenueChart({ metrics }: RevenueChartProps) {
   return (
     <ChartCard
       title="Gross Revenue Projections"
-      description="Total ticket income for each scenario. Higher attendance and ticket prices increase revenue."
+      description="Gross revenue: total ticket income before costs. Higher attendance and ticket prices increase revenue."
       calculationNote="(Attendees × Ticket Price) + (Staff × Staff Price)"
     >
       <Chart
