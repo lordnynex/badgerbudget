@@ -12,6 +12,7 @@ interface EditableNumberInputProps
   max?: number;
   step?: number;
   className?: string;
+  readOnly?: boolean;
 }
 
 export function EditableNumberInput({
@@ -22,6 +23,7 @@ export function EditableNumberInput({
   max,
   step = 1,
   className,
+  readOnly,
   ...props
 }: EditableNumberInputProps) {
   const [raw, setRaw] = React.useState(String(value));
@@ -60,6 +62,9 @@ export function EditableNumberInput({
         value={raw}
         onChange={handleChange}
         onBlur={handleBlur}
+        readOnly={readOnly}
+        disabled={readOnly}
+        className={cn(readOnly && "bg-muted cursor-default")}
       />
     </div>
   );

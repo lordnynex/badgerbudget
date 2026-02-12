@@ -1,7 +1,11 @@
 import { useAppState } from "@/state/AppState";
 import { EditableNumberInput } from "./EditableNumberInput";
 
-export function TicketPriceInputs() {
+interface TicketPriceInputsProps {
+  readOnly?: boolean;
+}
+
+export function TicketPriceInputs({ readOnly }: TicketPriceInputsProps) {
   const { getInputs, updateScenarioInputs, selectedScenarioId } = useAppState();
   const tp = getInputs().ticketPrices;
 
@@ -21,18 +25,21 @@ export function TicketPriceInputs() {
             value={tp.proposedPrice1}
             onChange={(v) => handleUpdate({ proposedPrice1: v })}
             min={0}
+            readOnly={readOnly}
           />
           <EditableNumberInput
             label="Price 2 ($)"
             value={tp.proposedPrice2}
             onChange={(v) => handleUpdate({ proposedPrice2: v })}
             min={0}
+            readOnly={readOnly}
           />
           <EditableNumberInput
             label="Price 3 ($)"
             value={tp.proposedPrice3}
             onChange={(v) => handleUpdate({ proposedPrice3: v })}
             min={0}
+            readOnly={readOnly}
           />
         </div>
       </div>
@@ -44,18 +51,21 @@ export function TicketPriceInputs() {
             value={tp.staffPrice1}
             onChange={(v) => handleUpdate({ staffPrice1: v })}
             min={0}
+            readOnly={readOnly}
           />
           <EditableNumberInput
             label="Staff Price 2 ($)"
             value={tp.staffPrice2}
             onChange={(v) => handleUpdate({ staffPrice2: v })}
             min={0}
+            readOnly={readOnly}
           />
           <EditableNumberInput
             label="Staff Price 3 ($)"
             value={tp.staffPrice3}
             onChange={(v) => handleUpdate({ staffPrice3: v })}
             min={0}
+            readOnly={readOnly}
           />
         </div>
       </div>

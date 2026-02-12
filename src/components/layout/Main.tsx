@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { InputsPanel } from "@/components/inputs/InputsPanel";
 import { BudgetsPanel } from "@/components/budget/BudgetsPanel";
 import { ScenariosPanel } from "@/components/scenarios/ScenariosPanel";
@@ -9,15 +8,11 @@ import { CostPerCategoryChart } from "@/components/charts/CostPerCategoryChart";
 import { CostPerCategoryBarChart } from "@/components/charts/CostPerCategoryBarChart";
 import { useAppState } from "@/state/AppState";
 import { useScenarioMetrics } from "@/hooks/useScenarioMetrics";
-import {
-  ScenarioFilter,
-  type ScenarioFilterState,
-} from "@/components/dashboard/ScenarioFilter";
 import { SummarySection } from "@/components/dashboard/SummarySection";
 import { FoodCostBreakdown } from "@/components/dashboard/FoodCostBreakdown";
-import { ScenarioDetailCard } from "@/components/dashboard/ScenarioDetailCard";
 import { ScenarioMatrixTable } from "@/components/dashboard/ScenarioMatrixTable";
 import { ScenarioProfitHeatmap } from "@/components/scenarios/ScenarioProfitHeatmap";
+import { ProjectionsSubNav } from "./ProjectionsSubNav";
 
 interface MainProps {
   activeTab: string;
@@ -29,20 +24,6 @@ interface MainProps {
 export function Main({ activeTab, onTabChange, onPrint, onEmail }: MainProps) {
   const { getInputs, getLineItems } = useAppState();
   const metrics = useScenarioMetrics(getInputs(), getLineItems());
-  const [filter, setFilter] = useState<ScenarioFilterState>({
-    scenarioKey: null,
-    ticketPrice: null,
-    staffPrice: null,
-    attendancePercent: null,
-  });
-
-  const filteredMetrics = metrics.filter((m) => {
-    if (filter.scenarioKey != null) return m.scenarioKey === filter.scenarioKey;
-    if (filter.ticketPrice != null && m.ticketPrice !== filter.ticketPrice) return false;
-    if (filter.staffPrice != null && m.staffPrice !== filter.staffPrice) return false;
-    if (filter.attendancePercent != null && m.attendancePercent !== filter.attendancePercent) return false;
-    return true;
-  });
 
   return (
     <main className="space-y-6 p-4 md:p-6">
@@ -55,37 +36,25 @@ export function Main({ activeTab, onTabChange, onPrint, onEmail }: MainProps) {
               <ExportDropdown onPrint={onPrint} onEmail={onEmail} />
             )}
           </div>
-          <ScenarioFilter
-            metrics={metrics}
-            filter={filter}
-            onFilterChange={setFilter}
-          />
-          <InputsPanel />
-          <SummarySection metrics={metrics} filteredMetrics={filteredMetrics} />
-          <FoodCostBreakdown lineItems={getLineItems()} inputs={getInputs()} />
-          <section className="grid gap-6 md:grid-cols-2">
+          <InputsPanel readOnly onEditScenario={() => onTabChange("scenarios")} />
+          <ProjectionsSubNav />
+          <section id="summary" className="scroll-mt-6">
+            <SummarySection metrics={metrics} filteredMetrics={metrics} />
+          </section>
+          <section id="food-cost" className="scroll-mt-6">
+            <FoodCostBreakdown lineItems={getLineItems()} inputs={getInputs()} />
+          </section>
+          <section id="cost-analysis" className="scroll-mt-6 grid gap-6 md:grid-cols-2">
             <CostPerCategoryChart lineItems={getLineItems()} />
             <CostPerCategoryBarChart lineItems={getLineItems()} />
           </section>
-          {filteredMetrics.length === 1 ? (
-            <ScenarioDetailCard metric={filteredMetrics[0]} />
-          ) : filteredMetrics.length > 1 && filteredMetrics.length <= 12 ? (
-            <>
-              <ScenarioProfitHeatmap metrics={metrics} />
-              <ScenarioMatrixTable
-                metrics={filteredMetrics}
-                profitTarget={getInputs().profitTarget}
-              />
-            </>
-          ) : (
-            <>
-              <ScenarioProfitHeatmap metrics={metrics} />
-              <ScenarioMatrixTable
-                metrics={filteredMetrics}
-                profitTarget={getInputs().profitTarget}
-              />
-            </>
-          )}
+          <section id="scenario-matrix" className="scroll-mt-6 space-y-6">
+            <ScenarioProfitHeatmap metrics={metrics} />
+            <ScenarioMatrixTable
+              metrics={metrics}
+              profitTarget={getInputs().profitTarget}
+            />
+          </section>
         </>
       )}
       {activeTab === "budget" && <BudgetsPanel />}
