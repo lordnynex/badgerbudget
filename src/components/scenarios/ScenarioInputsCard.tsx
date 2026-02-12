@@ -10,6 +10,7 @@ const DEFAULT_INPUTS: Inputs = {
   profitTarget: 2500,
   staffCount: 14,
   maxOccupancy: 75,
+  complimentaryTickets: 0,
   dayPassPrice: 50,
   dayPassesSold: 0,
   ticketPrices: {
@@ -93,6 +94,12 @@ export function ScenarioInputsCard() {
             label="Staff Count"
             value={inputs.staffCount}
             onChange={(v) => handleUpdate({ staffCount: v })}
+            min={0}
+          />
+          <EditableNumberInput
+            label="Complimentary Tickets"
+            value={inputs.complimentaryTickets ?? 0}
+            onChange={(v) => handleUpdate({ complimentaryTickets: v })}
             min={0}
           />
           <EditableNumberInput

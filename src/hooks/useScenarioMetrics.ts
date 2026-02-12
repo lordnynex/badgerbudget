@@ -26,6 +26,7 @@ export function useScenarioMetrics(
     ];
     const staffCount = inputs.staffCount;
     const maxOccupancy = inputs.maxOccupancy;
+    const complimentaryTickets = inputs.complimentaryTickets ?? 0;
     const dayPassRevenue =
       (inputs.dayPassPrice ?? 0) * (inputs.dayPassesSold ?? 0);
 
@@ -33,9 +34,10 @@ export function useScenarioMetrics(
 
     for (const mult of ATTENDANCE_MULTIPLIERS) {
       const attendees = Math.round(maxOccupancy * mult);
+      const paidAttendees = Math.max(0, attendees - complimentaryTickets);
       for (const ticketPrice of attendeePrices) {
         for (const staffPrice of staffPrices) {
-          const attendeeRevenue = attendees * ticketPrice;
+          const attendeeRevenue = paidAttendees * ticketPrice;
           const staffRevenue = staffCount * staffPrice;
           const revenue = attendeeRevenue + staffRevenue + dayPassRevenue;
           const profit = revenue - totalCosts;
@@ -67,15 +69,15 @@ export function useScenarioMetrics(
 
           let breakEvenAttendancePercent: number | null = null;
           if (ticketPrice > 0) {
-            const breakEvenAttendees =
+            const breakEvenPaidAttendees =
               (totalCosts - staffRevenue - dayPassRevenue) / ticketPrice;
-            if (breakEvenAttendees >= 0 && breakEvenAttendees <= maxOccupancy) {
-              breakEvenAttendancePercent =
-                (breakEvenAttendees / maxOccupancy) * 100;
-            } else if (breakEvenAttendees < 0) {
+            if (breakEvenPaidAttendees < 0) {
               breakEvenAttendancePercent = 0;
             } else {
-              breakEvenAttendancePercent = (breakEvenAttendees / maxOccupancy) * 100;
+              const breakEvenTotalAttendees =
+                breakEvenPaidAttendees + complimentaryTickets;
+              breakEvenAttendancePercent =
+                (breakEvenTotalAttendees / maxOccupancy) * 100;
             }
           }
 

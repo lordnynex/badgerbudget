@@ -22,6 +22,7 @@ const DEFAULT_INPUTS: Inputs = {
   profitTarget: 2500,
   staffCount: 14,
   maxOccupancy: 75,
+  complimentaryTickets: 0,
   dayPassPrice: 50,
   dayPassesSold: 0,
   ticketPrices: {
@@ -207,7 +208,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const updateScenarioInputs = useCallback(async (scenarioId: string, inputs: Partial<Inputs>) => {
-    const current = state.currentScenario?.inputs ?? DEFAULT_INPUTS;
+    const current = { ...DEFAULT_INPUTS, ...(state.currentScenario?.inputs ?? {}) };
     const merged = { ...current, ...inputs };
     await api.scenarios.update(scenarioId, { inputs: merged });
     dispatch({ type: "UPDATE_SCENARIO_INPUTS_LOCAL", payload: inputs });
@@ -248,7 +249,8 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const getInputs = useCallback((): Inputs => {
-    return state.currentScenario?.inputs ?? DEFAULT_INPUTS;
+    const base = state.currentScenario?.inputs ?? {};
+    return { ...DEFAULT_INPUTS, ...base };
   }, [state.currentScenario]);
 
   const getLineItems = useCallback((): LineItem[] => {

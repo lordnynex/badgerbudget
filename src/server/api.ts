@@ -4,6 +4,7 @@ const DEFAULT_INPUTS = {
   profitTarget: 2500,
   staffCount: 14,
   maxOccupancy: 75,
+  complimentaryTickets: 0,
   dayPassPrice: 50,
   dayPassesSold: 0,
   ticketPrices: {

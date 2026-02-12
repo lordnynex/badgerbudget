@@ -110,6 +110,7 @@ function migrateInputs(legacy: LegacyExport): Inputs {
     profitTarget: bs?.profit_target ?? 2500,
     staffCount: bs?.staff_count ?? 14,
     maxOccupancy: bs?.max_occupancy ?? 75,
+    complimentaryTickets: (bs as { complimentary_tickets?: number })?.complimentary_tickets ?? 0,
     dayPassPrice: (bs as { day_pass_price?: number })?.day_pass_price ?? 50,
     dayPassesSold: (bs as { day_passes_sold?: number })?.day_passes_sold ?? 0,
     ticketPrices: ensureTicketPrices({
@@ -153,8 +154,10 @@ function normalizeMigratedState(raw: BadgerBudgetState): BadgerBudgetState {
   const tp = raw.inputs.ticketPrices as Record<string, number>;
   const hasDayPass =
     "dayPassPrice" in raw.inputs && "dayPassesSold" in raw.inputs;
+  const hasComplimentary =
+    "complimentaryTickets" in raw.inputs;
   const needsTicketFix = !(tp.staffPrice1 && tp.staffPrice2 && tp.staffPrice3);
-  if (!needsTicketFix && hasDayPass) return raw;
+  if (!needsTicketFix && hasDayPass && hasComplimentary) return raw;
   return {
     ...raw,
     inputs: {
@@ -164,6 +167,7 @@ function normalizeMigratedState(raw: BadgerBudgetState): BadgerBudgetState {
         dayPassPrice: 50,
         dayPassesSold: 0,
       }),
+      ...(!hasComplimentary && { complimentaryTickets: 0 }),
     },
   };
 }

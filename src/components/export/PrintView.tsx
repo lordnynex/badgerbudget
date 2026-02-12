@@ -239,6 +239,10 @@ export function PrintView({ state, metrics }: PrintViewProps) {
               <td className="border px-2 py-1">{state.inputs.staffCount}</td>
             </tr>
             <tr>
+              <td className="border px-2 py-1 font-medium">Complimentary Tickets</td>
+              <td className="border px-2 py-1">{state.inputs.complimentaryTickets ?? 0}</td>
+            </tr>
+            <tr>
               <td className="border px-2 py-1 font-medium">Profit Target</td>
               <td className="border px-2 py-1">${state.inputs.profitTarget}</td>
             </tr>

@@ -10,6 +10,7 @@ export interface Inputs {
   profitTarget: number;
   staffCount: number;
   maxOccupancy: number;
+  complimentaryTickets: number;
   dayPassPrice: number;
   dayPassesSold: number;
   ticketPrices: {

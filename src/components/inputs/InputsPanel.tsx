@@ -75,6 +75,13 @@ export function InputsPanel({ readOnly, onEditScenario }: InputsPanelProps) {
               readOnly={readOnly}
             />
             <EditableNumberInput
+              label="Complimentary Tickets"
+              value={inputs.complimentaryTickets ?? 0}
+              onChange={(v) => handleUpdate({ complimentaryTickets: v })}
+              min={0}
+              readOnly={readOnly}
+            />
+            <EditableNumberInput
               label="Profit Target ($)"
               value={inputs.profitTarget}
               onChange={(v) => handleUpdate({ profitTarget: v })}
