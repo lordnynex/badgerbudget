@@ -1,8 +1,12 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Inputs, LineItem } from "@/types/budget";
 
-const FOOD_CATEGORY = "Food & Beverage";
+const FOOD_CATEGORIES = ["Food & Beverage", "Food", "Beverage"];
 const EVENT_DAYS = 4;
+
+function isFoodCategory(category: string): boolean {
+  return FOOD_CATEGORIES.includes(category);
+}
 
 interface FoodCostBreakdownProps {
   lineItems: LineItem[];
@@ -11,7 +15,7 @@ interface FoodCostBreakdownProps {
 
 export function FoodCostBreakdown({ lineItems, inputs }: FoodCostBreakdownProps) {
   const totalFoodCost = lineItems
-    .filter((li) => li.category === FOOD_CATEGORY)
+    .filter((li) => isFoodCategory(li.category))
     .reduce((sum, li) => sum + li.unitCost * li.quantity, 0);
 
   const maxOccupancy = inputs.maxOccupancy;
@@ -35,7 +39,7 @@ export function FoodCostBreakdown({ lineItems, inputs }: FoodCostBreakdownProps)
         <CardHeader>
           <CardTitle>Food cost breakdown</CardTitle>
           <CardDescription>
-            No Food & Beverage line items in this budget.
+            No food or beverage line items in this budget.
           </CardDescription>
         </CardHeader>
       </Card>

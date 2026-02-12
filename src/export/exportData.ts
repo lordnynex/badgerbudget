@@ -1,7 +1,11 @@
 import type { Inputs, LineItem, ScenarioMetrics } from "@/types/budget";
 
-const FOOD_CATEGORY = "Food & Beverage";
+const FOOD_CATEGORIES = ["Food & Beverage", "Food", "Beverage"];
 const EVENT_DAYS = 4;
+
+function isFoodCategory(category: string): boolean {
+  return FOOD_CATEGORIES.includes(category);
+}
 
 export interface ExportSummary {
   totalCosts: number;
@@ -207,7 +211,7 @@ export function computeExportFoodCost(
   lineItems: LineItem[]
 ): ExportFoodCost | null {
   const totalFoodCost = lineItems
-    .filter((li) => li.category === FOOD_CATEGORY)
+    .filter((li) => isFoodCategory(li.category))
     .reduce((sum, li) => sum + li.unitCost * li.quantity, 0);
 
   if (totalFoodCost === 0) return null;
