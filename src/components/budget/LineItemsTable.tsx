@@ -52,11 +52,10 @@ export function LineItemsTable() {
             <thead>
               <tr className="border-b bg-muted/50">
                 <th className="p-2 text-left font-medium">Name</th>
-                <th className="p-2 text-left font-medium">Category</th>
                 <th className="p-2 text-left font-medium">Unit Cost</th>
                 <th className="p-2 text-left font-medium">Qty</th>
                 <th className="p-2 text-right font-medium">Total</th>
-                <th className="p-2 text-left font-medium">Historical</th>
+                <th className="p-2 text-left font-medium">Category</th>
                 <th className="p-2 text-left font-medium">Comments</th>
                 <th className="p-2 w-12" />
               </tr>

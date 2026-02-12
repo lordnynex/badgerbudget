@@ -38,34 +38,6 @@ export function LineItemRow({
           className="h-8 text-sm"
         />
       </td>
-      <td className="p-2 min-w-[120px]">
-        <Select
-          value={categories.includes(item.category) ? item.category : categories[0]}
-          onValueChange={(v) => {
-            if (v === "__add__") {
-              const name = window.prompt("New category name:");
-              if (name?.trim()) {
-                onAddCategory(name.trim());
-                onUpdate(item.id, { category: name.trim() });
-              }
-            } else {
-              onUpdate(item.id, { category: v });
-            }
-          }}
-        >
-          <SelectTrigger className="h-8 text-sm" size="sm">
-            <SelectValue placeholder="Category" />
-          </SelectTrigger>
-          <SelectContent>
-            {categories.map((c) => (
-              <SelectItem key={c} value={c}>
-                {c}
-              </SelectItem>
-            ))}
-            <SelectItem value="__add__">+ Add category</SelectItem>
-          </SelectContent>
-        </Select>
-      </td>
       <td className="p-2 w-24">
         <Input
           type="number"
@@ -95,16 +67,33 @@ export function LineItemRow({
       <td className="p-2 text-right font-medium tabular-nums">
         ${total.toLocaleString("en-US", { minimumFractionDigits: 2 })}
       </td>
-      <td className="p-2 text-muted-foreground text-xs">
-        {item.historicalCosts?.badger_59 != null && (
-          <span title="Badger 59">59: ${item.historicalCosts.badger_59}</span>
-        )}
-        {item.historicalCosts?.badger_60 != null && (
-          <span title="Badger 60"> 60: ${item.historicalCosts.badger_60}</span>
-        )}
-        {item.historicalCosts?.badger_south != null && (
-          <span title="Badger South"> So: ${item.historicalCosts.badger_south}</span>
-        )}
+      <td className="p-2 min-w-[120px]">
+        <Select
+          value={categories.includes(item.category) ? item.category : categories[0]}
+          onValueChange={(v) => {
+            if (v === "__add__") {
+              const name = window.prompt("New category name:");
+              if (name?.trim()) {
+                onAddCategory(name.trim());
+                onUpdate(item.id, { category: name.trim() });
+              }
+            } else {
+              onUpdate(item.id, { category: v });
+            }
+          }}
+        >
+          <SelectTrigger className="h-8 text-sm" size="sm">
+            <SelectValue placeholder="Category" />
+          </SelectTrigger>
+          <SelectContent>
+            {categories.map((c) => (
+              <SelectItem key={c} value={c}>
+                {c}
+              </SelectItem>
+            ))}
+            <SelectItem value="__add__">+ Add category</SelectItem>
+          </SelectContent>
+        </Select>
       </td>
       <td className="p-2 max-w-[160px]">
         <Input
