@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Plus } from "lucide-react";
+import { Pencil, Plus } from "lucide-react";
 import { useAppState } from "@/state/AppState";
 import { api } from "@/data/api";
 import {
@@ -22,11 +22,16 @@ export function BudgetsPanel() {
     currentBudget,
     selectBudget,
     refreshBudgets,
+    refreshBudget,
   } = useAppState();
   const [createOpen, setCreateOpen] = useState(false);
   const [newName, setNewName] = useState("");
   const [newYear, setNewYear] = useState(new Date().getFullYear());
   const [newDescription, setNewDescription] = useState("");
+  const [editOpen, setEditOpen] = useState(false);
+  const [editingBudget, setEditingBudget] = useState<{ id: string; name: string; year: number; description: string | null } | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editDescription, setEditDescription] = useState("");
 
   const handleCreate = async () => {
     if (!newName.trim()) return;
@@ -49,6 +54,27 @@ export function BudgetsPanel() {
     await refreshBudgets();
     const remaining = budgets.filter((b) => b.id !== id);
     await selectBudget(remaining[0]?.id ?? null);
+  };
+
+  const openEdit = (b: { id: string; name: string; year: number; description: string | null }) => {
+    setEditingBudget(b);
+    setEditName(b.name);
+    setEditDescription(b.description ?? "");
+    setEditOpen(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingBudget || !editName.trim()) return;
+    await api.budgets.update(editingBudget.id, {
+      name: editName.trim(),
+      description: editDescription.trim(),
+    });
+    await refreshBudgets();
+    if (currentBudget?.id === editingBudget.id) {
+      await refreshBudget(editingBudget.id);
+    }
+    setEditOpen(false);
+    setEditingBudget(null);
   };
 
   return (
@@ -86,14 +112,26 @@ export function BudgetsPanel() {
                     </p>
                   )}
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleDelete(b.id)}
-                  className="text-destructive hover:text-destructive"
-                >
-                  Delete
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => openEdit(b)}
+                    title="Edit budget"
+                  >
+                    <Pencil className="size-4" />
+                    Edit
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleDelete(b.id)}
+                    title="Delete budget"
+                    className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                  >
+                    Delete
+                  </Button>
+                </div>
               </div>
             ))}
           </div>
@@ -101,6 +139,39 @@ export function BudgetsPanel() {
       </Card>
 
       <LineItemsTable />
+
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Budget</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Name</Label>
+              <Input
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                placeholder="e.g. Badger South 2025"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Description</Label>
+              <Textarea
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value)}
+                placeholder="Describe this budget..."
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveEdit}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent>

@@ -20,7 +20,7 @@ function AppContent() {
   const metrics = useScenarioMetrics(getInputs(), getLineItems());
   const [printMode, setPrintMode] = useState(false);
   const [emailOpen, setEmailOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState("overview");
+  const [activeTab, setActiveTab] = useState("events");
 
   const stateForExport = {
     inputs: getInputs(),
@@ -43,13 +43,13 @@ function AppContent() {
         </div>
       ) : (
         <>
-          <Header
+          <Header activeTab={activeTab} onTabChange={setActiveTab} />
+          <Main
             activeTab={activeTab}
             onTabChange={setActiveTab}
             onPrint={() => setPrintMode(true)}
             onEmail={() => setEmailOpen(true)}
           />
-          <Main activeTab={activeTab} onTabChange={setActiveTab} />
         </>
       )}
 

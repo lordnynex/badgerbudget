@@ -2,7 +2,9 @@ import { useState } from "react";
 import { InputsPanel } from "@/components/inputs/InputsPanel";
 import { BudgetsPanel } from "@/components/budget/BudgetsPanel";
 import { ScenariosPanel } from "@/components/scenarios/ScenariosPanel";
+import { EventsPanel } from "@/components/events/EventsPanel";
 import { BudgetScenarioSelectors } from "@/components/dashboard/BudgetScenarioSelectors";
+import { ExportDropdown } from "./ExportDropdown";
 import { ROIChart } from "@/components/charts/ROIChart";
 import { PnLChart } from "@/components/charts/PnLChart";
 import { RevenueChart } from "@/components/charts/RevenueChart";
@@ -22,9 +24,11 @@ import { ScenarioMatrixTable } from "@/components/dashboard/ScenarioMatrixTable"
 interface MainProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
+  onPrint?: () => void;
+  onEmail?: () => void;
 }
 
-export function Main({ activeTab }: MainProps) {
+export function Main({ activeTab, onTabChange, onPrint, onEmail }: MainProps) {
   const { getInputs, getLineItems } = useAppState();
   const metrics = useScenarioMetrics(getInputs(), getLineItems());
   const [filter, setFilter] = useState<ScenarioFilterState>({
@@ -46,9 +50,15 @@ export function Main({ activeTab }: MainProps) {
 
   return (
     <main className="space-y-6 p-4 md:p-6">
-      {activeTab === "overview" && (
+      {activeTab === "events" && <EventsPanel />}
+      {activeTab === "projections" && (
         <>
-          <BudgetScenarioSelectors />
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <BudgetScenarioSelectors />
+            {onPrint && onEmail && (
+              <ExportDropdown onPrint={onPrint} onEmail={onEmail} />
+            )}
+          </div>
           <InputsPanel />
           <SummarySection metrics={metrics} filteredMetrics={filteredMetrics} />
           <ScenarioFilter
@@ -79,12 +89,7 @@ export function Main({ activeTab }: MainProps) {
           )}
         </>
       )}
-      {activeTab === "budget" && (
-        <>
-          <BudgetScenarioSelectors />
-          <BudgetsPanel />
-        </>
-      )}
+      {activeTab === "budget" && <BudgetsPanel />}
       {activeTab === "scenarios" && <ScenariosPanel />}
     </main>
   );

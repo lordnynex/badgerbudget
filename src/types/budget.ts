@@ -1,3 +1,11 @@
+export interface Event {
+  id: string;
+  name: string;
+  description: string | null;
+  year: number | null;
+  created_at?: string;
+}
+
 export interface Inputs {
   profitTarget: number;
   staffCount: number;

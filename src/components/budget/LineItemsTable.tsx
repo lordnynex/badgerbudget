@@ -21,7 +21,7 @@ export function LineItemsTable() {
     return (
       <Card>
         <CardContent className="py-8 text-center text-muted-foreground">
-          Select a budget from the dropdown above to view and edit line items.
+          Select a budget above to view and edit line items.
         </CardContent>
       </Card>
     );

@@ -1,4 +1,4 @@
-import type { Budget, BudgetSummary, LineItem, Scenario, ScenarioSummary } from "@/types/budget";
+import type { Budget, BudgetSummary, Event, LineItem, Scenario, ScenarioSummary } from "@/types/budget";
 
 const BASE = "";
 
@@ -19,6 +19,16 @@ async function fetchJson<T>(path: string, options?: RequestInit): Promise<T> {
 
 export const api = {
   seed: () => fetchJson<{ ok: boolean; budgetId?: string; scenarioId?: string }>("/api/seed", { method: "POST" }),
+
+  events: {
+    list: () => fetchJson<Event[]>("/api/events"),
+    get: (id: string) => fetchJson<Event | null>(`/api/events/${id}`),
+    create: (body: { name: string; description?: string; year?: number }) =>
+      fetchJson<Event>("/api/events", { method: "POST", body: JSON.stringify(body) }),
+    update: (id: string, body: { name?: string; description?: string; year?: number }) =>
+      fetchJson<Event>(`/api/events/${id}`, { method: "PUT", body: JSON.stringify(body) }),
+    delete: (id: string) => fetchJson<{ ok: boolean }>(`/api/events/${id}`, { method: "DELETE" }),
+  },
 
   budgets: {
     list: () => fetchJson<BudgetSummary[]>("/api/budgets"),

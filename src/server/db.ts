@@ -14,6 +14,15 @@ export function getDb(): Database {
 
 function initSchema(database: Database) {
   database.run(`
+    CREATE TABLE IF NOT EXISTS events (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      description TEXT,
+      year INTEGER,
+      created_at TEXT DEFAULT (datetime('now'))
+    )
+  `);
+  database.run(`
     CREATE TABLE IF NOT EXISTS budgets (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
