@@ -1,23 +1,35 @@
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { NavLink } from "react-router-dom";
+import { cn } from "@/lib/utils";
 
-interface HeaderProps {
-  activeTab: string;
-  onTabChange: (tab: string) => void;
-}
+export function Header() {
+  const navLinkClass = ({ isActive }: { isActive: boolean }) =>
+    cn(
+      "inline-flex h-9 items-center justify-center rounded-md px-4 text-sm font-medium transition-colors",
+      isActive
+        ? "bg-background text-foreground shadow-sm"
+        : "text-muted-foreground hover:bg-muted hover:text-foreground"
+    );
 
-export function Header({ activeTab, onTabChange }: HeaderProps) {
   return (
     <header className="sticky top-0 z-40 flex items-center justify-between border-b bg-background/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="flex items-center gap-6">
-        <h1 className="text-xl font-bold">Badger Budget</h1>
-        <Tabs value={activeTab} onValueChange={onTabChange}>
-          <TabsList>
-            <TabsTrigger value="events">Events</TabsTrigger>
-            <TabsTrigger value="projections">Projections</TabsTrigger>
-            <TabsTrigger value="budget">Budgets</TabsTrigger>
-            <TabsTrigger value="scenarios">Scenarios</TabsTrigger>
-          </TabsList>
-        </Tabs>
+        <NavLink to="/projections" className="text-xl font-bold hover:opacity-90">
+          Badger Budget
+        </NavLink>
+        <nav className="flex items-center gap-1 rounded-lg bg-muted p-1" aria-label="Main navigation">
+          <NavLink to="/events" className={navLinkClass}>
+            Events
+          </NavLink>
+          <NavLink to="/projections" className={navLinkClass}>
+            Projections
+          </NavLink>
+          <NavLink to="/budget" className={navLinkClass}>
+            Budgets
+          </NavLink>
+          <NavLink to="/scenarios" className={navLinkClass}>
+            Scenarios
+          </NavLink>
+        </nav>
       </div>
     </header>
   );

@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import { InputsPanel } from "@/components/inputs/InputsPanel";
 import { BudgetsPanel } from "@/components/budget/BudgetsPanel";
 import { ScenariosPanel } from "@/components/scenarios/ScenariosPanel";
@@ -16,12 +17,12 @@ import { ProjectionsSubNav } from "./ProjectionsSubNav";
 
 interface MainProps {
   activeTab: string;
-  onTabChange: (tab: string) => void;
   onPrint?: () => void;
   onEmail?: () => void;
 }
 
-export function Main({ activeTab, onTabChange, onPrint, onEmail }: MainProps) {
+export function Main({ activeTab, onPrint, onEmail }: MainProps) {
+  const navigate = useNavigate();
   const { getInputs, getLineItems } = useAppState();
   const metrics = useScenarioMetrics(getInputs(), getLineItems());
 
@@ -36,7 +37,7 @@ export function Main({ activeTab, onTabChange, onPrint, onEmail }: MainProps) {
               <ExportDropdown onPrint={onPrint} onEmail={onEmail} />
             )}
           </div>
-          <InputsPanel readOnly onEditScenario={() => onTabChange("scenarios")} />
+          <InputsPanel readOnly onEditScenario={() => navigate("/scenarios")} />
           <ProjectionsSubNav />
           <section id="summary" className="scroll-mt-6">
             <SummarySection metrics={metrics} filteredMetrics={metrics} />

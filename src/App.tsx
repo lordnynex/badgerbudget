@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { AppStateProvider, useAppState } from "@/state/AppState";
 import { api } from "@/data/api";
 import { Header } from "@/components/layout/Header";
@@ -20,7 +21,6 @@ function AppContent() {
   const metrics = useScenarioMetrics(getInputs(), getLineItems());
   const [printMode, setPrintMode] = useState(false);
   const [emailOpen, setEmailOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState("events");
 
   const stateForExport = {
     inputs: getInputs(),
@@ -43,13 +43,27 @@ function AppContent() {
         </div>
       ) : (
         <>
-          <Header activeTab={activeTab} onTabChange={setActiveTab} />
-          <Main
-            activeTab={activeTab}
-            onTabChange={setActiveTab}
-            onPrint={() => setPrintMode(true)}
-            onEmail={() => setEmailOpen(true)}
-          />
+          <Header />
+          <Routes>
+            <Route path="/" element={<Navigate to="/projections" replace />} />
+            <Route
+              path="/events"
+              element={<Main activeTab="events" onPrint={() => setPrintMode(true)} onEmail={() => setEmailOpen(true)} />}
+            />
+            <Route
+              path="/projections"
+              element={<Main activeTab="projections" onPrint={() => setPrintMode(true)} onEmail={() => setEmailOpen(true)} />}
+            />
+            <Route
+              path="/budget"
+              element={<Main activeTab="budget" onPrint={() => setPrintMode(true)} onEmail={() => setEmailOpen(true)} />}
+            />
+            <Route
+              path="/scenarios"
+              element={<Main activeTab="scenarios" onPrint={() => setPrintMode(true)} onEmail={() => setEmailOpen(true)} />}
+            />
+            <Route path="*" element={<Navigate to="/projections" replace />} />
+          </Routes>
         </>
       )}
 
