@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { AppStateProvider, useAppState } from "@/state/AppState";
 import { api } from "@/data/api";
 import { Header } from "@/components/layout/Header";
@@ -32,17 +32,29 @@ function AppContent() {
     scenario: currentScenario,
   };
 
+  const navigate = useNavigate();
+  const isPrintRoute = location.pathname === "/print";
+
   const onPrint = () => setPrintMode(true);
   const onEmail = () => setEmailOpen(true);
 
+  const openPrintInNewTab = () => {
+    const basePath = window.location.pathname.replace(/\/[^/]*$/, "") || "";
+    const printUrl = `${window.location.origin}${basePath}/print`;
+    window.open(printUrl, "_blank");
+  };
+
   return (
     <>
-      {printMode ? (
+      {(printMode || isPrintRoute) ? (
         <div className="min-h-screen bg-white p-8">
           <PrintView state={stateForExport} metrics={metrics} />
           <div className="mt-8 flex gap-4 print:hidden">
             <Button onClick={() => window.print()}>Print</Button>
-            <Button variant="outline" onClick={() => setPrintMode(false)}>
+            <Button variant="outline" onClick={openPrintInNewTab}>
+              Open in new tab
+            </Button>
+            <Button variant="outline" onClick={() => (isPrintRoute ? navigate("/projections") : setPrintMode(false))}>
               Back to Dashboard
             </Button>
           </div>
@@ -81,6 +93,7 @@ function AppContent() {
               path="/scenarios"
               element={<Main activeTab="scenarios" onPrint={onPrint} onEmail={onEmail} />}
             />
+            <Route path="/print" element={null} />
             <Route path="*" element={<Navigate to="/projections" replace />} />
           </Routes>
         </>

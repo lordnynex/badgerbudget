@@ -25,6 +25,7 @@ export function ExportCharts({
   onChartsReady,
 }: ExportChartsProps) {
   const [mounted, setMounted] = useState(false);
+  const [isCapturing, setIsCapturing] = useState(false);
   const doneRef = useRef(false);
 
   useEffect(() => {
@@ -56,21 +57,29 @@ export function ExportCharts({
   useEffect(() => {
     if (!mounted || doneRef.current) return;
 
-    const timer = setTimeout(async () => {
+    const timer = setTimeout(() => {
       if (doneRef.current) return;
       doneRef.current = true;
+      setIsCapturing(true);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [mounted, metrics.length]);
+
+  useEffect(() => {
+    if (!isCapturing) return;
+
+    const capture = async () => {
+      await new Promise((r) => setTimeout(r, 400));
 
       const images: Record<string, string> = {};
-
       try {
         for (const [key, id] of Object.entries(CHART_IDS)) {
           const result = await ApexCharts.exec(id, "dataURI", {
             quality: 1,
             scale: 2,
           });
-          if (result?.imgURI) {
-            images[key] = result.imgURI;
-          }
+          if (result?.imgURI) images[key] = result.imgURI;
         }
         for (const { key, id } of scenarioChartKeys) {
           try {
@@ -78,21 +87,20 @@ export function ExportCharts({
               quality: 1,
               scale: 2,
             });
-            if (result?.imgURI) {
-              images[key] = result.imgURI;
-            }
+            if (result?.imgURI) images[key] = result.imgURI;
           } catch {
-            // Chart may not be ready
+            /* chart not ready */
           }
         }
       } catch {
-        // Charts may not be ready; continue with empty images
+        /* fallback */
       }
+      setIsCapturing(false);
       onChartsReady(images);
-    }, 3500);
+    };
 
-    return () => clearTimeout(timer);
-  }, [mounted, onChartsReady, metrics.length]);
+    capture();
+  }, [isCapturing, onChartsReady]);
 
   const categoryTotals = getCategoryTotals(lineItems);
   const categories = Object.keys(categoryTotals).sort();
@@ -241,7 +249,7 @@ export function ExportCharts({
 
   return (
     <div
-      className="pointer-events-none absolute left-[-9999px] top-0 w-[800px] overflow-hidden bg-white"
+      className={`pointer-events-none fixed left-0 top-0 min-h-screen w-[800px] overflow-visible bg-white transition-opacity duration-150 ${isCapturing ? "z-[9999] opacity-100" : "z-[-1] opacity-0"}`}
       aria-hidden
     >
       <div className="p-4">
