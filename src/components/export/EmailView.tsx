@@ -50,6 +50,7 @@ export function EmailView({ state, metrics }: EmailViewProps) {
         ? `<img src="${chartImages[key]}" alt="${key}" style="max-width: 100%; height: auto; margin: 16px 0; border: 1px solid #eee; border-radius: 8px;" />`
         : "";
 
+    const scenarioChartTypes = ["ROI", "PnL", "Revenue", "ProfitMargin", "ProfitPerAttendee", "CostCoverage"] as const;
     const scenarioTablesHtml = scenarioMatrix.attendanceLevels
       .map((pct) => {
         const tableMetrics = (scenarioMatrix.byAttendance[pct] ?? [])
@@ -59,6 +60,7 @@ export function EmailView({ state, metrics }: EmailViewProps) {
             if (a.ticketPrice !== b.ticketPrice) return a.ticketPrice - b.ticketPrice;
             return a.staffPrice - b.staffPrice;
           });
+        const showCharts = tableMetrics.length > 1 && tableMetrics.length <= 12;
         const rows = tableMetrics
           .map(
             (m) =>
@@ -80,6 +82,27 @@ export function EmailView({ state, metrics }: EmailViewProps) {
               </tr>`
           )
           .join("");
+        const chartLabels: Record<string, string> = {
+          ROI: "ROI",
+          PnL: "Net Revenue",
+          Revenue: "Gross Revenue",
+          ProfitMargin: "Profit Margin",
+          ProfitPerAttendee: "Profit per Attendee",
+          CostCoverage: "Cost Coverage",
+        };
+        const chartsHtml = showCharts
+          ? `<div style="margin-top: 16px; margin-bottom: 24px;">
+            ${scenarioChartTypes
+              .map(
+                (t) =>
+                  `<div style="margin-bottom: 16px;">
+                    <p style="font-size: 14px; font-weight: 600; margin-bottom: 8px;">${chartLabels[t]}</p>
+                    ${chartImg(`scenario-${pct}-${t}`)}
+                  </div>`
+              )
+              .join("")}
+          </div>`
+          : "";
         return `
           <h3 style="font-size: 16px; margin-top: 24px; margin-bottom: 8px;">${pct}% Attendance</h3>
           <p style="color: #666; font-size: 12px; margin-bottom: 8px;">${tableMetrics[0]?.attendees} attendees</p>
@@ -101,7 +124,8 @@ export function EmailView({ state, metrics }: EmailViewProps) {
               <th style="padding: 8px; text-align: right; font-size: 12px;">Cost/Person</th>
             </tr>
             ${rows}
-          </table>`;
+          </table>
+          ${chartsHtml}`;
       })
       .join("");
 

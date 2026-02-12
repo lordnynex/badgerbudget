@@ -31,6 +31,28 @@ export function ExportCharts({
     setMounted(true);
   }, []);
 
+  const byAttendance = metrics.reduce(
+    (acc, m) => {
+      const key = m.attendancePercent;
+      if (!acc[key]) acc[key] = [];
+      acc[key].push(m);
+      return acc;
+    },
+    {} as Record<number, ScenarioMetrics[]>
+  );
+  const scenarioChartKeys: Array<{ key: string; id: string }> = [];
+  for (const pct of [...new Set(metrics.map((m) => m.attendancePercent))].sort((a, b) => a - b)) {
+    const tableMetrics = byAttendance[pct] ?? [];
+    if (tableMetrics.length > 1 && tableMetrics.length <= 12) {
+      for (const chartType of ["ROI", "PnL", "Revenue", "ProfitMargin", "ProfitPerAttendee", "CostCoverage"]) {
+        scenarioChartKeys.push({
+          key: `scenario-${pct}-${chartType}`,
+          id: `export-scenario-${pct}-${chartType}`,
+        });
+      }
+    }
+  }
+
   useEffect(() => {
     if (!mounted || doneRef.current) return;
 
@@ -50,14 +72,27 @@ export function ExportCharts({
             images[key] = result.imgURI;
           }
         }
+        for (const { key, id } of scenarioChartKeys) {
+          try {
+            const result = await ApexCharts.exec(id, "dataURI", {
+              quality: 1,
+              scale: 2,
+            });
+            if (result?.imgURI) {
+              images[key] = result.imgURI;
+            }
+          } catch {
+            // Chart may not be ready
+          }
+        }
       } catch {
         // Charts may not be ready; continue with empty images
       }
       onChartsReady(images);
-    }, 2000);
+    }, 3500);
 
     return () => clearTimeout(timer);
-  }, [mounted, onChartsReady]);
+  }, [mounted, onChartsReady, metrics.length]);
 
   const categoryTotals = getCategoryTotals(lineItems);
   const categories = Object.keys(categoryTotals).sort();
@@ -236,6 +271,130 @@ export function ExportCharts({
           height={Math.max(400, attendanceLevels.length * 36)}
         />
       </div>
+      {([...new Set(metrics.map((m) => m.attendancePercent))].sort((a, b) => a - b) as number[]).map((pct) => {
+        const tableMetrics = (byAttendance[pct] ?? []).slice().sort((a, b) => {
+          if (a.profit !== b.profit) return a.profit - b.profit;
+          if (a.ticketPrice !== b.ticketPrice) return a.ticketPrice - b.ticketPrice;
+          return a.staffPrice - b.staffPrice;
+        });
+        const showCharts = tableMetrics.length > 1 && tableMetrics.length <= 12;
+        if (!showCharts) return null;
+        const chartLabels = tableMetrics.map((m) => m.scenarioKey);
+        const baseChartOpts = {
+          fontFamily: "inherit" as const,
+          background: "#fff",
+          toolbar: { show: false },
+        };
+        return (
+          <div key={pct} className="grid grid-cols-2 gap-4 p-4">
+            <div>
+              <h3 className="mb-2 text-sm font-semibold text-black">{pct}% Attendance – ROI</h3>
+              <Chart
+                options={{
+                  chart: { id: `export-scenario-${pct}-ROI`, type: "bar", ...baseChartOpts },
+                  theme: { mode: "light" },
+                  colors: ["#22c55e"],
+                  plotOptions: { bar: { horizontal: false, columnWidth: "60%", borderRadius: 4 } },
+                  dataLabels: { enabled: false },
+                  xaxis: { categories: chartLabels, labels: { rotate: -45 } },
+                  yaxis: { labels: { formatter: (v: number) => `${(v * 100).toFixed(0)}%` } },
+                  legend: { show: false },
+                }}
+                series={[{ name: "ROI", data: tableMetrics.map((m) => Math.round(m.roi * 100) / 100) }]}
+                type="bar"
+                height={260}
+              />
+            </div>
+            <div>
+              <h3 className="mb-2 text-sm font-semibold text-black">{pct}% Attendance – Net Revenue</h3>
+              <Chart
+                options={{
+                  chart: { id: `export-scenario-${pct}-PnL`, type: "bar", ...baseChartOpts },
+                  theme: { mode: "light" },
+                  colors: tableMetrics.map((m) => (m.profit >= 0 ? "#22c55e" : "#ef4444")),
+                  plotOptions: { bar: { horizontal: false, columnWidth: "60%", borderRadius: 4, distributed: true } },
+                  dataLabels: { enabled: true, formatter: (v: number) => `$${Number(v).toLocaleString()}` },
+                  xaxis: { categories: chartLabels, labels: { rotate: -45 } },
+                  legend: { show: false },
+                }}
+                series={[{ name: "Profit", data: tableMetrics.map((m) => m.profit) }]}
+                type="bar"
+                height={260}
+              />
+            </div>
+            <div>
+              <h3 className="mb-2 text-sm font-semibold text-black">{pct}% Attendance – Gross Revenue</h3>
+              <Chart
+                options={{
+                  chart: { id: `export-scenario-${pct}-Revenue`, type: "bar", ...baseChartOpts },
+                  theme: { mode: "light" },
+                  colors: ["#3b82f6"],
+                  plotOptions: { bar: { horizontal: false, columnWidth: "60%", borderRadius: 4 } },
+                  dataLabels: { enabled: true, formatter: (v: number) => `$${(Number(v) / 1000).toFixed(0)}k` },
+                  xaxis: { categories: chartLabels, labels: { rotate: -45 } },
+                  legend: { show: false },
+                }}
+                series={[{ name: "Revenue", data: tableMetrics.map((m) => m.revenue) }]}
+                type="bar"
+                height={260}
+              />
+            </div>
+            <div>
+              <h3 className="mb-2 text-sm font-semibold text-black">{pct}% Attendance – Profit Margin</h3>
+              <Chart
+                options={{
+                  chart: { id: `export-scenario-${pct}-ProfitMargin`, type: "bar", ...baseChartOpts },
+                  theme: { mode: "light" },
+                  colors: tableMetrics.map((m) => (m.profitMargin >= 0 ? "#22c55e" : "#ef4444")),
+                  plotOptions: { bar: { horizontal: false, columnWidth: "60%", borderRadius: 4, distributed: true } },
+                  dataLabels: { enabled: true, formatter: (v: number) => `${Number(v).toFixed(1)}%` },
+                  xaxis: { categories: chartLabels, labels: { rotate: -45 } },
+                  yaxis: { labels: { formatter: (v: number) => `${Number(v).toFixed(0)}%` } },
+                  legend: { show: false },
+                }}
+                series={[{ name: "Profit Margin", data: tableMetrics.map((m) => Math.round(m.profitMargin * 10) / 10) }]}
+                type="bar"
+                height={260}
+              />
+            </div>
+            <div>
+              <h3 className="mb-2 text-sm font-semibold text-black">{pct}% Attendance – Profit per Attendee</h3>
+              <Chart
+                options={{
+                  chart: { id: `export-scenario-${pct}-ProfitPerAttendee`, type: "bar", ...baseChartOpts },
+                  theme: { mode: "light" },
+                  colors: tableMetrics.map((m) => (m.profitPerAttendee >= 0 ? "#22c55e" : "#ef4444")),
+                  plotOptions: { bar: { horizontal: false, columnWidth: "60%", borderRadius: 4, distributed: true } },
+                  dataLabels: { enabled: true, formatter: (v: number) => `$${Number(v).toLocaleString()}` },
+                  xaxis: { categories: chartLabels, labels: { rotate: -45 } },
+                  legend: { show: false },
+                }}
+                series={[{ name: "Profit/Attendee", data: tableMetrics.map((m) => Math.round(m.profitPerAttendee * 100) / 100) }]}
+                type="bar"
+                height={260}
+              />
+            </div>
+            <div>
+              <h3 className="mb-2 text-sm font-semibold text-black">{pct}% Attendance – Cost Coverage</h3>
+              <Chart
+                options={{
+                  chart: { id: `export-scenario-${pct}-CostCoverage`, type: "bar", ...baseChartOpts },
+                  theme: { mode: "light" },
+                  colors: tableMetrics.map((m) => (m.costCoverageRatio >= 1 ? "#22c55e" : "#ef4444")),
+                  plotOptions: { bar: { horizontal: false, columnWidth: "60%", borderRadius: 4, distributed: true } },
+                  dataLabels: { enabled: true, formatter: (v: number) => `${Number(v).toFixed(2)}×` },
+                  xaxis: { categories: chartLabels, labels: { rotate: -45 } },
+                  yaxis: { labels: { formatter: (v: number) => `${Number(v).toFixed(1)}×` } },
+                  legend: { show: false },
+                }}
+                series={[{ name: "Cost Coverage", data: tableMetrics.map((m) => Math.round(m.costCoverageRatio * 100) / 100) }]}
+                type="bar"
+                height={260}
+              />
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
