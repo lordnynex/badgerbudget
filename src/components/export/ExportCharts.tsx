@@ -14,12 +14,14 @@ const CHART_IDS = {
 interface ExportChartsProps {
   lineItems: LineItem[];
   metrics: ScenarioMetrics[];
+  profitTarget?: number;
   onChartsReady: (images: Record<string, string>) => void;
 }
 
 export function ExportCharts({
   lineItems,
   metrics,
+  profitTarget = 0,
   onChartsReady,
 }: ExportChartsProps) {
   const [mounted, setMounted] = useState(false);
@@ -139,7 +141,7 @@ export function ExportCharts({
   const columnKeys: string[] = [];
   for (const tp of ticketPrices) {
     for (const sp of staffPrices) {
-      columnKeys.push(`$${tp}/$${sp}`);
+      if (sp <= tp) columnKeys.push(`$${tp}/$${sp}`);
     }
   }
   const byKey = new Map<string, ScenarioMetrics>();
@@ -183,8 +185,11 @@ export function ExportCharts({
             ...(minProfit < 0
               ? [{ from: minProfit, to: -0.01, color: "#ef4444", name: "Loss" }]
               : []),
+            ...(maxProfit >= 0 && profitTarget > 0
+              ? [{ from: 0, to: profitTarget - 0.01, color: "#f97316", name: "Profit (below target)" }]
+              : []),
             ...(maxProfit >= 0
-              ? [{ from: 0, to: Math.max(maxProfit, 1), color: "#22c55e", name: "Profit" }]
+              ? [{ from: Math.max(0, profitTarget), to: Math.max(maxProfit, profitTarget + 1), color: "#22c55e", name: "Meets target" }]
               : []),
           ],
         },

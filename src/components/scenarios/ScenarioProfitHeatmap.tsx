@@ -5,9 +5,10 @@ import type { ScenarioMetrics } from "@/types/budget";
 
 interface ScenarioProfitHeatmapProps {
   metrics: ScenarioMetrics[];
+  profitTarget?: number;
 }
 
-export function ScenarioProfitHeatmap({ metrics }: ScenarioProfitHeatmapProps) {
+export function ScenarioProfitHeatmap({ metrics, profitTarget = 0 }: ScenarioProfitHeatmapProps) {
   if (metrics.length === 0) {
     return (
       <Card>
@@ -26,7 +27,7 @@ export function ScenarioProfitHeatmap({ metrics }: ScenarioProfitHeatmapProps) {
   const columnKeys: string[] = [];
   for (const tp of ticketPrices) {
     for (const sp of staffPrices) {
-      columnKeys.push(`$${tp}/$${sp}`);
+      if (sp <= tp) columnKeys.push(`$${tp}/$${sp}`);
     }
   }
 
@@ -72,8 +73,11 @@ export function ScenarioProfitHeatmap({ metrics }: ScenarioProfitHeatmapProps) {
             ...(minProfit < 0
               ? [{ from: minProfit, to: -0.01, color: "#ef4444", name: "Loss" }]
               : []),
+            ...(maxProfit >= 0 && profitTarget > 0
+              ? [{ from: 0, to: profitTarget - 0.01, color: "#f97316", name: "Profit (below target)" }]
+              : []),
             ...(maxProfit >= 0
-              ? [{ from: 0, to: Math.max(maxProfit, 1), color: "#22c55e", name: "Profit" }]
+              ? [{ from: Math.max(0, profitTarget), to: Math.max(maxProfit, profitTarget + 1), color: "#22c55e", name: "Meets target" }]
               : []),
           ],
         },
@@ -95,7 +99,7 @@ export function ScenarioProfitHeatmap({ metrics }: ScenarioProfitHeatmapProps) {
       <CardHeader>
         <CardTitle>Profit by Scenario</CardTitle>
         <CardDescription>
-          Net revenue (Gross − costs) by scenario. Green = profit; red = loss.
+          Net revenue (Gross − costs) by scenario. Green = meets target; orange = profitable but below target; red = loss.
         </CardDescription>
       </CardHeader>
       <CardContent>

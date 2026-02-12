@@ -212,6 +212,7 @@ export function EmailView({ state, metrics }: EmailViewProps) {
       <ExportCharts
         lineItems={state.lineItems}
         metrics={metrics}
+        profitTarget={state.inputs.profitTarget}
         onChartsReady={handleChartsReady}
       />
       {!chartImages && (

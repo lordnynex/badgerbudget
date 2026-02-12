@@ -40,7 +40,7 @@ export function Main({ activeTab, onPrint, onEmail }: MainProps) {
             <CostPerCategoryBarChart lineItems={getLineItems()} />
           </section>
           <section id="scenario-matrix" className="scroll-mt-28 space-y-6">
-            <ScenarioProfitHeatmap metrics={metrics} />
+            <ScenarioProfitHeatmap metrics={metrics} profitTarget={getInputs().profitTarget} />
             <ScenarioMatrixTable
               metrics={metrics}
               profitTarget={getInputs().profitTarget}

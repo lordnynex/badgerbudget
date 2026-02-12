@@ -104,7 +104,7 @@ export function PrintView({ state, metrics }: PrintViewProps) {
   const columnKeys: string[] = [];
   for (const tp of ticketPrices) {
     for (const sp of staffPrices) {
-      columnKeys.push(`$${tp}/$${sp}`);
+      if (sp <= tp) columnKeys.push(`$${tp}/$${sp}`);
     }
   }
   const byKey = new Map<string, ScenarioMetrics>();
@@ -113,6 +113,7 @@ export function PrintView({ state, metrics }: PrintViewProps) {
   }
   const minProfit = Math.min(...metrics.map((m) => m.profit));
   const maxProfit = Math.max(...metrics.map((m) => m.profit));
+  const profitTarget = state.inputs.profitTarget ?? 0;
   const heatmapSeries = attendanceLevels.map((pct) => ({
     name: `${pct}%`,
     data: columnKeys.map((col) => {
@@ -150,15 +151,11 @@ export function PrintView({ state, metrics }: PrintViewProps) {
             ...(minProfit < 0
               ? [{ from: minProfit, to: -0.01, color: "#ef4444", name: "Loss" }]
               : []),
+            ...(maxProfit >= 0 && profitTarget > 0
+              ? [{ from: 0, to: profitTarget - 0.01, color: "#f97316", name: "Profit (below target)" }]
+              : []),
             ...(maxProfit >= 0
-              ? [
-                  {
-                    from: 0,
-                    to: Math.max(maxProfit, 1),
-                    color: "#22c55e",
-                    name: "Profit",
-                  },
-                ]
+              ? [{ from: Math.max(0, profitTarget), to: Math.max(maxProfit, profitTarget + 1), color: "#22c55e", name: "Meets target" }]
               : []),
           ],
         },
