@@ -181,7 +181,7 @@ export function PrintView({ state, metrics }: PrintViewProps) {
         </p>
       </header>
 
-      {/* Summary Section */}
+      {/* Summary Section – matches dashboard cards */}
       <section>
         <h2 className="mb-4 text-lg font-semibold">Summary</h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -190,6 +190,7 @@ export function PrintView({ state, metrics }: PrintViewProps) {
             <p className="text-xl font-bold">
               ${summary.totalCosts.toLocaleString("en-US", { minimumFractionDigits: 2 })}
             </p>
+            <p className="text-xs text-gray-500">Sum of all budget line items</p>
           </div>
           <div className="rounded border p-4">
             <p className="text-sm text-gray-600">Cost + profit target</p>
@@ -197,6 +198,14 @@ export function PrintView({ state, metrics }: PrintViewProps) {
               ${summary.totalWithProfitTarget.toLocaleString("en-US", {
                 minimumFractionDigits: 2,
               })}
+            </p>
+            <p className="text-xs text-gray-500">Gross revenue needed to meet profit target</p>
+          </div>
+          <div className="rounded border p-4">
+            <p className="text-sm text-gray-600">GA tickets available</p>
+            <p className="text-xl font-bold">{summary.gaTicketsAvailable}</p>
+            <p className="text-xs text-gray-500">
+              Max capacity ({summary.maxOccupancy}) − staff ({summary.staffCount})
             </p>
           </div>
           <div className="rounded border p-4">
@@ -209,19 +218,96 @@ export function PrintView({ state, metrics }: PrintViewProps) {
                 </div>
               ))}
             </div>
+            <p className="text-xs text-gray-500 mt-1">+ {summary.staffCount} staff</p>
           </div>
           <div className="rounded border p-4">
             <p className="text-sm text-gray-600">Lowest ticket price</p>
             <p className="text-xl font-bold">
               {summary.lowestBreakEven != null ? `$${summary.lowestBreakEven}` : "—"}
             </p>
-            <p className="text-xs text-gray-500">To break even</p>
-            {summary.lowestMeetingTarget != null && (
+            <p className="text-xs text-gray-500">To break even at ${summary.minStaffPrice} staff price</p>
+            {summary.lowestMeetingTarget != null && summary.lowestMeetingTarget !== summary.lowestBreakEven && (
               <p className="mt-1 text-xs text-gray-500">
                 ${summary.lowestMeetingTarget} to meet profit target
               </p>
             )}
           </div>
+          <div className="rounded border p-4">
+            <p className="text-sm text-gray-600">Day pass (gross)</p>
+            <p className="text-xl font-bold">
+              ${summary.dayPassRevenue.toLocaleString()}
+            </p>
+            <p className="text-xs text-gray-500">
+              {summary.dayPassesSold} passes × ${summary.dayPassPrice}
+            </p>
+          </div>
+          <div className="rounded border p-4">
+            <p className="text-sm text-gray-600">Complimentary tickets</p>
+            <p className="text-xl font-bold">{summary.complimentaryTickets}</p>
+            <p className="text-xs text-gray-500">Yield $0 revenue</p>
+            <p className="text-xs text-gray-500 mt-0.5">
+              Revenue lost: ${summary.revenueLostToComps.toLocaleString()} ({summary.complimentaryTickets} × $${summary.compTicketPriceRef}/ticket)
+            </p>
+          </div>
+          {summary.breakEvenTickets != null && (
+            <div className="rounded border p-4">
+              <p className="text-sm text-gray-600">Break-even attendance</p>
+              <p className="text-xl font-bold">{summary.breakEvenTickets} tickets</p>
+              <p className="text-xs text-gray-500">
+                {summary.breakEvenPercent != null ? `${Math.round(summary.breakEvenPercent)}% of capacity · ` : ""}
+                {summary.breakEvenTicketContext}
+              </p>
+            </div>
+          )}
+          {summary.breakEvenTicketsRange != null && (
+            <div className="rounded border p-4">
+              <p className="text-sm text-gray-600">Break-even attendance</p>
+              <p className="text-xl font-bold">
+                {summary.breakEvenTicketsRange.min}–{summary.breakEvenTicketsRange.max} tickets
+              </p>
+              <p className="text-xs text-gray-500">{summary.breakEvenTicketContext}</p>
+            </div>
+          )}
+          {summary.mostAccessible && (
+            <div className="rounded border p-4">
+              <p className="text-sm text-gray-600">Most accessible</p>
+              <p className="text-xl font-bold text-green-700">
+                ${summary.mostAccessible.ticketPrice} / Staff ${summary.mostAccessible.staffPrice}
+              </p>
+              <p className="text-xs text-gray-500">
+                Lowest ticket + staff combo that&apos;s profitable. {summary.mostAccessible.attendancePercent}% att. = ${summary.mostAccessible.profit.toLocaleString()} profit.
+              </p>
+            </div>
+          )}
+          {summary.bestScenario && (
+            <div className="rounded border p-4">
+              <p className="text-sm text-gray-600">Best profit</p>
+              <p className="text-xl font-bold text-green-700">
+                ${summary.bestScenario.profit.toLocaleString()}
+              </p>
+              <p className="text-xs text-gray-500">
+                ${summary.bestScenario.ticketPrice} / Staff ${summary.bestScenario.staffPrice} / {summary.bestScenario.attendancePercent}%
+              </p>
+            </div>
+          )}
+          {summary.worstProfitable && summary.bestScenario && summary.worstProfitable.profit !== summary.bestScenario.profit && (
+            <div className="rounded border p-4">
+              <p className="text-sm text-gray-600">Worst profitable</p>
+              <p className="text-xl font-bold">
+                ${summary.worstProfitable.profit.toLocaleString()}
+              </p>
+              <p className="text-xs text-gray-500">Lowest profit among break-even+ scenarios</p>
+            </div>
+          )}
+          {summary.revenueMix && (
+            <div className="rounded border p-4">
+              <p className="text-sm text-gray-600">Revenue mix</p>
+              <p className="text-sm font-medium">
+                {summary.revenueMix.attendee.toFixed(0)}% attendees · {summary.revenueMix.staff.toFixed(0)}% staff · {summary.revenueMix.dayPass.toFixed(0)}% day pass
+              </p>
+              <p className="text-xs text-gray-500 mt-1">At most accessible scenario</p>
+            </div>
+          )}
         </div>
       </section>
 
