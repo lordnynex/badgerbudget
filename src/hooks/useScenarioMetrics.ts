@@ -37,6 +37,7 @@ export function useScenarioMetrics(
       const paidAttendees = Math.max(0, attendees - complimentaryTickets);
       for (const ticketPrice of attendeePrices) {
         for (const staffPrice of staffPrices) {
+          if (staffPrice > ticketPrice) continue;
           const attendeeRevenue = paidAttendees * ticketPrice;
           const staffRevenue = staffCount * staffPrice;
           const revenue = attendeeRevenue + staffRevenue + dayPassRevenue;
