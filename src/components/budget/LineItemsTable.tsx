@@ -1,8 +1,11 @@
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, FileInput } from "lucide-react";
 import { useAppState } from "@/state/AppState";
 import { LineItemRow } from "./LineItemRow";
+import { ImportLineItemsModal } from "./ImportLineItemsModal";
+import type { LineItem } from "@/types/budget";
 
 export function LineItemsTable() {
   const {
@@ -14,8 +17,19 @@ export function LineItemsTable() {
     categories,
     selectedBudgetId,
     currentBudget,
+    budgets,
+    refreshBudget,
   } = useAppState();
   const lineItems = getLineItems();
+  const [importOpen, setImportOpen] = useState(false);
+
+  const handleImport = async (items: Omit<LineItem, "id">[]) => {
+    if (!selectedBudgetId) return;
+    for (const item of items) {
+      await addLineItem(selectedBudgetId, item);
+    }
+    await refreshBudget(selectedBudgetId);
+  };
 
   if (!selectedBudgetId || !currentBudget) {
     return (
@@ -41,10 +55,21 @@ export function LineItemsTable() {
             Add, edit, or remove expense items. Use unit cost and quantity for variable costs.
           </CardDescription>
         </div>
-        <Button onClick={() => addLineItem(selectedBudgetId)} size="sm">
-          <Plus className="size-4" />
-          Add Item
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setImportOpen(true)}
+            title="Import line items from another budget"
+          >
+            <FileInput className="size-4" />
+            Import
+          </Button>
+          <Button onClick={() => addLineItem(selectedBudgetId)} size="sm">
+            <Plus className="size-4" />
+            Add Item
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto rounded-md border">
@@ -80,6 +105,13 @@ export function LineItemsTable() {
           </span>
         </div>
       </CardContent>
+      <ImportLineItemsModal
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        currentBudgetId={selectedBudgetId}
+        budgets={budgets}
+        onImport={handleImport}
+      />
     </Card>
   );
 }
