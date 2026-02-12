@@ -1,9 +1,19 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ROIChart } from "@/components/charts/ROIChart";
 import { PnLChart } from "@/components/charts/PnLChart";
 import { RevenueChart } from "@/components/charts/RevenueChart";
 import { CostPerAttendeeChart } from "@/components/charts/CostPerAttendeeChart";
+import { cn } from "@/lib/utils";
 import type { ScenarioMetrics } from "@/types/budget";
+
+function getTabColor(metrics: ScenarioMetrics[]): "profit" | "breakEven" | "loss" {
+  const anyMeetsTarget = metrics.some((m) => m.profitVsBreakEven >= 0);
+  const anyProfitable = metrics.some((m) => m.profit >= 0);
+  if (anyMeetsTarget) return "profit";
+  if (anyProfitable) return "breakEven";
+  return "loss";
+}
 
 interface ScenarioMatrixTableProps {
   metrics: ScenarioMetrics[];
@@ -110,17 +120,57 @@ export function ScenarioMatrixTable({ metrics, profitTarget }: ScenarioMatrixTab
     .map(Number)
     .sort((a, b) => a - b);
 
+  const firstProfitableTab =
+    attendanceLevels.find((pct) => byAttendance[pct].some((m) => m.profit >= 0)) ??
+    attendanceLevels[0];
+
+  const tabColorClasses = {
+    profit:
+      "!text-green-600 hover:!text-green-600 data-[state=active]:!text-green-600 data-[state=active]:border-green-500 data-[state=active]:bg-green-500/10 data-[state=active]:after:bg-green-500",
+    breakEven:
+      "!text-amber-600 hover:!text-amber-600 data-[state=active]:!text-amber-600 data-[state=active]:border-amber-500 data-[state=active]:bg-amber-500/10 data-[state=active]:after:bg-amber-500",
+    loss:
+      "!text-red-600 hover:!text-red-600 data-[state=active]:!text-red-600 data-[state=active]:border-red-500 data-[state=active]:bg-red-500/10 data-[state=active]:after:bg-red-500",
+  };
+
+  if (attendanceLevels.length === 0) {
+    return (
+      <div className="space-y-4">
+        <h2 className="text-lg font-semibold">Scenario matrix</h2>
+        <p className="text-muted-foreground text-sm">No scenarios to display.</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <h2 className="text-lg font-semibold">Scenario matrix</h2>
-      {attendanceLevels.map((pct) => (
-        <SingleScenarioTable
-          key={pct}
-          title={`${pct}% attendance`}
-          metrics={byAttendance[pct]}
-          profitTarget={profitTarget}
-        />
-      ))}
+      <Tabs defaultValue={String(firstProfitableTab)} className="w-full">
+        <TabsList className="flex flex-wrap gap-1">
+          {attendanceLevels.map((pct) => {
+            const tabMetrics = byAttendance[pct];
+            const color = getTabColor(tabMetrics);
+            return (
+              <TabsTrigger
+                key={pct}
+                value={String(pct)}
+                className={cn("font-medium", tabColorClasses[color])}
+              >
+                {pct}% attendance
+              </TabsTrigger>
+            );
+          })}
+        </TabsList>
+        {attendanceLevels.map((pct) => (
+          <TabsContent key={pct} value={String(pct)} className="mt-4">
+            <SingleScenarioTable
+              title={`${pct}% attendance`}
+              metrics={byAttendance[pct]}
+              profitTarget={profitTarget}
+            />
+          </TabsContent>
+        ))}
+      </Tabs>
     </div>
   );
 }
