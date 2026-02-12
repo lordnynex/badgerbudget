@@ -111,11 +111,17 @@ export function PrintView({ state, metrics }: PrintViewProps) {
   for (const m of metrics) {
     byKey.set(`${m.attendancePercent}-${m.ticketPrice}-${m.staffPrice}`, m);
   }
+  const attendeesByPct = new Map<number, number>();
+  for (const m of metrics) {
+    if (!attendeesByPct.has(m.attendancePercent)) {
+      attendeesByPct.set(m.attendancePercent, m.attendees);
+    }
+  }
   const minProfit = Math.min(...metrics.map((m) => m.profit));
   const maxProfit = Math.max(...metrics.map((m) => m.profit));
   const profitTarget = state.inputs.profitTarget ?? 0;
   const heatmapSeries = attendanceLevels.map((pct) => ({
-    name: `${pct}%`,
+    name: `${pct}% (${attendeesByPct.get(pct) ?? 0} tickets)`,
     data: columnKeys.map((col) => {
       const [ticketPart, staffPart] = col.replace("$", "").split("/$");
       const ticketPrice = Number(ticketPart);
@@ -451,7 +457,7 @@ export function PrintView({ state, metrics }: PrintViewProps) {
               options={heatmapOptions}
               series={heatmapSeries}
               type="heatmap"
-              height={300}
+              height={Math.max(400, attendanceLevels.length * 36)}
             />
           </div>
         </section>

@@ -36,11 +36,18 @@ export function ScenarioProfitHeatmap({ metrics, profitTarget = 0 }: ScenarioPro
     byKey.set(`${m.attendancePercent}-${m.ticketPrice}-${m.staffPrice}`, m);
   }
 
+  const attendeesByPct = new Map<number, number>();
+  for (const m of metrics) {
+    if (!attendeesByPct.has(m.attendancePercent)) {
+      attendeesByPct.set(m.attendancePercent, m.attendees);
+    }
+  }
+
   const minProfit = Math.min(...metrics.map((m) => m.profit));
   const maxProfit = Math.max(...metrics.map((m) => m.profit));
 
   const series = attendanceLevels.map((pct) => ({
-    name: `${pct}%`,
+    name: `${pct}% (${attendeesByPct.get(pct) ?? 0} tickets)`,
     data: columnKeys.map((col) => {
       const [ticketPart, staffPart] = col.replace("$", "").split("/$");
       const ticketPrice = Number(ticketPart);
@@ -103,7 +110,7 @@ export function ScenarioProfitHeatmap({ metrics, profitTarget = 0 }: ScenarioPro
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <Chart options={options} series={series} type="heatmap" height={280} />
+        <Chart options={options} series={series} type="heatmap" height={Math.max(400, attendanceLevels.length * 36)} />
       </CardContent>
     </Card>
   );

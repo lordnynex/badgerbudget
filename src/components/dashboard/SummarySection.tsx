@@ -19,12 +19,10 @@ export function SummarySection({ metrics, filteredMetrics }: SummarySectionProps
   const maxOccupancy = inputs.maxOccupancy;
   const staffCount = inputs.staffCount;
 
-  const attendanceBreakdown = [
-    { percent: 25, tickets: Math.round(maxOccupancy * 0.25) },
-    { percent: 50, tickets: Math.round(maxOccupancy * 0.5) },
-    { percent: 75, tickets: Math.round(maxOccupancy * 0.75) },
-    { percent: 100, tickets: maxOccupancy },
-  ];
+  const attendanceBreakdown = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100].map((percent) => ({
+    percent,
+    tickets: Math.round(maxOccupancy * (percent / 100)),
+  }));
 
   const profitableScenarios = filteredMetrics.filter((m) => m.profit >= 0);
   const meetingTargetScenarios = filteredMetrics.filter(
@@ -137,12 +135,31 @@ export function SummarySection({ metrics, filteredMetrics }: SummarySectionProps
         </CardHeader>
         <CardContent>
           <div className="space-y-1 text-sm">
-            {attendanceBreakdown.map(({ percent, tickets }) => (
-              <div key={percent} className="flex justify-between">
-                <span className="text-muted-foreground">{percent}%</span>
-                <span className="font-medium">{tickets} attendees</span>
-              </div>
-            ))}
+            {([25, 50, 75, 100] as const).map((percent) => {
+              const tickets = Math.round(maxOccupancy * (percent / 100));
+              const lookupPct = percent === 25 ? 20 : percent === 75 ? 70 : percent;
+              const atLevel = filteredMetrics.filter((m) => m.attendancePercent === lookupPct);
+              const mostAccessibleAtLevel = atLevel.length > 0
+                ? [...atLevel].sort((a, b) => {
+                    if (a.ticketPrice !== b.ticketPrice) return a.ticketPrice - b.ticketPrice;
+                    return a.staffPrice - b.staffPrice;
+                  })[0]
+                : null;
+              const textColor =
+                !mostAccessibleAtLevel
+                  ? "text-muted-foreground"
+                  : mostAccessibleAtLevel.profit < 0
+                    ? "text-red-600"
+                    : (inputs.profitTarget ?? 0) > 0 && mostAccessibleAtLevel.profitVsBreakEven < 0
+                      ? "text-orange-600"
+                      : "text-green-600";
+              return (
+                <div key={percent} className={`flex justify-between ${textColor}`}>
+                  <span>{percent}%</span>
+                  <span className="font-medium">{tickets} attendees</span>
+                </div>
+              );
+            })}
           </div>
           <p className="text-muted-foreground text-xs mt-2">
             + {staffCount} staff

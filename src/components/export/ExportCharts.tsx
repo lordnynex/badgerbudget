@@ -148,10 +148,16 @@ export function ExportCharts({
   for (const m of metrics) {
     byKey.set(`${m.attendancePercent}-${m.ticketPrice}-${m.staffPrice}`, m);
   }
+  const attendeesByPct = new Map<number, number>();
+  for (const m of metrics) {
+    if (!attendeesByPct.has(m.attendancePercent)) {
+      attendeesByPct.set(m.attendancePercent, m.attendees);
+    }
+  }
   const minProfit = Math.min(...metrics.map((m) => m.profit));
   const maxProfit = Math.max(...metrics.map((m) => m.profit));
   const heatmapSeries = attendanceLevels.map((pct) => ({
-    name: `${pct}%`,
+    name: `${pct}% (${attendeesByPct.get(pct) ?? 0} tickets)`,
     data: columnKeys.map((col) => {
       const [ticketPart, staffPart] = col.replace("$", "").split("/$");
       const ticketPrice = Number(ticketPart);
@@ -227,7 +233,7 @@ export function ExportCharts({
           options={heatmapOptions}
           series={heatmapSeries}
           type="heatmap"
-          height={280}
+          height={Math.max(400, attendanceLevels.length * 36)}
         />
       </div>
     </div>

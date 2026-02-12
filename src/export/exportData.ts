@@ -59,12 +59,10 @@ export function computeExportSummary(
   const maxOccupancy = inputs.maxOccupancy;
   const staffCount = inputs.staffCount;
   const gaTicketsAvailable = Math.max(0, maxOccupancy - staffCount);
-  const attendanceBreakdown = [
-    { percent: 25, tickets: Math.round(maxOccupancy * 0.25) },
-    { percent: 50, tickets: Math.round(maxOccupancy * 0.5) },
-    { percent: 75, tickets: Math.round(maxOccupancy * 0.75) },
-    { percent: 100, tickets: maxOccupancy },
-  ];
+  const attendanceBreakdown = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100].map((percent) => ({
+    percent,
+    tickets: Math.round(maxOccupancy * (percent / 100)),
+  }));
 
   const profitableScenarios = metrics.filter((m) => m.profit >= 0);
   const meetingTargetScenarios = metrics.filter(
