@@ -14,7 +14,7 @@ export function Header() {
     <header className="sticky top-0 z-40 flex items-center justify-between border-b bg-background/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="flex items-center gap-6">
         <NavLink to="/projections" className="text-xl font-bold hover:opacity-90">
-          Badger Budget
+          Badger Planning
         </NavLink>
         <nav className="flex items-center gap-1 rounded-lg bg-muted p-1" aria-label="Main navigation">
           <NavLink to="/events" className={navLinkClass}>

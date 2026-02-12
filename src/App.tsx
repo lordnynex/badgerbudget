@@ -119,7 +119,7 @@ function App() {
   if (!initialized) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <p className="text-muted-foreground">Loading Badger Budget...</p>
+        <p className="text-muted-foreground">Loading Badger Planning...</p>
       </div>
     );
   }
@@ -157,11 +157,13 @@ function AppLoader() {
       dispatch({ type: "SET_BUDGETS", payload: budgets });
       dispatch({ type: "SET_SCENARIOS", payload: scenarios });
 
-      if (budgets.length > 0) {
-        await selectBudget(budgets[0].id);
+      const firstBudget = budgets[0];
+      if (firstBudget) {
+        await selectBudget(firstBudget.id);
       }
-      if (scenarios.length > 0) {
-        await selectScenario(scenarios[0].id);
+      const firstScenario = scenarios[0];
+      if (firstScenario) {
+        await selectScenario(firstScenario.id);
       }
 
       dispatch({ type: "SET_LOADING", payload: false });
