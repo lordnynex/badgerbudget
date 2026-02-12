@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AppStateProvider, useAppState } from "@/state/AppState";
 import { api } from "@/data/api";
 import { Header } from "@/components/layout/Header";
 import { Main } from "@/components/layout/Main";
+import { ProjectionsSubNav } from "@/components/layout/ProjectionsSubNav";
 import { PrintView } from "@/components/export/PrintView";
 import { EmailView } from "@/components/export/EmailView";
 import {
@@ -19,6 +20,7 @@ import "./index.css";
 function AppContent() {
   const { getInputs, getLineItems, currentBudget, currentScenario } = useAppState();
   const metrics = useScenarioMetrics(getInputs(), getLineItems());
+  const location = useLocation();
   const [printMode, setPrintMode] = useState(false);
   const [emailOpen, setEmailOpen] = useState(false);
 
@@ -28,6 +30,9 @@ function AppContent() {
     budget: currentBudget,
     scenario: currentScenario,
   };
+
+  const onPrint = () => setPrintMode(true);
+  const onEmail = () => setEmailOpen(true);
 
   return (
     <>
@@ -43,24 +48,29 @@ function AppContent() {
         </div>
       ) : (
         <>
-          <Header />
+          <div className="sticky top-0 z-40 bg-background">
+            <Header />
+            {location.pathname === "/projections" && (
+              <ProjectionsSubNav onPrint={onPrint} onEmail={onEmail} />
+            )}
+          </div>
           <Routes>
             <Route path="/" element={<Navigate to="/projections" replace />} />
             <Route
               path="/events"
-              element={<Main activeTab="events" onPrint={() => setPrintMode(true)} onEmail={() => setEmailOpen(true)} />}
+              element={<Main activeTab="events" onPrint={onPrint} onEmail={onEmail} />}
             />
             <Route
               path="/projections"
-              element={<Main activeTab="projections" onPrint={() => setPrintMode(true)} onEmail={() => setEmailOpen(true)} />}
+              element={<Main activeTab="projections" onPrint={onPrint} onEmail={onEmail} />}
             />
             <Route
               path="/budget"
-              element={<Main activeTab="budget" onPrint={() => setPrintMode(true)} onEmail={() => setEmailOpen(true)} />}
+              element={<Main activeTab="budget" onPrint={onPrint} onEmail={onEmail} />}
             />
             <Route
               path="/scenarios"
-              element={<Main activeTab="scenarios" onPrint={() => setPrintMode(true)} onEmail={() => setEmailOpen(true)} />}
+              element={<Main activeTab="scenarios" onPrint={onPrint} onEmail={onEmail} />}
             />
             <Route path="*" element={<Navigate to="/projections" replace />} />
           </Routes>

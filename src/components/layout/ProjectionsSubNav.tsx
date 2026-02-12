@@ -1,4 +1,14 @@
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { useAppState } from "@/state/AppState";
+import { ExportDropdown } from "./ExportDropdown";
 
 const SECTIONS = [
   { id: "summary", label: "Summary" },
@@ -9,23 +19,84 @@ const SECTIONS = [
 
 interface ProjectionsSubNavProps {
   className?: string;
+  onPrint?: () => void;
+  onEmail?: () => void;
 }
 
-export function ProjectionsSubNav({ className }: ProjectionsSubNavProps) {
+export function ProjectionsSubNav({ className, onPrint, onEmail }: ProjectionsSubNavProps) {
+  const {
+    budgets,
+    scenarios,
+    selectedBudgetId,
+    selectedScenarioId,
+    selectBudget,
+    selectScenario,
+  } = useAppState();
+
   return (
-    <nav
-      className={cn("flex flex-wrap gap-2 border-b pb-3", className)}
-      aria-label="Projections page sections"
+    <div
+      className={cn(
+        "flex flex-wrap items-center justify-between gap-4 border-b bg-background/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/60",
+        className
+      )}
     >
-      {SECTIONS.map(({ id, label }) => (
-        <a
-          key={id}
-          href={`#${id}`}
-          className="rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+      <div className="flex flex-wrap items-center gap-6">
+        <div className="flex flex-wrap items-end gap-6">
+          <div className="space-y-2">
+            <Label className="text-xs text-muted-foreground">Budget</Label>
+            <Select
+              value={selectedBudgetId ?? ""}
+              onValueChange={(v) => selectBudget(v || null)}
+            >
+              <SelectTrigger className="h-8 w-[180px]">
+                <SelectValue placeholder="Select budget" />
+              </SelectTrigger>
+              <SelectContent>
+                {budgets.map((b) => (
+                  <SelectItem key={b.id} value={b.id}>
+                    {b.name} ({b.year})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label className="text-xs text-muted-foreground">Scenario</Label>
+            <Select
+              value={selectedScenarioId ?? ""}
+              onValueChange={(v) => selectScenario(v || null)}
+            >
+              <SelectTrigger className="h-8 w-[180px]">
+                <SelectValue placeholder="Select scenario" />
+              </SelectTrigger>
+              <SelectContent>
+                {scenarios.map((s) => (
+                  <SelectItem key={s.id} value={s.id}>
+                    {s.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <nav
+          className="flex flex-wrap items-center gap-1 border-l pl-6"
+          aria-label="Projections page sections"
         >
-          {label}
-        </a>
-      ))}
-    </nav>
+          {SECTIONS.map(({ id, label }) => (
+            <a
+              key={id}
+              href={`#${id}`}
+              className="rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            >
+              {label}
+            </a>
+          ))}
+        </nav>
+      </div>
+      {onPrint && onEmail && (
+        <ExportDropdown onPrint={onPrint} onEmail={onEmail} />
+      )}
+    </div>
   );
 }
