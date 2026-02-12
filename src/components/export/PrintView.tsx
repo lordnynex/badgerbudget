@@ -559,10 +559,10 @@ export function PrintView({ state, metrics }: PrintViewProps) {
                 </tbody>
               </table>
               {showCharts && (
-                <div className="mt-6 grid gap-6 print:grid-cols-2">
+                <div className="mt-4 grid grid-cols-2 gap-4 print:grid-cols-2">
                   <div>
-                    <h4 className="mb-2 text-sm font-medium">ROI</h4>
-                    <div className="h-[280px]">
+                    <h4 className="mb-1 text-xs font-medium">ROI</h4>
+                    <div className="h-[160px]">
                       <Chart
                         options={{
                           chart: { type: "bar", fontFamily: "inherit", background: "#fff" },
@@ -576,13 +576,13 @@ export function PrintView({ state, metrics }: PrintViewProps) {
                         }}
                         series={[{ name: "ROI", data: tableMetrics.map((m) => Math.round(m.roi * 100) / 100) }]}
                         type="bar"
-                        height={260}
+                        height={150}
                       />
                     </div>
                   </div>
                   <div>
-                    <h4 className="mb-2 text-sm font-medium">Net Revenue</h4>
-                    <div className="h-[280px]">
+                    <h4 className="mb-1 text-xs font-medium">Net Revenue</h4>
+                    <div className="h-[160px]">
                       <Chart
                         options={{
                           chart: { type: "bar", fontFamily: "inherit", background: "#fff" },
@@ -600,13 +600,13 @@ export function PrintView({ state, metrics }: PrintViewProps) {
                         }}
                         series={[{ name: "Profit", data: tableMetrics.map((m) => m.profit) }]}
                         type="bar"
-                        height={260}
+                        height={150}
                       />
                     </div>
                   </div>
                   <div>
-                    <h4 className="mb-2 text-sm font-medium">Gross Revenue</h4>
-                    <div className="h-[280px]">
+                    <h4 className="mb-1 text-xs font-medium">Gross Revenue</h4>
+                    <div className="h-[160px]">
                       <Chart
                         options={{
                           chart: { type: "bar", fontFamily: "inherit", background: "#fff" },
@@ -619,13 +619,13 @@ export function PrintView({ state, metrics }: PrintViewProps) {
                         }}
                         series={[{ name: "Revenue", data: tableMetrics.map((m) => m.revenue) }]}
                         type="bar"
-                        height={260}
+                        height={150}
                       />
                     </div>
                   </div>
                   <div>
-                    <h4 className="mb-2 text-sm font-medium">Profit Margin</h4>
-                    <div className="h-[280px]">
+                    <h4 className="mb-1 text-xs font-medium">Profit Margin</h4>
+                    <div className="h-[160px]">
                       <Chart
                         options={{
                           chart: { type: "bar", fontFamily: "inherit", background: "#fff" },
@@ -639,13 +639,13 @@ export function PrintView({ state, metrics }: PrintViewProps) {
                         }}
                         series={[{ name: "Profit Margin", data: tableMetrics.map((m) => Math.round(m.profitMargin * 10) / 10) }]}
                         type="bar"
-                        height={260}
+                        height={150}
                       />
                     </div>
                   </div>
                   <div>
-                    <h4 className="mb-2 text-sm font-medium">Profit per Attendee</h4>
-                    <div className="h-[280px]">
+                    <h4 className="mb-1 text-xs font-medium">Profit per Attendee</h4>
+                    <div className="h-[160px]">
                       <Chart
                         options={{
                           chart: { type: "bar", fontFamily: "inherit", background: "#fff" },
@@ -658,13 +658,13 @@ export function PrintView({ state, metrics }: PrintViewProps) {
                         }}
                         series={[{ name: "Profit/Attendee", data: tableMetrics.map((m) => Math.round(m.profitPerAttendee * 100) / 100) }]}
                         type="bar"
-                        height={260}
+                        height={150}
                       />
                     </div>
                   </div>
                   <div>
-                    <h4 className="mb-2 text-sm font-medium">Cost Coverage</h4>
-                    <div className="h-[280px]">
+                    <h4 className="mb-1 text-xs font-medium">Cost Coverage</h4>
+                    <div className="h-[160px]">
                       <Chart
                         options={{
                           chart: { type: "bar", fontFamily: "inherit", background: "#fff" },
@@ -679,7 +679,7 @@ export function PrintView({ state, metrics }: PrintViewProps) {
                         }}
                         series={[{ name: "Cost Coverage", data: tableMetrics.map((m) => Math.round(m.costCoverageRatio * 100) / 100) }]}
                         type="bar"
-                        height={260}
+                        height={150}
                       />
                     </div>
                   </div>

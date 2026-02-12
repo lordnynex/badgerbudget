@@ -47,7 +47,7 @@ export function EmailView({ state, metrics }: EmailViewProps) {
 
     const chartImg = (key: string) =>
       chartImages[key]
-        ? `<img src="${chartImages[key]}" alt="${key}" style="max-width: 100%; height: auto; margin: 16px 0; border: 1px solid #eee; border-radius: 8px;" />`
+        ? `<img src="${chartImages[key]}" alt="${key}" style="max-width: 100%; width: 100%; height: auto; margin: 8px 0; border: 1px solid #eee; border-radius: 6px;" />`
         : "";
 
     const scenarioChartTypes = ["ROI", "PnL", "Revenue", "ProfitMargin", "ProfitPerAttendee", "CostCoverage"] as const;
@@ -65,20 +65,20 @@ export function EmailView({ state, metrics }: EmailViewProps) {
           .map(
             (m) =>
               `<tr style="${m.profit < 0 ? "background: #fef2f2;" : ""}">
-                <td style="padding: 8px; border-bottom: 1px solid #eee;">$${m.ticketPrice}</td>
-                <td style="padding: 8px; border-bottom: 1px solid #eee;">$${m.staffPrice}</td>
-                <td style="padding: 8px; border-bottom: 1px solid #eee;">${m.attendancePercent}%</td>
-                <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">$${m.revenue.toLocaleString()}</td>
-                <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right; color: ${m.profit >= 0 ? "#16a34a" : "#dc2626"}; font-weight: 600;">$${m.profit.toLocaleString()}</td>
-                <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">${m.profitMargin.toFixed(1)}%</td>
-                <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">$${m.profitPerAttendee.toFixed(0)}</td>
-                <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">${m.costCoverageRatio.toFixed(2)}×</td>
-                <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">$${m.avgRevenuePerTicket.toFixed(0)}</td>
-                <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">${m.revenueMixAttendee.toFixed(0)}%</td>
-                <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">${m.breakEvenAttendancePercent != null ? Math.round(m.breakEvenAttendancePercent) + "%" : "—"}</td>
-                <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">${m.profitTargetCoverage != null ? m.profitTargetCoverage.toFixed(0) + "%" : "—"}</td>
-                <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">${m.profitVsBreakEven >= 0 ? "Yes" : "No"}</td>
-                <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">$${m.costPerAttendee.toFixed(0)}</td>
+                <td style="padding: 6px; border-bottom: 1px solid #eee; font-size: 11px;">$${m.ticketPrice}</td>
+                <td style="padding: 6px; border-bottom: 1px solid #eee; font-size: 11px;">$${m.staffPrice}</td>
+                <td style="padding: 6px; border-bottom: 1px solid #eee; font-size: 11px;">${m.attendancePercent}%</td>
+                <td style="padding: 6px; border-bottom: 1px solid #eee; text-align: right; font-size: 11px;">$${m.revenue.toLocaleString()}</td>
+                <td style="padding: 6px; border-bottom: 1px solid #eee; text-align: right; color: ${m.profit >= 0 ? "#16a34a" : "#dc2626"}; font-weight: 600; font-size: 11px;">$${m.profit.toLocaleString()}</td>
+                <td style="padding: 6px; border-bottom: 1px solid #eee; text-align: right; font-size: 11px;">${m.profitMargin.toFixed(1)}%</td>
+                <td style="padding: 6px; border-bottom: 1px solid #eee; text-align: right; font-size: 11px;">$${m.profitPerAttendee.toFixed(0)}</td>
+                <td style="padding: 6px; border-bottom: 1px solid #eee; text-align: right; font-size: 11px;">${m.costCoverageRatio.toFixed(2)}×</td>
+                <td style="padding: 6px; border-bottom: 1px solid #eee; text-align: right; font-size: 11px;">$${m.avgRevenuePerTicket.toFixed(0)}</td>
+                <td style="padding: 6px; border-bottom: 1px solid #eee; text-align: right; font-size: 11px;">${m.revenueMixAttendee.toFixed(0)}%</td>
+                <td style="padding: 6px; border-bottom: 1px solid #eee; text-align: right; font-size: 11px;">${m.breakEvenAttendancePercent != null ? Math.round(m.breakEvenAttendancePercent) + "%" : "—"}</td>
+                <td style="padding: 6px; border-bottom: 1px solid #eee; text-align: right; font-size: 11px;">${m.profitTargetCoverage != null ? m.profitTargetCoverage.toFixed(0) + "%" : "—"}</td>
+                <td style="padding: 6px; border-bottom: 1px solid #eee; text-align: right; font-size: 11px;">${m.profitVsBreakEven >= 0 ? "Yes" : "No"}</td>
+                <td style="padding: 6px; border-bottom: 1px solid #eee; text-align: right; font-size: 11px;">$${m.costPerAttendee.toFixed(0)}</td>
               </tr>`
           )
           .join("");
@@ -91,12 +91,12 @@ export function EmailView({ state, metrics }: EmailViewProps) {
           CostCoverage: "Cost Coverage",
         };
         const chartsHtml = showCharts
-          ? `<div style="margin-top: 16px; margin-bottom: 24px;">
+          ? `<div style="margin-top: 16px; margin-bottom: 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
             ${scenarioChartTypes
               .map(
                 (t) =>
-                  `<div style="margin-bottom: 16px;">
-                    <p style="font-size: 14px; font-weight: 600; margin-bottom: 8px;">${chartLabels[t]}</p>
+                  `<div>
+                    <p style="font-size: 11px; font-weight: 600; margin-bottom: 4px;">${chartLabels[t]}</p>
                     ${chartImg(`scenario-${pct}-${t}`)}
                   </div>`
               )
@@ -106,25 +106,27 @@ export function EmailView({ state, metrics }: EmailViewProps) {
         return `
           <h3 style="font-size: 16px; margin-top: 24px; margin-bottom: 8px;">${pct}% Attendance</h3>
           <p style="color: #666; font-size: 12px; margin-bottom: 8px;">${tableMetrics[0]?.attendees} attendees</p>
-          <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px;">
+          <div style="overflow-x: auto; max-width: 100%; margin-bottom: 16px; -webkit-overflow-scrolling: touch;">
+            <table style="border-collapse: collapse; margin-bottom: 0; font-size: 11px; min-width: 650px;">
             <tr style="background: #f5f5f5;">
-              <th style="padding: 8px; text-align: left; font-size: 12px;">Ticket Cost</th>
-              <th style="padding: 8px; text-align: left; font-size: 12px;">Staff Cost</th>
-              <th style="padding: 8px; text-align: left; font-size: 12px;">Attendance</th>
-              <th style="padding: 8px; text-align: right; font-size: 12px;">Gross Revenue</th>
-              <th style="padding: 8px; text-align: right; font-size: 12px;">Net Revenue</th>
-              <th style="padding: 8px; text-align: right; font-size: 12px;">Profit Margin</th>
-              <th style="padding: 8px; text-align: right; font-size: 12px;">Profit/Attendee</th>
-              <th style="padding: 8px; text-align: right; font-size: 12px;">Cost Coverage</th>
-              <th style="padding: 8px; text-align: right; font-size: 12px;">Rev/Ticket</th>
-              <th style="padding: 8px; text-align: right; font-size: 12px;">Attendee %</th>
-              <th style="padding: 8px; text-align: right; font-size: 12px;">Break-ev Att %</th>
-              <th style="padding: 8px; text-align: right; font-size: 12px;">Target Cov %</th>
-              <th style="padding: 8px; text-align: right; font-size: 12px;">Meets Target</th>
-              <th style="padding: 8px; text-align: right; font-size: 12px;">Cost/Person</th>
+              <th style="padding: 6px; text-align: left; font-size: 11px;">Ticket</th>
+              <th style="padding: 6px; text-align: left; font-size: 11px;">Staff</th>
+              <th style="padding: 6px; text-align: left; font-size: 11px;">Att %</th>
+              <th style="padding: 6px; text-align: right; font-size: 11px;">Gross</th>
+              <th style="padding: 6px; text-align: right; font-size: 11px;">Net</th>
+              <th style="padding: 6px; text-align: right; font-size: 11px;">Margin %</th>
+              <th style="padding: 6px; text-align: right; font-size: 11px;">P/Att</th>
+              <th style="padding: 6px; text-align: right; font-size: 11px;">Cov</th>
+              <th style="padding: 6px; text-align: right; font-size: 11px;">Rev/Tkt</th>
+              <th style="padding: 6px; text-align: right; font-size: 11px;">Att %</th>
+              <th style="padding: 6px; text-align: right; font-size: 11px;">BE %</th>
+              <th style="padding: 6px; text-align: right; font-size: 11px;">Tgt %</th>
+              <th style="padding: 6px; text-align: right; font-size: 11px;">Target</th>
+              <th style="padding: 6px; text-align: right; font-size: 11px;">$/Person</th>
             </tr>
             ${rows}
           </table>
+          </div>
           ${chartsHtml}`;
       })
       .join("");
