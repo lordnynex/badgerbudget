@@ -379,7 +379,11 @@ export function PrintView({ state, metrics }: PrintViewProps) {
         {scenarioMatrix.attendanceLevels.map((pct) => {
           const tableMetrics = scenarioMatrix.byAttendance[pct]
             .slice()
-            .sort((a, b) => a.profit - b.profit);
+            .sort((a, b) => {
+              if (a.profit !== b.profit) return a.profit - b.profit;
+              if (a.ticketPrice !== b.ticketPrice) return a.ticketPrice - b.ticketPrice;
+              return a.staffPrice - b.staffPrice;
+            });
           return (
             <div key={pct} className="mb-8 break-inside-avoid">
               <h3 className="mb-2 text-base font-semibold">{pct}% Attendance</h3>

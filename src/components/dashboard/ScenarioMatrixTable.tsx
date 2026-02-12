@@ -32,7 +32,11 @@ function SingleScenarioTable({
   metrics: ScenarioMetrics[];
   profitTarget?: number;
 }) {
-  const sorted = [...metrics].sort((a, b) => a.profit - b.profit);
+  const sorted = [...metrics].sort((a, b) => {
+    if (a.profit !== b.profit) return a.profit - b.profit;
+    if (a.ticketPrice !== b.ticketPrice) return a.ticketPrice - b.ticketPrice;
+    return a.staffPrice - b.staffPrice;
+  });
   const showCharts = metrics.length > 1 && metrics.length <= 12;
 
   return (
@@ -158,9 +162,18 @@ export function ScenarioMatrixTable({ metrics, profitTarget }: ScenarioMatrixTab
     .map(Number)
     .sort((a, b) => a - b);
 
-  const firstProfitableTab =
-    attendanceLevels.find((pct) => byAttendance[pct].some((m) => m.profit >= 0)) ??
-    attendanceLevels[0];
+  const mostAccessibleProfitable = metrics
+    .filter((m) => m.profit >= 0)
+    .sort((a, b) => {
+      if (a.ticketPrice !== b.ticketPrice) return a.ticketPrice - b.ticketPrice;
+      return a.staffPrice - b.staffPrice;
+    })[0];
+  const firstProfitableTab = mostAccessibleProfitable
+    ? String(mostAccessibleProfitable.attendancePercent)
+    : String(
+        attendanceLevels.find((pct) => byAttendance[pct].some((m) => m.profit >= 0)) ??
+        attendanceLevels[0]
+      );
 
   const tabColorClasses = {
     profit:

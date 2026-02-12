@@ -31,15 +31,33 @@ export function SummarySection({ metrics, filteredMetrics }: SummarySectionProps
     (m) => m.profitVsBreakEven >= 0
   );
 
-  const lowestBreakEven = profitableScenarios.length > 0
-    ? Math.min(...profitableScenarios.map((m) => m.ticketPrice))
-    : null;
-  const lowestMeetingTarget = meetingTargetScenarios.length > 0
-    ? Math.min(...meetingTargetScenarios.map((m) => m.ticketPrice))
-    : null;
+  const minStaffPrice = filteredMetrics.length > 0
+    ? Math.min(...filteredMetrics.map((m) => m.staffPrice))
+    : 0;
+  const atLowestStaff = (m: ScenarioMetrics) => m.staffPrice === minStaffPrice;
+
+  const lowestBreakEven = profitableScenarios.filter(atLowestStaff).length > 0
+    ? Math.min(...profitableScenarios.filter(atLowestStaff).map((m) => m.ticketPrice))
+    : profitableScenarios.length > 0
+      ? Math.min(...profitableScenarios.map((m) => m.ticketPrice))
+      : null;
+  const lowestMeetingTarget = meetingTargetScenarios.filter(atLowestStaff).length > 0
+    ? Math.min(...meetingTargetScenarios.filter(atLowestStaff).map((m) => m.ticketPrice))
+    : meetingTargetScenarios.length > 0
+      ? Math.min(...meetingTargetScenarios.map((m) => m.ticketPrice))
+      : null;
 
   const dayPassRevenue =
     (inputs.dayPassPrice ?? 0) * (inputs.dayPassesSold ?? 0);
+
+  const mostAccessible = profitableScenarios.length > 0
+    ? [...profitableScenarios].sort((a, b) => {
+        if (a.ticketPrice !== b.ticketPrice) return a.ticketPrice - b.ticketPrice;
+        return a.staffPrice - b.staffPrice;
+      })[0]
+    : null;
+
+  const breakEvenAtMostAccessible = mostAccessible?.breakEvenAttendancePercent;
 
   const breakEvenAttendances = filteredMetrics
     .filter((m) => m.breakEvenAttendancePercent != null && m.breakEvenAttendancePercent >= 0 && m.breakEvenAttendancePercent <= 100)
@@ -54,7 +72,7 @@ export function SummarySection({ metrics, filteredMetrics }: SummarySectionProps
     ? profitableScenarios.reduce((a, b) => (b.profit < a.profit ? b : a))
     : null;
 
-  const revenueMixScenario = bestScenario ?? filteredMetrics.find((m) => m.attendancePercent === 100);
+  const revenueMixScenario = mostAccessible ?? bestScenario ?? filteredMetrics.find((m) => m.attendancePercent === 100);
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -114,7 +132,7 @@ export function SummarySection({ metrics, filteredMetrics }: SummarySectionProps
             {lowestBreakEven != null ? `$${lowestBreakEven}` : "—"}
           </p>
           <p className="text-muted-foreground text-xs mt-1">
-            To break even (raw cost)
+            To break even at ${minStaffPrice} staff price
           </p>
           {lowestMeetingTarget != null && lowestMeetingTarget !== lowestBreakEven && (
             <p className="text-muted-foreground text-xs mt-1">
@@ -140,19 +158,39 @@ export function SummarySection({ metrics, filteredMetrics }: SummarySectionProps
         </Card>
       )}
 
-      {breakEvenMin != null && (
+      {(breakEvenMin != null || (mostAccessible && breakEvenAtMostAccessible != null && breakEvenAtMostAccessible <= 100)) && (
         <Card>
           <CardHeader className="pb-2">
             <h3 className="text-sm font-medium text-muted-foreground">Break-even attendance</h3>
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold">
-              {breakEvenMin === breakEvenMax
-                ? `${Math.round(breakEvenMin)}%`
-                : `${Math.round(breakEvenMin)}–${Math.round(breakEvenMax)}%`}
+              {mostAccessible && breakEvenAtMostAccessible != null && breakEvenAtMostAccessible <= 100
+                ? `${Math.round(breakEvenAtMostAccessible)}%`
+                : breakEvenMin === breakEvenMax
+                  ? `${Math.round(breakEvenMin!)}%`
+                  : `${Math.round(breakEvenMin!)}–${Math.round(breakEvenMax!)}%`}
             </p>
             <p className="text-muted-foreground text-xs mt-1">
-              Attendance % needed to break even across ticket/staff combos
+              {mostAccessible && breakEvenAtMostAccessible != null && breakEvenAtMostAccessible <= 100
+                ? `At $${mostAccessible.ticketPrice} ticket / $${mostAccessible.staffPrice} staff`
+                : "Attendance % needed to break even across ticket/staff combos"}
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {mostAccessible && (
+        <Card>
+          <CardHeader className="pb-2">
+            <h3 className="text-sm font-medium text-muted-foreground">Most accessible</h3>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-green-600">
+              ${mostAccessible.ticketPrice} / Staff ${mostAccessible.staffPrice}
+            </p>
+            <p className="text-muted-foreground text-xs mt-1">
+              Lowest ticket + staff combo that&apos;s profitable. {mostAccessible.attendancePercent}% att. = ${mostAccessible.profit.toLocaleString()} profit.
             </p>
           </CardContent>
         </Card>
@@ -161,7 +199,7 @@ export function SummarySection({ metrics, filteredMetrics }: SummarySectionProps
       {bestScenario && (
         <Card>
           <CardHeader className="pb-2">
-            <h3 className="text-sm font-medium text-muted-foreground">Best scenario</h3>
+            <h3 className="text-sm font-medium text-muted-foreground">Best profit</h3>
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold text-green-600">
@@ -205,7 +243,7 @@ export function SummarySection({ metrics, filteredMetrics }: SummarySectionProps
               )}
             </p>
             <p className="text-muted-foreground text-xs mt-1">
-              At best scenario
+              At most accessible scenario
             </p>
           </CardContent>
         </Card>

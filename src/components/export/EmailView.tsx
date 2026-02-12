@@ -54,7 +54,11 @@ export function EmailView({ state, metrics }: EmailViewProps) {
       .map((pct) => {
         const tableMetrics = scenarioMatrix.byAttendance[pct]
           .slice()
-          .sort((a, b) => a.profit - b.profit);
+          .sort((a, b) => {
+            if (a.profit !== b.profit) return a.profit - b.profit;
+            if (a.ticketPrice !== b.ticketPrice) return a.ticketPrice - b.ticketPrice;
+            return a.staffPrice - b.staffPrice;
+          });
         const rows = tableMetrics
           .map(
             (m) =>
