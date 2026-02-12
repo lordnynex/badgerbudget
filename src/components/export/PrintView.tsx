@@ -1,7 +1,7 @@
-import type { BadgerBudgetState, ScenarioMetrics } from "@/types/budget";
+import type { Inputs, LineItem, ScenarioMetrics } from "@/types/budget";
 
 interface PrintViewProps {
-  state: BadgerBudgetState;
+  state: { inputs: Inputs; lineItems: LineItem[] };
   metrics: ScenarioMetrics[];
 }
 

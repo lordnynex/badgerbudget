@@ -1,9 +1,9 @@
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import type { BadgerBudgetState, ScenarioMetrics } from "@/types/budget";
+import type { Inputs, LineItem, ScenarioMetrics } from "@/types/budget";
 
 interface EmailViewProps {
-  state: BadgerBudgetState;
+  state: { inputs: Inputs; lineItems: LineItem[] };
   metrics: ScenarioMetrics[];
 }
 

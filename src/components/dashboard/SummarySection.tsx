@@ -8,14 +8,16 @@ interface SummarySectionProps {
 }
 
 export function SummarySection({ metrics, filteredMetrics }: SummarySectionProps) {
-  const { state } = useAppState();
-  const totalCosts = state.lineItems.reduce(
+  const { getInputs, getLineItems } = useAppState();
+  const inputs = getInputs();
+  const lineItems = getLineItems();
+  const totalCosts = lineItems.reduce(
     (sum, li) => sum + li.unitCost * li.quantity,
     0
   );
-  const totalWithProfitTarget = totalCosts + state.inputs.profitTarget;
-  const maxOccupancy = state.inputs.maxOccupancy;
-  const staffCount = state.inputs.staffCount;
+  const totalWithProfitTarget = totalCosts + inputs.profitTarget;
+  const maxOccupancy = inputs.maxOccupancy;
+  const staffCount = inputs.staffCount;
 
   const attendanceBreakdown = [
     { percent: 25, tickets: Math.round(maxOccupancy * 0.25) },
@@ -37,7 +39,7 @@ export function SummarySection({ metrics, filteredMetrics }: SummarySectionProps
     : null;
 
   const dayPassRevenue =
-    (state.inputs.dayPassPrice ?? 0) * (state.inputs.dayPassesSold ?? 0);
+    (inputs.dayPassPrice ?? 0) * (inputs.dayPassesSold ?? 0);
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -117,7 +119,7 @@ export function SummarySection({ metrics, filteredMetrics }: SummarySectionProps
               ${dayPassRevenue.toLocaleString()}
             </p>
             <p className="text-muted-foreground text-xs mt-1">
-              {state.inputs.dayPassesSold} passes × ${state.inputs.dayPassPrice}
+              {inputs.dayPassesSold} passes × ${inputs.dayPassPrice}
             </p>
           </CardContent>
         </Card>

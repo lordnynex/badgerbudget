@@ -5,9 +5,27 @@ import { useAppState } from "@/state/AppState";
 import { LineItemRow } from "./LineItemRow";
 
 export function LineItemsTable() {
-  const { state, addLineItem, updateLineItem, deleteLineItem, addCategory } =
-    useAppState();
-  const { lineItems, categories } = state;
+  const {
+    getLineItems,
+    addLineItem,
+    updateLineItem,
+    deleteLineItem,
+    addCategory,
+    categories,
+    selectedBudgetId,
+    currentBudget,
+  } = useAppState();
+  const lineItems = getLineItems();
+
+  if (!selectedBudgetId || !currentBudget) {
+    return (
+      <Card>
+        <CardContent className="py-8 text-center text-muted-foreground">
+          Select a budget from the dropdown above to view and edit line items.
+        </CardContent>
+      </Card>
+    );
+  }
 
   const total = lineItems.reduce(
     (sum, li) => sum + li.unitCost * li.quantity,
@@ -23,7 +41,7 @@ export function LineItemsTable() {
             Add, edit, or remove expense items. Use unit cost and quantity for variable costs.
           </CardDescription>
         </div>
-        <Button onClick={() => addLineItem()} size="sm">
+        <Button onClick={() => addLineItem(selectedBudgetId)} size="sm">
           <Plus className="size-4" />
           Add Item
         </Button>
@@ -49,8 +67,8 @@ export function LineItemsTable() {
                   key={item.id}
                   item={item}
                   categories={categories}
-                  onUpdate={updateLineItem}
-                  onDelete={deleteLineItem}
+                  onUpdate={(id, updates) => updateLineItem(selectedBudgetId, id, updates)}
+                  onDelete={(id) => deleteLineItem(selectedBudgetId, id)}
                   onAddCategory={addCategory}
                 />
               ))}

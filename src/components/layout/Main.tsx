@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { InputsPanel } from "@/components/inputs/InputsPanel";
-import { LineItemsTable } from "@/components/budget/LineItemsTable";
+import { BudgetsPanel } from "@/components/budget/BudgetsPanel";
+import { ScenariosPanel } from "@/components/scenarios/ScenariosPanel";
+import { BudgetScenarioSelectors } from "@/components/dashboard/BudgetScenarioSelectors";
 import { ROIChart } from "@/components/charts/ROIChart";
 import { PnLChart } from "@/components/charts/PnLChart";
 import { RevenueChart } from "@/components/charts/RevenueChart";
@@ -23,8 +25,8 @@ interface MainProps {
 }
 
 export function Main({ activeTab }: MainProps) {
-  const { state } = useAppState();
-  const metrics = useScenarioMetrics(state.inputs, state.lineItems);
+  const { getInputs, getLineItems } = useAppState();
+  const metrics = useScenarioMetrics(getInputs(), getLineItems());
   const [filter, setFilter] = useState<ScenarioFilterState>({
     scenarioKey: null,
     ticketPrice: null,
@@ -46,6 +48,7 @@ export function Main({ activeTab }: MainProps) {
     <main className="space-y-6 p-4 md:p-6">
       {activeTab === "overview" && (
         <>
+          <BudgetScenarioSelectors />
           <InputsPanel />
           <SummarySection metrics={metrics} filteredMetrics={filteredMetrics} />
           <ScenarioFilter
@@ -54,8 +57,8 @@ export function Main({ activeTab }: MainProps) {
             onFilterChange={setFilter}
           />
           <section className="grid gap-6 md:grid-cols-2">
-            <CostPerCategoryChart lineItems={state.lineItems} />
-            <CostPerCategoryBarChart lineItems={state.lineItems} />
+            <CostPerCategoryChart lineItems={getLineItems()} />
+            <CostPerCategoryBarChart lineItems={getLineItems()} />
           </section>
           {filteredMetrics.length === 1 ? (
             <ScenarioDetailCard metric={filteredMetrics[0]} />
@@ -76,7 +79,13 @@ export function Main({ activeTab }: MainProps) {
           )}
         </>
       )}
-      {activeTab === "budget" && <LineItemsTable />}
+      {activeTab === "budget" && (
+        <>
+          <BudgetScenarioSelectors />
+          <BudgetsPanel />
+        </>
+      )}
+      {activeTab === "scenarios" && <ScenariosPanel />}
     </main>
   );
 }

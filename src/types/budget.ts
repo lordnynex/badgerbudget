@@ -24,6 +24,38 @@ export interface LineItem {
   historicalCosts?: Record<string, number>;
 }
 
+export interface Budget {
+  id: string;
+  name: string;
+  year: number;
+  description: string | null;
+  created_at?: string;
+  lineItems: LineItem[];
+}
+
+export interface BudgetSummary {
+  id: string;
+  name: string;
+  year: number;
+  description: string | null;
+  created_at: string;
+}
+
+export interface Scenario {
+  id: string;
+  name: string;
+  description: string | null;
+  inputs: Inputs;
+  created_at?: string;
+}
+
+export interface ScenarioSummary {
+  id: string;
+  name: string;
+  description: string | null;
+  created_at: string;
+}
+
 export interface AttendanceScenarios {
   ticketPrices: number[];
   attendanceLevels: Record<string, number[]>;
@@ -49,7 +81,7 @@ export interface ScenarioMetrics {
   totalCosts: number;
   totalCostsWithProfitTarget: number;
   profit: number;
-  profitVsBreakEven: number; // profit - profitTarget (positive = meeting target)
+  profitVsBreakEven: number;
   roi: number;
   costPerAttendee: number;
 }

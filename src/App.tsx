@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { AppStateProvider, useAppState } from "@/state/AppState";
-import { loadBudgetData } from "@/data/loadData";
-import type { BadgerBudgetState } from "@/types/budget";
+import { api } from "@/data/api";
 import { Header } from "@/components/layout/Header";
 import { Main } from "@/components/layout/Main";
 import { PrintView } from "@/components/export/PrintView";
@@ -17,17 +16,24 @@ import { useScenarioMetrics } from "@/hooks/useScenarioMetrics";
 import "./index.css";
 
 function AppContent() {
-  const { state } = useAppState();
-  const metrics = useScenarioMetrics(state.inputs, state.lineItems);
+  const { getInputs, getLineItems, currentBudget, currentScenario } = useAppState();
+  const metrics = useScenarioMetrics(getInputs(), getLineItems());
   const [printMode, setPrintMode] = useState(false);
   const [emailOpen, setEmailOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
+
+  const stateForExport = {
+    inputs: getInputs(),
+    lineItems: getLineItems(),
+    budget: currentBudget,
+    scenario: currentScenario,
+  };
 
   return (
     <>
       {printMode ? (
         <div className="min-h-screen bg-white p-8">
-          <PrintView state={state} metrics={metrics} />
+          <PrintView state={stateForExport} metrics={metrics} />
           <div className="mt-8 flex gap-4 print:hidden">
             <Button onClick={() => window.print()}>Print</Button>
             <Button variant="outline" onClick={() => setPrintMode(false)}>
@@ -43,10 +49,7 @@ function AppContent() {
             onPrint={() => setPrintMode(true)}
             onEmail={() => setEmailOpen(true)}
           />
-          <Main
-            activeTab={activeTab}
-            onTabChange={setActiveTab}
-          />
+          <Main activeTab={activeTab} onTabChange={setActiveTab} />
         </>
       )}
 
@@ -55,7 +58,7 @@ function AppContent() {
           <DialogHeader>
             <DialogTitle>Email-friendly Summary</DialogTitle>
           </DialogHeader>
-          <EmailView state={state} metrics={metrics} />
+          <EmailView state={stateForExport} metrics={metrics} />
         </DialogContent>
       </Dialog>
     </>
@@ -63,25 +66,24 @@ function AppContent() {
 }
 
 function App() {
-  const [state, setState] = useState<BadgerBudgetState | null>(null);
+  const [initialized, setInitialized] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadBudgetData()
-      .then((data) => {
-        setState(data);
+    async function init() {
+      try {
+        await api.seed();
         setError(null);
-      })
-      .catch((err) => {
-        setError(err instanceof Error ? err.message : "Failed to load data");
-      })
-      .finally(() => {
-        setLoading(false);
-      });
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Failed to seed");
+      } finally {
+        setInitialized(true);
+      }
+    }
+    init();
   }, []);
 
-  if (loading) {
+  if (!initialized) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <p className="text-muted-foreground">Loading Badger Budget...</p>
@@ -89,13 +91,13 @@ function App() {
     );
   }
 
-  if (error || !state) {
+  if (error) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
-          <p className="text-destructive">{error ?? "Failed to load data"}</p>
+          <p className="text-destructive">{error}</p>
           <p className="text-muted-foreground mt-2 text-sm">
-            Ensure /data/export.json is available.
+            Check that the server is running and the database is accessible.
           </p>
         </div>
       </div>
@@ -103,10 +105,46 @@ function App() {
   }
 
   return (
-    <AppStateProvider initialState={state}>
-      <AppContent />
+    <AppStateProvider>
+      <AppLoader />
     </AppStateProvider>
   );
+}
+
+function AppLoader() {
+  const { dispatch, selectBudget, selectScenario, loading } = useAppState();
+
+  useEffect(() => {
+    async function load() {
+      const [budgets, scenarios] = await Promise.all([
+        api.budgets.list(),
+        api.scenarios.list(),
+      ]);
+
+      dispatch({ type: "SET_BUDGETS", payload: budgets });
+      dispatch({ type: "SET_SCENARIOS", payload: scenarios });
+
+      if (budgets.length > 0) {
+        await selectBudget(budgets[0].id);
+      }
+      if (scenarios.length > 0) {
+        await selectScenario(scenarios[0].id);
+      }
+
+      dispatch({ type: "SET_LOADING", payload: false });
+    }
+    load();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <p className="text-muted-foreground">Loading dashboards...</p>
+      </div>
+    );
+  }
+
+  return <AppContent />;
 }
 
 export default App;

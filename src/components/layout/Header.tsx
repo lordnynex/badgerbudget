@@ -17,7 +17,8 @@ export function Header({ activeTab, onTabChange, onPrint, onEmail }: HeaderProps
         <Tabs value={activeTab} onValueChange={onTabChange}>
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="budget">Budget</TabsTrigger>
+            <TabsTrigger value="budget">Budgets</TabsTrigger>
+            <TabsTrigger value="scenarios">Scenarios</TabsTrigger>
           </TabsList>
         </Tabs>
       </div>

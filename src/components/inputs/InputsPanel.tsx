@@ -11,8 +11,15 @@ import { ChevronDown, ChevronRight } from "lucide-react";
 import { useState } from "react";
 
 export function InputsPanel() {
-  const { state, updateInputs } = useAppState();
+  const { getInputs, updateScenarioInputs, selectedScenarioId } = useAppState();
+  const inputs = getInputs();
   const [open, setOpen] = useState(false);
+
+  const handleUpdate = (updates: Partial<typeof inputs>) => {
+    if (selectedScenarioId) {
+      updateScenarioInputs(selectedScenarioId, updates);
+    }
+  };
 
   return (
     <Card>
@@ -35,15 +42,15 @@ export function InputsPanel() {
           </div>
           {!open && (
             <CardDescription className="mt-1">
-              Max {state.inputs.maxOccupancy} · Staff {state.inputs.staffCount} · Tickets $
-              {state.inputs.ticketPrices.proposedPrice1}/$
-              {state.inputs.ticketPrices.proposedPrice2}/$
-              {state.inputs.ticketPrices.proposedPrice3} · Staff $
-              {state.inputs.ticketPrices.staffPrice1}/$
-              {state.inputs.ticketPrices.staffPrice2}/$
-              {state.inputs.ticketPrices.staffPrice3}
-              {(state.inputs.dayPassesSold ?? 0) > 0 &&
-                ` · Day passes: ${state.inputs.dayPassesSold} @ $${state.inputs.dayPassPrice}`}
+              Max {inputs.maxOccupancy} · Staff {inputs.staffCount} · Tickets $
+              {inputs.ticketPrices.proposedPrice1}/$
+              {inputs.ticketPrices.proposedPrice2}/$
+              {inputs.ticketPrices.proposedPrice3} · Staff $
+              {inputs.ticketPrices.staffPrice1}/$
+              {inputs.ticketPrices.staffPrice2}/$
+              {inputs.ticketPrices.staffPrice3}
+              {(inputs.dayPassesSold ?? 0) > 0 &&
+                ` · Day passes: ${inputs.dayPassesSold} @ $${inputs.dayPassPrice}`}
             </CardDescription>
           )}
         </CardHeader>
@@ -52,32 +59,32 @@ export function InputsPanel() {
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <EditableNumberInput
                 label="Max Occupancy"
-                value={state.inputs.maxOccupancy}
-                onChange={(v) => updateInputs({ maxOccupancy: v })}
+                value={inputs.maxOccupancy}
+                onChange={(v) => handleUpdate({ maxOccupancy: v })}
                 min={1}
               />
               <EditableNumberInput
                 label="Staff Count"
-                value={state.inputs.staffCount}
-                onChange={(v) => updateInputs({ staffCount: v })}
+                value={inputs.staffCount}
+                onChange={(v) => handleUpdate({ staffCount: v })}
                 min={0}
               />
               <EditableNumberInput
                 label="Profit Target ($)"
-                value={state.inputs.profitTarget}
-                onChange={(v) => updateInputs({ profitTarget: v })}
+                value={inputs.profitTarget}
+                onChange={(v) => handleUpdate({ profitTarget: v })}
                 min={0}
               />
               <EditableNumberInput
                 label="Day Pass Price ($)"
-                value={state.inputs.dayPassPrice}
-                onChange={(v) => updateInputs({ dayPassPrice: v })}
+                value={inputs.dayPassPrice}
+                onChange={(v) => handleUpdate({ dayPassPrice: v })}
                 min={0}
               />
               <EditableNumberInput
                 label="Estimated Day Passes Sold"
-                value={state.inputs.dayPassesSold}
-                onChange={(v) => updateInputs({ dayPassesSold: v })}
+                value={inputs.dayPassesSold}
+                onChange={(v) => handleUpdate({ dayPassesSold: v })}
                 min={0}
               />
             </div>

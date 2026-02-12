@@ -2,8 +2,14 @@ import { useAppState } from "@/state/AppState";
 import { EditableNumberInput } from "./EditableNumberInput";
 
 export function TicketPriceInputs() {
-  const { state, updateTicketPrices } = useAppState();
-  const tp = state.inputs.ticketPrices;
+  const { getInputs, updateScenarioInputs, selectedScenarioId } = useAppState();
+  const tp = getInputs().ticketPrices;
+
+  const handleUpdate = (updates: Partial<typeof tp>) => {
+    if (selectedScenarioId) {
+      updateScenarioInputs(selectedScenarioId, { ticketPrices: { ...tp, ...updates } });
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -13,19 +19,19 @@ export function TicketPriceInputs() {
           <EditableNumberInput
             label="Price 1 ($)"
             value={tp.proposedPrice1}
-            onChange={(v) => updateTicketPrices({ proposedPrice1: v })}
+            onChange={(v) => handleUpdate({ proposedPrice1: v })}
             min={0}
           />
           <EditableNumberInput
             label="Price 2 ($)"
             value={tp.proposedPrice2}
-            onChange={(v) => updateTicketPrices({ proposedPrice2: v })}
+            onChange={(v) => handleUpdate({ proposedPrice2: v })}
             min={0}
           />
           <EditableNumberInput
             label="Price 3 ($)"
             value={tp.proposedPrice3}
-            onChange={(v) => updateTicketPrices({ proposedPrice3: v })}
+            onChange={(v) => handleUpdate({ proposedPrice3: v })}
             min={0}
           />
         </div>
@@ -36,19 +42,19 @@ export function TicketPriceInputs() {
           <EditableNumberInput
             label="Staff Price 1 ($)"
             value={tp.staffPrice1}
-            onChange={(v) => updateTicketPrices({ staffPrice1: v })}
+            onChange={(v) => handleUpdate({ staffPrice1: v })}
             min={0}
           />
           <EditableNumberInput
             label="Staff Price 2 ($)"
             value={tp.staffPrice2}
-            onChange={(v) => updateTicketPrices({ staffPrice2: v })}
+            onChange={(v) => handleUpdate({ staffPrice2: v })}
             min={0}
           />
           <EditableNumberInput
             label="Staff Price 3 ($)"
             value={tp.staffPrice3}
-            onChange={(v) => updateTicketPrices({ staffPrice3: v })}
+            onChange={(v) => handleUpdate({ staffPrice3: v })}
             min={0}
           />
         </div>
