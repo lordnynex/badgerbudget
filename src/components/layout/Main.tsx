@@ -5,10 +5,6 @@ import { ScenariosPanel } from "@/components/scenarios/ScenariosPanel";
 import { EventsPanel } from "@/components/events/EventsPanel";
 import { BudgetScenarioSelectors } from "@/components/dashboard/BudgetScenarioSelectors";
 import { ExportDropdown } from "./ExportDropdown";
-import { ROIChart } from "@/components/charts/ROIChart";
-import { PnLChart } from "@/components/charts/PnLChart";
-import { RevenueChart } from "@/components/charts/RevenueChart";
-import { CostPerAttendeeChart } from "@/components/charts/CostPerAttendeeChart";
 import { CostPerCategoryChart } from "@/components/charts/CostPerCategoryChart";
 import { CostPerCategoryBarChart } from "@/components/charts/CostPerCategoryBarChart";
 import { useAppState } from "@/state/AppState";
@@ -48,8 +44,6 @@ export function Main({ activeTab, onTabChange, onPrint, onEmail }: MainProps) {
     return true;
   });
 
-  const showCharts = filteredMetrics.length > 1 && filteredMetrics.length <= 12;
-
   return (
     <main className="space-y-6 p-4 md:p-6">
       {activeTab === "events" && <EventsPanel />}
@@ -78,20 +72,18 @@ export function Main({ activeTab, onTabChange, onPrint, onEmail }: MainProps) {
           ) : filteredMetrics.length > 1 && filteredMetrics.length <= 12 ? (
             <>
               <ScenarioProfitHeatmap metrics={metrics} />
-              <ScenarioMatrixTable metrics={filteredMetrics} />
-              {showCharts && (
-                <section className="grid gap-6 md:grid-cols-2">
-                  <ROIChart metrics={filteredMetrics} />
-                  <PnLChart metrics={filteredMetrics} />
-                  <RevenueChart metrics={filteredMetrics} />
-                  <CostPerAttendeeChart metrics={filteredMetrics} />
-                </section>
-              )}
+              <ScenarioMatrixTable
+                metrics={filteredMetrics}
+                profitTarget={getInputs().profitTarget}
+              />
             </>
           ) : (
             <>
               <ScenarioProfitHeatmap metrics={metrics} />
-              <ScenarioMatrixTable metrics={filteredMetrics} />
+              <ScenarioMatrixTable
+                metrics={filteredMetrics}
+                profitTarget={getInputs().profitTarget}
+              />
             </>
           )}
         </>

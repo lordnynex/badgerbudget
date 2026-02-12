@@ -1,30 +1,39 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ROIChart } from "@/components/charts/ROIChart";
+import { PnLChart } from "@/components/charts/PnLChart";
+import { RevenueChart } from "@/components/charts/RevenueChart";
+import { CostPerAttendeeChart } from "@/components/charts/CostPerAttendeeChart";
 import type { ScenarioMetrics } from "@/types/budget";
 
 interface ScenarioMatrixTableProps {
   metrics: ScenarioMetrics[];
+  profitTarget?: number;
 }
 
 function SingleScenarioTable({
   title,
   metrics,
+  profitTarget,
 }: {
   title: string;
   metrics: ScenarioMetrics[];
+  profitTarget?: number;
 }) {
   const sorted = [...metrics].sort((a, b) => a.profit - b.profit);
+  const showCharts = metrics.length > 1 && metrics.length <= 12;
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">{title}</CardTitle>
-        <CardDescription>
-          {metrics[0]?.attendees} attendees. Gross = ticket income; Net = Gross − costs.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="overflow-x-auto rounded-md border">
-          <table className="w-full text-sm">
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">{title}</CardTitle>
+          <CardDescription>
+            {metrics[0]?.attendees} attendees. Gross = ticket income; Net = Gross − costs.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto rounded-md border">
+            <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-muted/50">
                 <th className="p-2 text-left font-medium">Ticket Cost</th>
@@ -74,10 +83,19 @@ function SingleScenarioTable({
         </div>
       </CardContent>
     </Card>
+      {showCharts && (
+        <section className="grid gap-6 md:grid-cols-2">
+          <ROIChart metrics={metrics} />
+          <PnLChart metrics={metrics} profitTarget={profitTarget} />
+          <RevenueChart metrics={metrics} />
+          <CostPerAttendeeChart metrics={metrics} />
+        </section>
+      )}
+    </div>
   );
 }
 
-export function ScenarioMatrixTable({ metrics }: ScenarioMatrixTableProps) {
+export function ScenarioMatrixTable({ metrics, profitTarget }: ScenarioMatrixTableProps) {
   const byAttendance = metrics.reduce(
     (acc, m) => {
       const key = m.attendancePercent;
@@ -100,6 +118,7 @@ export function ScenarioMatrixTable({ metrics }: ScenarioMatrixTableProps) {
           key={pct}
           title={`${pct}% attendance`}
           metrics={byAttendance[pct]}
+          profitTarget={profitTarget}
         />
       ))}
     </div>

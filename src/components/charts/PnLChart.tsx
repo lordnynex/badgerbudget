@@ -5,9 +5,10 @@ import type { ScenarioMetrics } from "@/types/budget";
 
 interface PnLChartProps {
   metrics: ScenarioMetrics[];
+  profitTarget?: number;
 }
 
-export function PnLChart({ metrics }: PnLChartProps) {
+export function PnLChart({ metrics, profitTarget }: PnLChartProps) {
   const labels = metrics.map((m) => m.scenarioKey);
   const profit = metrics.map((m) => m.profit);
 
@@ -52,6 +53,25 @@ export function PnLChart({ metrics }: PnLChartProps) {
       strokeDashArray: 4,
     },
     legend: { show: false },
+    ...(typeof profitTarget === "number" && {
+      annotations: {
+        yaxis: [
+          {
+            y: profitTarget,
+            borderColor: "#a78bfa",
+            strokeDashArray: 4,
+            label: {
+              borderColor: "#a78bfa",
+              style: {
+                color: "#fff",
+                background: "#a78bfa",
+              },
+              text: `Profit target: $${profitTarget.toLocaleString()}`,
+            },
+          },
+        ],
+      },
+    }),
   };
 
   return (
