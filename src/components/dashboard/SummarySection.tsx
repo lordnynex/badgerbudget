@@ -169,21 +169,19 @@ export function SummarySection({ metrics, filteredMetrics }: SummarySectionProps
         </CardContent>
       </Card>
 
-      {dayPassRevenue > 0 && (
-        <Card>
-          <CardHeader className="pb-2">
-            <h3 className="text-sm font-medium text-muted-foreground">Day pass (gross)</h3>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">
-              ${dayPassRevenue.toLocaleString()}
-            </p>
-            <p className="text-muted-foreground text-xs mt-1">
-              {inputs.dayPassesSold} passes × ${inputs.dayPassPrice}
-            </p>
-          </CardContent>
-        </Card>
-      )}
+      <Card>
+        <CardHeader className="pb-2">
+          <h3 className="text-sm font-medium text-muted-foreground">Day pass (gross)</h3>
+        </CardHeader>
+        <CardContent>
+          <p className="text-2xl font-bold">
+            ${dayPassRevenue.toLocaleString()}
+          </p>
+          <p className="text-muted-foreground text-xs mt-1">
+            {inputs.dayPassesSold} passes × ${inputs.dayPassPrice}
+          </p>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader className="pb-2">
@@ -196,19 +194,8 @@ export function SummarySection({ metrics, filteredMetrics }: SummarySectionProps
           <p className="text-muted-foreground text-xs mt-1">
             Yield $0 revenue
           </p>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="pb-2">
-          <h3 className="text-sm font-medium text-muted-foreground">Revenue lost to comps</h3>
-        </CardHeader>
-        <CardContent>
-          <p className="text-2xl font-bold">
-            ${revenueLostToComps.toLocaleString()}
-          </p>
-          <p className="text-muted-foreground text-xs mt-1">
-            {complimentaryTickets} × {mostAccessible ? `$${mostAccessible.ticketPrice}` : `$${inputs.ticketPrices.proposedPrice1}`}/ticket
+          <p className="text-muted-foreground text-xs mt-0.5">
+            Revenue lost: ${revenueLostToComps.toLocaleString()} ({complimentaryTickets} × {mostAccessible ? `$${mostAccessible.ticketPrice}` : `$${inputs.ticketPrices.proposedPrice1}`}/ticket)
           </p>
         </CardContent>
       </Card>
