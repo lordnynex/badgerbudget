@@ -32,6 +32,7 @@ function initSchema(database: Database) {
     ["event_date", "TEXT"],
     ["event_url", "TEXT"],
     ["event_location", "TEXT"],
+    ["event_location_embed", "TEXT"],
     ["ga_ticket_cost", "REAL"],
     ["day_pass_cost", "REAL"],
     ["ga_tickets_sold", "REAL"],

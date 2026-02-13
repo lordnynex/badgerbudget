@@ -6,6 +6,7 @@ export interface Event {
   event_date: string | null;
   event_url: string | null;
   event_location: string | null;
+  event_location_embed: string | null;
   ga_ticket_cost: number | null;
   day_pass_cost: number | null;
   ga_tickets_sold: number | null;

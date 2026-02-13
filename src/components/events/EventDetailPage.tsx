@@ -35,6 +35,7 @@ import {
 } from "lucide-react";
 import { api } from "@/data/api";
 import { useAppState } from "@/state/AppState";
+import { extractEmbedUrlFromHtml, getMapEmbedUrl } from "@/lib/maps";
 import type {
   Event,
   EventPackingItem,
@@ -80,6 +81,7 @@ export function EventDetailPage() {
   const [editEventDate, setEditEventDate] = useState("");
   const [editEventUrl, setEditEventUrl] = useState("");
   const [editEventLocation, setEditEventLocation] = useState("");
+  const [editEventLocationEmbed, setEditEventLocationEmbed] = useState("");
   const [editGaTicketCost, setEditGaTicketCost] = useState<string>("");
   const [editDayPassCost, setEditDayPassCost] = useState<string>("");
   const [editGaTicketsSold, setEditGaTicketsSold] = useState<string>("");
@@ -114,6 +116,7 @@ export function EventDetailPage() {
         setEditEventDate(e.event_date ?? "");
         setEditEventUrl(e.event_url ?? "");
         setEditEventLocation(e.event_location ?? "");
+        setEditEventLocationEmbed(e.event_location_embed ?? "");
         setEditGaTicketCost(e.ga_ticket_cost != null ? String(e.ga_ticket_cost) : "");
         setEditDayPassCost(e.day_pass_cost != null ? String(e.day_pass_cost) : "");
         setEditGaTicketsSold(e.ga_tickets_sold != null ? String(e.ga_tickets_sold) : "");
@@ -140,6 +143,7 @@ export function EventDetailPage() {
       event_date: editEventDate || undefined,
       event_url: editEventUrl || undefined,
       event_location: editEventLocation || undefined,
+      event_location_embed: extractEmbedUrlFromHtml(editEventLocationEmbed) || undefined,
       ga_ticket_cost: editGaTicketCost === "" ? undefined : parseFloat(editGaTicketCost),
       day_pass_cost: editDayPassCost === "" ? undefined : parseFloat(editDayPassCost),
       ga_tickets_sold: editGaTicketsSold === "" ? undefined : parseFloat(editGaTicketsSold),
@@ -237,8 +241,7 @@ export function EventDetailPage() {
       .filter((c, i, arr) => arr.indexOf(c) === i),
   ];
 
-  // Use Google Maps embed URL ( Share > Embed a map ). Regular place links may not embed.
-  const mapEmbedUrl = event.event_location?.includes("embed") ? event.event_location : null;
+  const mapEmbedUrl = event.event_location_embed ?? getMapEmbedUrl(event.event_location);
 
   return (
     <div className="space-y-6">
@@ -358,7 +361,7 @@ export function EventDetailPage() {
               <iframe
                 src={mapEmbedUrl}
                 width="100%"
-                height="250"
+                height="200"
                 style={{ border: 0 }}
                 allowFullScreen
                 loading="lazy"
@@ -581,18 +584,18 @@ export function EventDetailPage() {
 
       {/* Edit Event Dialog */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto max-w-2xl">
+        <DialogContent className="max-h-[90vh] overflow-y-auto overflow-x-hidden max-w-3xl w-[calc(100vw-2rem)]">
           <DialogHeader>
             <DialogTitle>Edit Event</DialogTitle>
             <CardDescription>Update event details</CardDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
+          <div className="space-y-4 py-4 min-w-0 overflow-hidden">
+            <div className="grid gap-4 sm:grid-cols-2 min-w-0">
+              <div className="space-y-2 min-w-0">
                 <Label>Name</Label>
                 <Input value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Event name" />
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2 min-w-0">
                 <Label>Year</Label>
                 <Input
                   type="number"
@@ -606,8 +609,8 @@ export function EventDetailPage() {
               <Label>Description</Label>
               <Textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} rows={2} />
             </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
+            <div className="grid gap-4 sm:grid-cols-2 min-w-0">
+              <div className="space-y-2 min-w-0">
                 <Label>Event Date</Label>
                 <Input
                   type="date"
@@ -620,12 +623,22 @@ export function EventDetailPage() {
                 <Input value={editEventUrl} onChange={(e) => setEditEventUrl(e.target.value)} placeholder="https://..." />
               </div>
             </div>
-            <div className="space-y-2">
-              <Label>Event Location (Google Maps URL)</Label>
+            <div className="space-y-2 min-w-0">
+              <Label>Event Location (Google Maps link)</Label>
               <Input
                 value={editEventLocation}
                 onChange={(e) => setEditEventLocation(e.target.value)}
-                placeholder="Paste embed URL from Google Maps (Share → Embed a map)"
+                placeholder="https://maps.google.com/... or maps.app.goo.gl/..."
+              />
+            </div>
+            <div className="space-y-2 min-w-0">
+              <Label>Map Embed (optional)</Label>
+              <Textarea
+                value={editEventLocationEmbed}
+                onChange={(e) => setEditEventLocationEmbed(e.target.value)}
+                placeholder="Paste the iframe HTML from Google Maps (Share → Embed a map). Overrides the link above for the mini map."
+                rows={3}
+                className="font-mono text-sm w-full min-w-0 overflow-x-auto"
               />
             </div>
             <div className="grid gap-4 sm:grid-cols-2">

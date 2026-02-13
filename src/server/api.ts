@@ -42,6 +42,7 @@ export const api = {
         event_date: e.event_date ?? null,
         event_url: e.event_url ?? null,
         event_location: e.event_location ?? null,
+        event_location_embed: e.event_location_embed ?? null,
         ga_ticket_cost: e.ga_ticket_cost != null ? Number(e.ga_ticket_cost) : null,
         day_pass_cost: e.day_pass_cost != null ? Number(e.day_pass_cost) : null,
         ga_tickets_sold: e.ga_tickets_sold != null ? Number(e.ga_tickets_sold) : null,
@@ -71,6 +72,7 @@ export const api = {
         event_date: e.event_date ?? null,
         event_url: e.event_url ?? null,
         event_location: e.event_location ?? null,
+        event_location_embed: e.event_location_embed ?? null,
         ga_ticket_cost: e.ga_ticket_cost != null ? Number(e.ga_ticket_cost) : null,
         day_pass_cost: e.day_pass_cost != null ? Number(e.day_pass_cost) : null,
         ga_tickets_sold: e.ga_tickets_sold != null ? Number(e.ga_tickets_sold) : null,
@@ -109,6 +111,7 @@ export const api = {
       event_date?: string;
       event_url?: string;
       event_location?: string;
+      event_location_embed?: string;
       ga_ticket_cost?: number;
       day_pass_cost?: number;
       ga_tickets_sold?: number;
@@ -120,7 +123,7 @@ export const api = {
       const db = getDb();
       const id = uuid();
       db.run(
-        `INSERT INTO events (id, name, description, year, event_date, event_url, event_location, ga_ticket_cost, day_pass_cost, ga_tickets_sold, day_passes_sold, budget_id, scenario_id, planning_notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO events (id, name, description, year, event_date, event_url, event_location, event_location_embed, ga_ticket_cost, day_pass_cost, ga_tickets_sold, day_passes_sold, budget_id, scenario_id, planning_notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           id,
           body.name,
@@ -129,6 +132,7 @@ export const api = {
           body.event_date ?? null,
           body.event_url ?? null,
           body.event_location ?? null,
+          body.event_location_embed ?? null,
           body.ga_ticket_cost ?? null,
           body.day_pass_cost ?? null,
           body.ga_tickets_sold ?? null,
@@ -147,6 +151,7 @@ export const api = {
       event_date: string;
       event_url: string;
       event_location: string;
+      event_location_embed: string;
       ga_ticket_cost: number;
       day_pass_cost: number;
       ga_tickets_sold: number;
@@ -166,6 +171,7 @@ export const api = {
       const event_date = get("event_date", null) as string | null;
       const event_url = get("event_url", null) as string | null;
       const event_location = get("event_location", null) as string | null;
+      const event_location_embed = get("event_location_embed", null) as string | null;
       const ga_ticket_cost = get("ga_ticket_cost", null) as number | null;
       const day_pass_cost = get("day_pass_cost", null) as number | null;
       const ga_tickets_sold = get("ga_tickets_sold", null) as number | null;
@@ -174,8 +180,8 @@ export const api = {
       const scenario_id = get("scenario_id", null) as string | null;
       const planning_notes = get("planning_notes", null) as string | null;
       db.run(
-        `UPDATE events SET name = ?, description = ?, year = ?, event_date = ?, event_url = ?, event_location = ?, ga_ticket_cost = ?, day_pass_cost = ?, ga_tickets_sold = ?, day_passes_sold = ?, budget_id = ?, scenario_id = ?, planning_notes = ? WHERE id = ?`,
-        [name, description, year, event_date, event_url, event_location, ga_ticket_cost, day_pass_cost, ga_tickets_sold, day_passes_sold, budget_id, scenario_id, planning_notes, id]
+        `UPDATE events SET name = ?, description = ?, year = ?, event_date = ?, event_url = ?, event_location = ?, event_location_embed = ?, ga_ticket_cost = ?, day_pass_cost = ?, ga_tickets_sold = ?, day_passes_sold = ?, budget_id = ?, scenario_id = ?, planning_notes = ? WHERE id = ?`,
+        [name, description, year, event_date, event_url, event_location, event_location_embed, ga_ticket_cost, day_pass_cost, ga_tickets_sold, day_passes_sold, budget_id, scenario_id, planning_notes, id]
       );
       return api.events.get(id)!;
     },
