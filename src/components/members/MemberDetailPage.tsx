@@ -24,6 +24,7 @@ import { MEMBER_POSITIONS } from "@/types/budget";
 import {
   ArrowLeft,
   AlertCircle,
+  Baby,
   Calendar,
   Mail,
   MapPin,
@@ -32,6 +33,11 @@ import {
   User,
   X,
 } from "lucide-react";
+
+const MONTHS = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
 
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -49,15 +55,18 @@ function formatBirthday(d: string | null): string {
   if (!d) return "";
   try {
     const [y, mo, day] = d.split("-");
-    const months = [
-      "January", "February", "March", "April", "May", "June",
-      "July", "August", "September", "October", "November", "December",
-    ];
-    const month = months[parseInt(mo ?? "1", 10) - 1] ?? mo;
+    const month = MONTHS[parseInt(mo ?? "1", 10) - 1] ?? mo;
     return `${month} ${day}, ${y}`;
   } catch {
     return d;
   }
+}
+
+function formatMemberSince(d: string | null): string {
+  if (!d || !/^\d{4}-\d{2}$/.test(d)) return "";
+  const [y, mo] = d.split("-");
+  const month = MONTHS[parseInt(mo ?? "1", 10) - 1] ?? mo;
+  return `${month} ${y}`;
 }
 
 export function MemberDetailPage() {
@@ -74,6 +83,9 @@ export function MemberDetailPage() {
   const [editEmail, setEditEmail] = useState("");
   const [editAddress, setEditAddress] = useState("");
   const [editBirthday, setEditBirthday] = useState("");
+  const [editMemberSinceMonth, setEditMemberSinceMonth] = useState<string>("");
+  const [editMemberSinceYear, setEditMemberSinceYear] = useState<string>("");
+  const [editIsBaby, setEditIsBaby] = useState(false);
   const [editPosition, setEditPosition] = useState("");
   const [editEmergencyName, setEditEmergencyName] = useState("");
   const [editEmergencyPhone, setEditEmergencyPhone] = useState("");
@@ -92,6 +104,15 @@ export function MemberDetailPage() {
         setEditEmail(m.email ?? "");
         setEditAddress(m.address ?? "");
         setEditBirthday(m.birthday ?? "");
+        if (m.member_since && /^\d{4}-\d{2}$/.test(m.member_since)) {
+          const [, mo] = m.member_since.split("-");
+          setEditMemberSinceMonth(mo);
+          setEditMemberSinceYear(m.member_since.slice(0, 4));
+        } else {
+          setEditMemberSinceMonth("");
+          setEditMemberSinceYear("");
+        }
+        setEditIsBaby(m.is_baby);
         setEditPosition(m.position ?? "");
         setEditEmergencyName(m.emergency_contact_name ?? "");
         setEditEmergencyPhone(m.emergency_contact_phone ?? "");
@@ -110,12 +131,18 @@ export function MemberDetailPage() {
     if (!id) return;
     setEditSaving(true);
     try {
+      const memberSince =
+        editMemberSinceMonth && editMemberSinceYear
+          ? `${editMemberSinceYear}-${editMemberSinceMonth.padStart(2, "0")}`
+          : null;
       await api.members.update(id, {
         name: editName.trim(),
         phone_number: editPhone.trim() || null,
         email: editEmail.trim() || null,
         address: editAddress.trim() || null,
         birthday: editBirthday || null,
+        member_since: memberSince,
+        is_baby: editIsBaby,
         position: editPosition || null,
         emergency_contact_name: editEmergencyName.trim() || null,
         emergency_contact_phone: editEmergencyPhone.trim() || null,
@@ -190,7 +217,12 @@ export function MemberDetailPage() {
                 )}
               </div>
               <div>
-                <CardTitle className="text-2xl">{member.name}</CardTitle>
+                <CardTitle className="text-2xl flex items-center gap-2">
+                  {member.name}
+                  {member.is_baby && (
+                    <Baby className="size-6 text-muted-foreground" title="Baby" />
+                  )}
+                </CardTitle>
                 {member.position && (
                   <CardDescription>{member.position}</CardDescription>
                 )}
@@ -235,6 +267,12 @@ export function MemberDetailPage() {
                 <span>{formatBirthday(member.birthday)}</span>
               </div>
             )}
+            {member.member_since && (
+              <div className="flex items-center gap-2">
+                <Calendar className="size-4 text-muted-foreground" />
+                <span>Member since {formatMemberSince(member.member_since)}</span>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -269,6 +307,7 @@ export function MemberDetailPage() {
         !member.email &&
         !member.address &&
         !member.birthday &&
+        !member.member_since &&
         !member.position &&
         !member.emergency_contact_name &&
         !member.emergency_contact_phone && (
@@ -354,6 +393,55 @@ export function MemberDetailPage() {
                 value={editBirthday}
                 onChange={(e) => setEditBirthday(e.target.value)}
               />
+            </div>
+            <div className="space-y-2">
+              <Label>Member Since</Label>
+              <div className="flex gap-2">
+                <Select
+                  value={editMemberSinceMonth || "none"}
+                  onValueChange={(v) => setEditMemberSinceMonth(v === "none" ? "" : v)}
+                >
+                  <SelectTrigger className="flex-1">
+                    <SelectValue placeholder="Month" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Month</SelectItem>
+                    {MONTHS.map((mo, i) => (
+                      <SelectItem key={mo} value={String(i + 1)}>
+                        {mo}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select
+                  value={editMemberSinceYear || "none"}
+                  onValueChange={(v) => setEditMemberSinceYear(v === "none" ? "" : v)}
+                >
+                  <SelectTrigger className="flex-1">
+                    <SelectValue placeholder="Year" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Year</SelectItem>
+                    {Array.from({ length: new Date().getFullYear() - 1985 + 1 }, (_, i) => new Date().getFullYear() - i).map((y) => (
+                      <SelectItem key={y} value={String(y)}>
+                        {y}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="edit-is-baby"
+                checked={editIsBaby}
+                onChange={(e) => setEditIsBaby(e.target.checked)}
+                className="size-4 rounded border-input"
+              />
+              <Label htmlFor="edit-is-baby" className="cursor-pointer font-normal">
+                Baby
+              </Label>
             </div>
             <div className="space-y-2">
               <Label>Position</Label>

@@ -27,7 +27,12 @@ import {
 import { api } from "@/data/api";
 import type { Member } from "@/types/budget";
 import { MEMBER_POSITIONS } from "@/types/budget";
-import { ChevronDown, ChevronRight, Download, FileJson, Plus, User } from "lucide-react";
+import { Baby, Calendar, CalendarCheck, ChevronDown, ChevronRight, Download, FileJson, Plus, User } from "lucide-react";
+
+const MONTHS = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
 
 function downloadMembersJson(members: Member[]) {
   const json = JSON.stringify(members, null, 2);
@@ -56,9 +61,17 @@ function memberToVCard(m: Member): string {
   if (m.address) lines.push(`ADR;TYPE=HOME:;;${escapeVCardValue(m.address)};;;;`);
   if (m.birthday) lines.push(`BDAY:${m.birthday.replace(/-/g, "")}`);
   if (m.position) lines.push(`TITLE:${escapeVCardValue(m.position)}`);
+  const noteParts: string[] = [];
+  if (m.member_since) {
+    const [y, mo] = m.member_since.split("-");
+    noteParts.push(`Member since ${mo}/${y}`);
+  }
   if (m.emergency_contact_name || m.emergency_contact_phone) {
-    const note = [m.emergency_contact_name, m.emergency_contact_phone].filter(Boolean).join(": ");
-    lines.push(`NOTE:Emergency contact: ${escapeVCardValue(note)}`);
+    const ec = [m.emergency_contact_name, m.emergency_contact_phone].filter(Boolean).join(": ");
+    noteParts.push(`Emergency contact: ${ec}`);
+  }
+  if (noteParts.length > 0) {
+    lines.push(`NOTE:${escapeVCardValue(noteParts.join(". "))}`);
   }
   lines.push("END:VCARD");
   return lines.join("\r\n");
@@ -73,6 +86,114 @@ function downloadMembersVCard(members: Member[]) {
   a.download = "members.vcf";
   a.click();
   URL.revokeObjectURL(url);
+}
+
+function escapeIcalText(s: string): string {
+  return s.replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\n/g, "\\n");
+}
+
+function downloadBirthdaysIcal(members: Member[]) {
+  const withBirthday = members.filter((m) => m.birthday && /^\d{4}-\d{2}-\d{2}$/.test(m.birthday));
+  const lines: string[] = [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//Badger Budget//Members Birthdays//EN",
+    "CALSCALE:GREGORIAN",
+  ];
+  for (const m of withBirthday) {
+    const dt = (m.birthday ?? "").replace(/-/g, "");
+    lines.push("BEGIN:VEVENT");
+    lines.push(`UID:member-${m.id}-birthday@badgerbudget`);
+    lines.push(`DTSTART;VALUE=DATE:${dt}`);
+    lines.push("RRULE:FREQ=YEARLY");
+    lines.push(`SUMMARY:${escapeIcalText(m.name)}'s Birthday`);
+    lines.push("END:VEVENT");
+  }
+  lines.push("END:VCALENDAR");
+  const ics = lines.join("\r\n");
+  const blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "member-birthdays.ics";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function getUpcomingBirthdays(members: Member[], daysAhead = 90): { member: Member; date: Date }[] {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const endDate = new Date(today);
+  endDate.setDate(endDate.getDate() + daysAhead);
+
+  const result: { member: Member; date: Date }[] = [];
+  for (const m of members) {
+    if (!m.birthday || !/^\d{4}-\d{2}-\d{2}$/.test(m.birthday)) continue;
+    const [, month, day] = m.birthday.split("-").map(Number);
+    const thisYear = new Date(today.getFullYear(), month - 1, day);
+    const nextYear = new Date(today.getFullYear() + 1, month - 1, day);
+    const bdayDate = thisYear >= today ? thisYear : nextYear;
+    if (bdayDate >= today && bdayDate <= endDate) {
+      result.push({ member: m, date: bdayDate });
+    }
+  }
+  result.sort((a, b) => a.date.getTime() - b.date.getTime());
+  return result;
+}
+
+function formatBirthdayDate(d: Date): string {
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  return `${months[d.getMonth()]} ${d.getDate()}`;
+}
+
+function getYearsAsMember(memberSince: string | null): number | null {
+  if (!memberSince || !/^\d{4}-\d{2}$/.test(memberSince)) return null;
+  const start = new Date(memberSince + "-01");
+  const today = new Date();
+  const years = (today.getTime() - start.getTime()) / (365.25 * 24 * 60 * 60 * 1000);
+  return Math.round(years);
+}
+
+function formatMemberSinceDisplay(memberSince: string | null): string {
+  if (!memberSince || !/^\d{4}-\d{2}$/.test(memberSince)) return "";
+  const [y, mo] = memberSince.split("-");
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const month = months[parseInt(mo, 10) - 1] ?? mo;
+  const years = getYearsAsMember(memberSince);
+  if (years !== null) {
+    return `${month} ${y} (${years} year${years === 1 ? "" : "s"})`;
+  }
+  return `${month} ${y}`;
+}
+
+function getUpcomingAnniversaries(members: Member[], daysAhead = 90): { member: Member; date: Date }[] {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const endDate = new Date(today);
+  endDate.setDate(endDate.getDate() + daysAhead);
+
+  const result: { member: Member; date: Date }[] = [];
+  for (const m of members) {
+    if (!m.member_since || !/^\d{4}-\d{2}$/.test(m.member_since)) continue;
+    const [, month] = m.member_since.split("-").map(Number);
+    const thisYear = new Date(today.getFullYear(), month - 1, 1);
+    const nextYear = new Date(today.getFullYear() + 1, month - 1, 1);
+    const annivDate = thisYear >= today ? thisYear : nextYear;
+    if (annivDate >= today && annivDate <= endDate) {
+      result.push({ member: m, date: annivDate });
+    }
+  }
+  result.sort((a, b) => a.date.getTime() - b.date.getTime());
+  return result;
+}
+
+function formatAnniversaryDate(date: Date, member: Member): string {
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const base = `${months[date.getMonth()]} ${date.getDate()}`;
+  if (!member.member_since || !/^\d{4}-\d{2}$/.test(member.member_since)) return base;
+  const joinYear = parseInt(member.member_since.slice(0, 4), 10);
+  const years = date.getFullYear() - joinYear;
+  return `${base} (${years} year${years === 1 ? "" : "s"})`;
 }
 
 function fileToBase64(file: File): Promise<string> {
@@ -109,7 +230,10 @@ function MemberCard({
             )}
           </div>
           <div className="min-w-0 flex-1">
-            <CardTitle className="text-lg truncate">{m.name}</CardTitle>
+            <CardTitle className="text-lg truncate flex items-center gap-1.5">
+              {m.name}
+              {m.is_baby && <Baby className="size-4 text-muted-foreground shrink-0" title="Baby" />}
+            </CardTitle>
             {m.position && (
               <p className="text-sm text-muted-foreground truncate">
                 {m.position}
@@ -123,6 +247,11 @@ function MemberCard({
             {m.position && m.phone_number && (
               <p className="text-xs text-muted-foreground truncate">
                 {m.phone_number}
+              </p>
+            )}
+            {m.member_since && (
+              <p className="text-xs text-muted-foreground truncate">
+                {formatMemberSinceDisplay(m.member_since)}
               </p>
             )}
           </div>
@@ -145,6 +274,9 @@ export function MembersPanel() {
   const [addEmail, setAddEmail] = useState("");
   const [addAddress, setAddAddress] = useState("");
   const [addBirthday, setAddBirthday] = useState("");
+  const [addMemberSinceMonth, setAddMemberSinceMonth] = useState<string>("");
+  const [addMemberSinceYear, setAddMemberSinceYear] = useState<string>("");
+  const [addIsBaby, setAddIsBaby] = useState(false);
   const [addPosition, setAddPosition] = useState<string>("");
   const [addEmergencyName, setAddEmergencyName] = useState("");
   const [addEmergencyPhone, setAddEmergencyPhone] = useState("");
@@ -171,6 +303,9 @@ export function MembersPanel() {
     setAddEmail("");
     setAddAddress("");
     setAddBirthday("");
+    setAddMemberSinceMonth("");
+    setAddMemberSinceYear("");
+    setAddIsBaby(false);
     setAddPosition("");
     setAddEmergencyName("");
     setAddEmergencyPhone("");
@@ -184,12 +319,18 @@ export function MembersPanel() {
     if (!addName.trim()) return;
     setAddSaving(true);
     try {
+      const memberSince =
+        addMemberSinceMonth && addMemberSinceYear
+          ? `${addMemberSinceYear}-${addMemberSinceMonth.padStart(2, "0")}`
+          : undefined;
       await api.members.create({
         name: addName.trim(),
         phone_number: addPhone.trim() || undefined,
         email: addEmail.trim() || undefined,
         address: addAddress.trim() || undefined,
         birthday: addBirthday || undefined,
+        member_since: memberSince,
+        is_baby: addIsBaby,
         position: addPosition || undefined,
         emergency_contact_name: addEmergencyName.trim() || undefined,
         emergency_contact_phone: addEmergencyPhone.trim() || undefined,
@@ -238,6 +379,9 @@ export function MembersPanel() {
           <h1 className="text-2xl font-bold tracking-tight">Members</h1>
           <p className="text-muted-foreground mt-1">
             Club member profiles. Click a member to view and edit their details.
+            {members.length > 0 && (
+              <> {members.length} member{members.length === 1 ? "" : "s"} total.</>
+            )}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -257,6 +401,10 @@ export function MembersPanel() {
                 <Download className="size-4" />
                 Download vCard (.vcf)
               </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => downloadBirthdaysIcal(members)}>
+                <Calendar className="size-4" />
+                Birthdays (.ics)
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
           <Button onClick={() => setAddOpen(true)}>
@@ -265,6 +413,56 @@ export function MembersPanel() {
           </Button>
         </div>
       </div>
+
+      {(() => {
+        const upcoming = getUpcomingBirthdays(members);
+        if (upcoming.length === 0) return null;
+        return (
+          <section className="rounded-lg border bg-muted/30 px-4 py-3">
+            <h2 className="text-sm font-medium text-muted-foreground mb-2">Upcoming birthdays (next 3 months)</h2>
+            <ul className="space-y-1 text-sm">
+              {upcoming.map(({ member, date }) => (
+                <li key={member.id} className="flex items-center gap-2">
+                  <Calendar className="size-3.5 text-muted-foreground shrink-0" />
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/members/${member.id}`)}
+                    className="text-primary hover:underline font-medium"
+                  >
+                    {member.name}
+                  </button>
+                  <span className="text-muted-foreground">— {formatBirthdayDate(date)}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        );
+      })()}
+
+      {(() => {
+        const upcoming = getUpcomingAnniversaries(members);
+        if (upcoming.length === 0) return null;
+        return (
+          <section className="rounded-lg border bg-muted/30 px-4 py-3">
+            <h2 className="text-sm font-medium text-muted-foreground mb-2">Upcoming member anniversaries (next 3 months)</h2>
+            <ul className="space-y-1 text-sm">
+              {upcoming.map(({ member, date }) => (
+                <li key={member.id} className="flex items-center gap-2">
+                  <CalendarCheck className="size-3.5 text-muted-foreground shrink-0" />
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/members/${member.id}`)}
+                    className="text-primary hover:underline font-medium"
+                  >
+                    {member.name}
+                  </button>
+                  <span className="text-muted-foreground">— {formatAnniversaryDate(date, member)}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        );
+      })()}
 
       <section className="space-y-4">
         <h2 className="text-lg font-semibold">Officers</h2>
@@ -350,6 +548,55 @@ export function MembersPanel() {
                 value={addBirthday}
                 onChange={(e) => setAddBirthday(e.target.value)}
               />
+            </div>
+            <div className="space-y-2">
+              <Label>Member Since</Label>
+              <div className="flex gap-2">
+                <Select
+                  value={addMemberSinceMonth || "none"}
+                  onValueChange={(v) => setAddMemberSinceMonth(v === "none" ? "" : v)}
+                >
+                  <SelectTrigger className="flex-1">
+                    <SelectValue placeholder="Month" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Month</SelectItem>
+                    {MONTHS.map((mo, i) => (
+                      <SelectItem key={mo} value={String(i + 1)}>
+                        {mo}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select
+                  value={addMemberSinceYear || "none"}
+                  onValueChange={(v) => setAddMemberSinceYear(v === "none" ? "" : v)}
+                >
+                  <SelectTrigger className="flex-1">
+                    <SelectValue placeholder="Year" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Year</SelectItem>
+                    {Array.from({ length: new Date().getFullYear() - 1985 + 1 }, (_, i) => new Date().getFullYear() - i).map((y) => (
+                      <SelectItem key={y} value={String(y)}>
+                        {y}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="add-is-baby"
+                checked={addIsBaby}
+                onChange={(e) => setAddIsBaby(e.target.checked)}
+                className="size-4 rounded border-input"
+              />
+              <Label htmlFor="add-is-baby" className="cursor-pointer font-normal">
+                Baby
+              </Label>
             </div>
             <div className="space-y-2">
               <Label>Position</Label>

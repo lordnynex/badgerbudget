@@ -441,6 +441,8 @@ export const api = {
         email: m.email ?? null,
         address: m.address ?? null,
         birthday: m.birthday ?? null,
+        member_since: m.member_since ?? null,
+        is_baby: (m.is_baby as number) === 1,
         position: m.position ?? null,
         emergency_contact_name: m.emergency_contact_name ?? null,
         emergency_contact_phone: m.emergency_contact_phone ?? null,
@@ -460,6 +462,8 @@ export const api = {
         email: m.email ?? null,
         address: m.address ?? null,
         birthday: m.birthday ?? null,
+        member_since: m.member_since ?? null,
+        is_baby: (m.is_baby as number) === 1,
         position: m.position ?? null,
         emergency_contact_name: m.emergency_contact_name ?? null,
         emergency_contact_phone: m.emergency_contact_phone ?? null,
@@ -473,6 +477,8 @@ export const api = {
       email?: string;
       address?: string;
       birthday?: string;
+      member_since?: string;
+      is_baby?: boolean;
       position?: string;
       emergency_contact_name?: string;
       emergency_contact_phone?: string;
@@ -482,7 +488,7 @@ export const api = {
       const id = uuid();
       const photoBlob = body.photo ? parsePhotoToBlob(body.photo) : null;
       db.run(
-        `INSERT INTO members (id, name, phone_number, email, address, birthday, position, emergency_contact_name, emergency_contact_phone, photo) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO members (id, name, phone_number, email, address, birthday, member_since, is_baby, position, emergency_contact_name, emergency_contact_phone, photo) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           id,
           body.name,
@@ -490,6 +496,8 @@ export const api = {
           body.email ?? null,
           body.address ?? null,
           body.birthday ?? null,
+          body.member_since ?? null,
+          body.is_baby ? 1 : 0,
           VALID_POSITIONS.has(body.position ?? "") ? body.position : null,
           body.emergency_contact_name ?? null,
           body.emergency_contact_phone ?? null,
@@ -504,6 +512,8 @@ export const api = {
       email: string;
       address: string;
       birthday: string;
+      member_since: string;
+      is_baby: boolean;
       position: string;
       emergency_contact_name: string;
       emergency_contact_phone: string;
@@ -519,6 +529,8 @@ export const api = {
       const email = get("email", null) as string | null;
       const address = get("address", null) as string | null;
       const birthday = get("birthday", null) as string | null;
+      const member_since = get("member_since", null) as string | null;
+      const is_baby = body.is_baby !== undefined ? (body.is_baby ? 1 : 0) : ((row.is_baby as number) === 1 ? 1 : 0);
       const positionRaw = get("position", null) as string | null;
       const position = positionRaw && VALID_POSITIONS.has(positionRaw) ? positionRaw : null;
       const emergency_contact_name = get("emergency_contact_name", null) as string | null;
@@ -528,8 +540,8 @@ export const api = {
           ? (body.photo === null ? null : parsePhotoToBlob(body.photo) ?? null)
           : (row.photo as Uint8Array | null);
       db.run(
-        `UPDATE members SET name = ?, phone_number = ?, email = ?, address = ?, birthday = ?, position = ?, emergency_contact_name = ?, emergency_contact_phone = ?, photo = ? WHERE id = ?`,
-        [name, phone_number, email, address, birthday, position, emergency_contact_name, emergency_contact_phone, photoBlob, id]
+        `UPDATE members SET name = ?, phone_number = ?, email = ?, address = ?, birthday = ?, member_since = ?, is_baby = ?, position = ?, emergency_contact_name = ?, emergency_contact_phone = ?, photo = ? WHERE id = ?`,
+        [name, phone_number, email, address, birthday, member_since, is_baby, position, emergency_contact_name, emergency_contact_phone, photoBlob, id]
       );
       return api.members.get(id)!;
     },

@@ -238,6 +238,8 @@ export async function handleApiRequest(req: Request): Promise<Response | null> {
       email?: string;
       address?: string;
       birthday?: string;
+      member_since?: string;
+      is_baby?: boolean;
       position?: string;
       emergency_contact_name?: string;
       emergency_contact_phone?: string;

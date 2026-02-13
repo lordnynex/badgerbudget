@@ -141,6 +141,8 @@ function initSchema(database: Database) {
   const memberCols: [string, string][] = [
     ["position", "TEXT"],
     ["email", "TEXT"],
+    ["member_since", "TEXT"],
+    ["is_baby", "INTEGER"],
   ];
   for (const [col, typ] of memberCols) {
     if (!hasColumn(database, "members", col)) {

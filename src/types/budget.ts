@@ -66,6 +66,8 @@ export interface Member {
   email: string | null;
   address: string | null;
   birthday: string | null;
+  member_since: string | null;
+  is_baby: boolean;
   position: string | null;
   emergency_contact_name: string | null;
   emergency_contact_phone: string | null;
