@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Check, ChevronDown, Flag, Plus, Trash2 } from "lucide-react";
+import { Check, ChevronDown, Flag, Pencil, Plus, Trash2 } from "lucide-react";
 import { formatDueDate, getLastDayOfMonth, MONTHS } from "./eventUtils";
 import type { Event, EventPlanningMilestone } from "@/types/budget";
 
@@ -33,6 +33,10 @@ interface EventMilestonesCardProps {
     description: string;
     due_date: string;
   }) => Promise<void>;
+  onEdit: (
+    mid: string,
+    payload: { month: number; year: number; description: string; due_date: string }
+  ) => Promise<void>;
 }
 
 export function EventMilestonesCard({
@@ -41,24 +45,52 @@ export function EventMilestonesCard({
   onToggleComplete,
   onDelete,
   onAdd,
+  onEdit,
 }: EventMilestonesCardProps) {
   const [open, setOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [milestoneMonth, setMilestoneMonth] = useState(1);
   const [milestoneYear, setMilestoneYear] = useState(new Date().getFullYear());
   const [milestoneDesc, setMilestoneDesc] = useState("");
   const [milestoneDueDate, setMilestoneDueDate] = useState("");
 
-  const handleAdd = async () => {
+  const isEditing = editingId != null;
+
+  const openAdd = () => {
+    setEditingId(null);
+    setMilestoneMonth(1);
+    setMilestoneYear(new Date().getFullYear());
+    setMilestoneDesc("");
+    setMilestoneDueDate(getLastDayOfMonth(new Date().getFullYear(), 1));
+    setOpen(true);
+  };
+
+  const openEdit = (m: EventPlanningMilestone) => {
+    setEditingId(m.id);
+    setMilestoneMonth(m.month);
+    setMilestoneYear(m.year);
+    setMilestoneDesc(m.description);
+    setMilestoneDueDate(m.due_date ?? getLastDayOfMonth(m.year, m.month));
+    setOpen(true);
+  };
+
+  const handleSubmit = async () => {
     if (!milestoneDesc.trim()) return;
     const dueDate = milestoneDueDate || getLastDayOfMonth(milestoneYear, milestoneMonth);
-    await onAdd({
+    const payload = {
       month: milestoneMonth,
       year: milestoneYear,
       description: milestoneDesc.trim(),
       due_date: dueDate,
-    });
+    };
+    if (isEditing) {
+      await onEdit(editingId!, payload);
+    } else {
+      await onAdd(payload);
+    }
     setMilestoneDesc("");
     setMilestoneDueDate("");
+    setEditingId(null);
     setOpen(false);
   };
 
@@ -126,7 +158,9 @@ export function EventMilestonesCard({
                   </div>
                   <div className="space-y-4">
                     {sortedMonths.map((key) => {
-                      const [year, month] = key.split("-").map(Number);
+                      const [y, m] = key.split("-").map(Number);
+                      const year = y ?? new Date().getFullYear();
+                      const month = m ?? 1;
                       const items = [...(byMonth[key] ?? [])].sort(
                         (a, b) => (a.due_date ?? "").localeCompare(b.due_date ?? "")
                       );
@@ -177,14 +211,25 @@ export function EventMilestonesCard({
                                       {isOverdue && " (overdue)"}
                                     </span>
                                   </div>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="text-destructive hover:text-destructive shrink-0"
-                                    onClick={() => onDelete(m.id)}
-                                  >
-                                    <Trash2 className="size-4" />
-                                  </Button>
+                                  <div className="flex items-center gap-1 shrink-0">
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="text-muted-foreground hover:text-foreground"
+                                      onClick={() => openEdit(m)}
+                                      aria-label="Edit milestone"
+                                    >
+                                      <Pencil className="size-4" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="text-destructive hover:text-destructive"
+                                      onClick={() => onDelete(m.id)}
+                                    >
+                                      <Trash2 className="size-4" />
+                                    </Button>
+                                  </div>
                                 </li>
                               );
                             })}
@@ -195,14 +240,7 @@ export function EventMilestonesCard({
                   </div>
                 </div>
               )}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setMilestoneDueDate(getLastDayOfMonth(milestoneYear, milestoneMonth));
-                  setOpen(true);
-                }}
-              >
+              <Button variant="outline" size="sm" onClick={openAdd}>
                 <Plus className="size-4" />
                 Add Milestone
               </Button>
@@ -211,10 +249,10 @@ export function EventMilestonesCard({
         </Collapsible>
       </Card>
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setEditingId(null); }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Add Planning Milestone</DialogTitle>
+            <DialogTitle>{isEditing ? "Edit Planning Milestone" : "Add Planning Milestone"}</DialogTitle>
             <CardDescription>e.g. February: Decide ticket costs</CardDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -271,7 +309,7 @@ export function EventMilestonesCard({
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button onClick={handleAdd}>Add</Button>
+            <Button onClick={handleSubmit}>{isEditing ? "Save" : "Add"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

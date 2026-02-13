@@ -115,6 +115,15 @@ export function EventDetailPage() {
     await refresh();
   };
 
+  const handleEditMilestone = async (
+    mid: string,
+    payload: { month: number; year: number; description: string; due_date: string }
+  ) => {
+    if (!id) return;
+    await api.events.milestones.update(id, mid, payload);
+    await refresh();
+  };
+
   const handleAddPacking = async (payload: { category: string; name: string }) => {
     if (!id) return;
     await api.events.packingItems.create(id, payload);
@@ -208,6 +217,7 @@ export function EventDetailPage() {
         onToggleComplete={handleToggleMilestoneComplete}
         onDelete={handleDeleteMilestone}
         onAdd={handleAddMilestone}
+        onEdit={handleEditMilestone}
       />
 
       <EventPackingCard
