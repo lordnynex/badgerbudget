@@ -419,7 +419,45 @@ export function EventDetailPage() {
                 <p className="text-muted-foreground text-sm">No milestones yet.</p>
               ) : (
                 (() => {
-                  const byMonth = (event.milestones ?? []).reduce(
+                  const milestones = event.milestones ?? [];
+                  const completed = milestones.filter((m) => m.completed).length;
+                  const total = milestones.length;
+                  const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
+                  const today = new Date().toISOString().slice(0, 10);
+                  const overdue = milestones.filter(
+                    (m) => !m.completed && m.due_date && m.due_date < today
+                  );
+
+                  return (
+                    <div className="space-y-4">
+                      <div className="flex flex-wrap items-center gap-4">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-sm font-medium ${
+                              pct === 100
+                                ? "bg-emerald-500/20 text-emerald-700 dark:text-emerald-400"
+                                : pct >= 50
+                                  ? "bg-amber-500/20 text-amber-700 dark:text-amber-400"
+                                  : "bg-blue-500/20 text-blue-700 dark:text-blue-400"
+                            }`}
+                          >
+                            {completed} of {total} complete ({pct}%)
+                          </span>
+                        </div>
+                        {overdue.length > 0 && (
+                          <div className="flex items-center gap-2">
+                            <span className="inline-flex items-center rounded-full bg-red-500/20 px-2.5 py-0.5 text-sm font-medium text-red-700 dark:text-red-400">
+                              {overdue.length} overdue
+                            </span>
+                            <span className="text-muted-foreground text-sm">
+                              {overdue.map((m) => m.description).join(", ")}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="space-y-4">
+                  {(() => {
+                  const byMonth = milestones.reduce(
                     (acc, m) => {
                       const key = `${m.year}-${String(m.month).padStart(2, "0")}`;
                       (acc[key] ??= []).push(m);
@@ -441,11 +479,18 @@ export function EventDetailPage() {
                               {MONTHS[month - 1]} {year}
                             </h4>
                             <ul className="space-y-1 pl-4 border-l-2 border-muted">
-                              {items.map((m) => (
+                              {items.map((m) => {
+                                const isOverdue =
+                                  !m.completed && m.due_date && m.due_date < today;
+                                return (
                                 <li
                                   key={m.id}
                                   className={`flex items-center justify-between gap-2 rounded border px-3 py-2 ${
-                                    m.completed ? "bg-muted/30 opacity-75" : ""
+                                    m.completed
+                                      ? "bg-muted/30 opacity-75"
+                                      : isOverdue
+                                        ? "border-red-500/50 bg-red-500/5"
+                                        : ""
                                   }`}
                                 >
                                   <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -466,8 +511,13 @@ export function EventDetailPage() {
                                     >
                                       {m.description}
                                     </span>
-                                    <span className="text-muted-foreground text-xs shrink-0">
+                                    <span
+                                      className={`text-xs shrink-0 ${
+                                        isOverdue ? "font-medium text-red-600 dark:text-red-400" : "text-muted-foreground"
+                                      }`}
+                                    >
                                       {m.due_date ? formatDueDate(m.due_date) : ""}
+                                      {isOverdue && " (overdue)"}
                                     </span>
                                   </div>
                                   <Button
@@ -479,11 +529,16 @@ export function EventDetailPage() {
                                     <Trash2 className="size-4" />
                                   </Button>
                                 </li>
-                              ))}
+                              );
+                              })}
                             </ul>
                           </div>
                         );
                       })}
+                    </div>
+                  );
+                })()}
+                      </div>
                     </div>
                   );
                 })()
