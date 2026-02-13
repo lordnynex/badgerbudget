@@ -363,6 +363,48 @@ export function PrintView({ state, metrics }: PrintViewProps) {
         </table>
       </section>
 
+      {/* Budget Total */}
+      <section>
+        <h2 className="mb-2 text-lg font-semibold">Budget Total</h2>
+        <p className="mb-2 text-sm text-gray-600 max-w-2xl">
+          This is the sum of all expenses in your budget—the total amount you plan to spend on the event.
+        </p>
+        <p className="text-xl font-bold">${totalCosts.toLocaleString("en-US", { minimumFractionDigits: 2 })}</p>
+      </section>
+
+      {/* Budget Line Items */}
+      <section>
+        <h2 className="mb-2 text-lg font-semibold">Budget Line Items</h2>
+        <p className="mb-4 text-sm text-gray-600 max-w-2xl">
+          This is your full expense list—every item you plan to spend money on. Each row shows the item name, category, unit cost (price per item), quantity, and total (unit cost × quantity). The sum equals your Budget Total above.
+        </p>
+        <table className="w-full border text-sm">
+          <thead>
+            <tr className="bg-gray-100">
+              <th className="border p-2 text-left">Name</th>
+              <th className="border p-2 text-left">Category</th>
+              <th className="border p-2 text-right">Unit Cost</th>
+              <th className="border p-2 text-right">Qty</th>
+              <th className="border p-2 text-right">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {state.lineItems.map((li) => (
+              <tr key={li.id}>
+                <td className="border p-2">{li.name}</td>
+                <td className="border p-2">{li.category}</td>
+                <td className="border p-2 text-right">${li.unitCost.toFixed(2)}</td>
+                <td className="border p-2 text-right">{li.quantity}</td>
+                <td className="border p-2 text-right">
+                  ${(li.unitCost * li.quantity).toFixed(2)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <p className="mt-2 font-semibold">Total: ${totalCosts.toFixed(2)}</p>
+      </section>
+
       {/* Food Cost Breakdown */}
       {foodCost && (
         <section>
@@ -398,47 +440,14 @@ export function PrintView({ state, metrics }: PrintViewProps) {
         </section>
       )}
 
-      {/* Budget Line Items */}
-      <section>
-        <h2 className="mb-2 text-lg font-semibold">Budget Line Items</h2>
-        <p className="mb-4 text-sm text-gray-600 max-w-2xl">
-          This is your full expense list—every item you plan to spend money on. Each row shows the item name, category, unit cost (price per item), quantity, and total (unit cost × quantity). The sum at the bottom is your total event cost, which feeds into all the revenue and profit calculations above.
-        </p>
-        <table className="w-full border text-sm">
-          <thead>
-            <tr className="bg-gray-100">
-              <th className="border p-2 text-left">Name</th>
-              <th className="border p-2 text-left">Category</th>
-              <th className="border p-2 text-right">Unit Cost</th>
-              <th className="border p-2 text-right">Qty</th>
-              <th className="border p-2 text-right">Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            {state.lineItems.map((li) => (
-              <tr key={li.id}>
-                <td className="border p-2">{li.name}</td>
-                <td className="border p-2">{li.category}</td>
-                <td className="border p-2 text-right">${li.unitCost.toFixed(2)}</td>
-                <td className="border p-2 text-right">{li.quantity}</td>
-                <td className="border p-2 text-right">
-                  ${(li.unitCost * li.quantity).toFixed(2)}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <p className="mt-2 font-semibold">Total: ${totalCosts.toFixed(2)}</p>
-      </section>
-
       {/* Cost Charts */}
       <section>
         <h2 className="mb-2 text-lg font-semibold">Cost by Category</h2>
         <p className="mb-4 text-sm text-gray-600 max-w-2xl">
           These charts show where your money goes. The donut (left) shows each category as a slice of the total. The bar chart (right) shows the same breakdown in dollar amounts. Use these to see which areas—e.g. venue, food, equipment—absorb the most of your budget.
         </p>
-        <div className="grid gap-6 print:grid-cols-2">
-          <div>
+        <div className="cost-charts-print-stack grid gap-6 sm:grid-cols-2 print:grid-cols-1 print:gap-8">
+          <div className="break-inside-avoid">
             <h3 className="mb-2 text-sm font-medium">Donut</h3>
             <div className="h-[300px]">
               <Chart
@@ -449,7 +458,7 @@ export function PrintView({ state, metrics }: PrintViewProps) {
               />
             </div>
           </div>
-          <div>
+          <div className="break-inside-avoid">
             <h3 className="mb-2 text-sm font-medium">Bar</h3>
             <div className="h-[300px]">
               <Chart

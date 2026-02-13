@@ -18,4 +18,8 @@
   .print\:hidden {
     display: none !important;
   }
+  /* Force cost charts to stack vertically so donut and bar don't overlap in PDF */
+  .cost-charts-print-stack {
+    grid-template-columns: 1fr !important;
+  }
 }

@@ -38,7 +38,11 @@ function AppContent() {
   const onPrint = () => setPrintMode(true);
   const onEmail = () => setEmailOpen(true);
 
-  const printUrl = `${window.location.origin}${window.location.pathname.replace(/\/[^/]*$/, "") || ""}/print`;
+  const openPrintInNewTab = () => {
+    const base = window.location.pathname.replace(/\/[^/]*$/, "") || "";
+    const url = `${window.location.origin}${base}/print`;
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
 
   return (
     <>
@@ -47,10 +51,8 @@ function AppContent() {
           <PrintView state={stateForExport} metrics={metrics} />
           <div className="mt-8 flex gap-4 print:hidden">
             <Button onClick={() => window.print()}>Print</Button>
-            <Button variant="outline" asChild>
-              <a href={printUrl} target="_blank" rel="noopener noreferrer">
-                Open in new tab
-              </a>
+            <Button variant="outline" onClick={openPrintInNewTab}>
+              Open in new tab
             </Button>
             <Button variant="outline" onClick={() => (isPrintRoute ? navigate("/projections") : setPrintMode(false))}>
               Back to Dashboard
