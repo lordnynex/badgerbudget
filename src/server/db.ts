@@ -126,6 +126,17 @@ function initSchema(database: Database) {
     }
   }
   database.run(`
+    CREATE TABLE IF NOT EXISTS event_milestone_members (
+      id TEXT PRIMARY KEY,
+      milestone_id TEXT NOT NULL,
+      member_id TEXT NOT NULL,
+      sort_order INTEGER DEFAULT 0,
+      FOREIGN KEY (milestone_id) REFERENCES event_planning_milestones(id) ON DELETE CASCADE,
+      FOREIGN KEY (member_id) REFERENCES members(id) ON DELETE CASCADE,
+      UNIQUE(milestone_id, member_id)
+    )
+  `);
+  database.run(`
     CREATE TABLE IF NOT EXISTS event_packing_categories (
       id TEXT PRIMARY KEY,
       event_id TEXT NOT NULL,

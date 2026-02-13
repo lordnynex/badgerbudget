@@ -102,6 +102,28 @@ export async function handleApiRequest(req: Request): Promise<Response | null> {
     }
   }
 
+  // /api/events/:id/milestones/:mid/members
+  const eventMilestoneMembersMatch = path.match(/^\/api\/events\/([^/]+)\/milestones\/([^/]+)\/members$/);
+  if (eventMilestoneMembersMatch && method === "POST") {
+    const eventId = eventMilestoneMembersMatch[1]!;
+    const mid = eventMilestoneMembersMatch[2]!;
+    const body = await jsonBody<{ member_id: string }>(req);
+    const updated = await api.events.milestones.addMember(eventId, mid, body.member_id);
+    if (!updated) return notFound();
+    return json(updated);
+  }
+
+  // /api/events/:id/milestones/:mid/members/:memberId
+  const eventMilestoneMemberMatch = path.match(/^\/api\/events\/([^/]+)\/milestones\/([^/]+)\/members\/([^/]+)$/);
+  if (eventMilestoneMemberMatch && method === "DELETE") {
+    const eventId = eventMilestoneMemberMatch[1]!;
+    const mid = eventMilestoneMemberMatch[2]!;
+    const memberId = eventMilestoneMemberMatch[3]!;
+    const updated = await api.events.milestones.removeMember(eventId, mid, memberId);
+    if (!updated) return notFound();
+    return json(updated);
+  }
+
   // /api/events/:id/packing-categories
   const eventPackingCategoriesMatch = path.match(/^\/api\/events\/([^/]+)\/packing-categories$/);
   if (eventPackingCategoriesMatch && method === "POST") {

@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/select";
 import { ChevronDown, ClipboardList, Plus, Trash2, UserPlus } from "lucide-react";
 import { MemberChip } from "@/components/members/MemberChip";
+import { MemberSelectCombobox } from "@/components/members/MemberSelectCombobox";
 import { ALL_MEMBERS_ID } from "@/lib/constants";
 import { api } from "@/data/api";
 import type { Event, EventAssignment, EventAssignmentCategory, Member } from "@/types/budget";
@@ -275,48 +276,24 @@ function AddMemberForm({
   onAdd,
   onClose,
 }: AddMemberFormProps) {
-  const [selectedId, setSelectedId] = useState<string>("");
   const assignment = assignments.find((a) => a.id === assignmentId);
   const assignedIds = new Set((assignment?.members ?? []).map((m) => m.member_id));
-  const availableMembers = members.filter((m) => !assignedIds.has(m.id));
-  const hasAllMembers = assignedIds.has(ALL_MEMBERS_ID);
-  const available = hasAllMembers
-    ? availableMembers
-    : [{ id: ALL_MEMBERS_ID, name: "All Members" } as Member, ...availableMembers];
-
-  const handleAdd = () => {
-    if (selectedId && assignmentId) {
-      onAdd(assignmentId, selectedId);
-      setSelectedId("");
-    }
-  };
 
   return (
     <div className="space-y-4 py-4">
-      <div className="space-y-2">
-        <Label>Member</Label>
-        <Select value={selectedId} onValueChange={setSelectedId}>
-          <SelectTrigger className="w-full">
-            <SelectValue placeholder="Select a member to assign" />
-          </SelectTrigger>
-          <SelectContent>
-            {available.length === 0 ? (
-              <div className="px-2 py-4 text-sm text-muted-foreground text-center">
-                All members are already assigned to this role
-              </div>
-            ) : (
-              available.map((m) => (
-                <SelectItem key={m.id} value={m.id}>
-                  {m.name}
-                </SelectItem>
-              ))
-            )}
-          </SelectContent>
-        </Select>
-      </div>
+      <MemberSelectCombobox
+        members={members}
+        excludedIds={assignedIds}
+        includeAllMembers={!assignedIds.has(ALL_MEMBERS_ID)}
+        placeholder="Search or select a member to assign"
+        label="Member"
+        onSelect={(memberId) => {
+          onAdd(assignmentId, memberId);
+          onClose();
+        }}
+      />
       <div className="flex justify-end gap-2">
         <Button variant="outline" onClick={onClose}>Cancel</Button>
-        <Button onClick={handleAdd} disabled={!selectedId}>Add</Button>
       </div>
     </div>
   );

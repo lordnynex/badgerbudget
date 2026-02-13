@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,9 +18,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Check, ChevronDown, Flag, Pencil, Plus, Trash2 } from "lucide-react";
+import { Check, ChevronDown, Flag, Pencil, Plus, Trash2, UserPlus } from "lucide-react";
 import { formatDueDate, getLastDayOfMonth, MONTHS } from "./eventUtils";
+import { MemberChip } from "@/components/members/MemberChip";
+import { MemberSelectCombobox } from "@/components/members/MemberSelectCombobox";
+import { api } from "@/data/api";
 import type { Event, EventPlanningMilestone } from "@/types/budget";
+import type { Member } from "@/types/budget";
 
 interface EventMilestonesCardProps {
   event: Event;
@@ -37,6 +41,8 @@ interface EventMilestonesCardProps {
     mid: string,
     payload: { month: number; year: number; description: string; due_date: string }
   ) => Promise<void>;
+  onAddMember: (mid: string, memberId: string) => Promise<void>;
+  onRemoveMember: (mid: string, memberId: string) => Promise<void>;
 }
 
 export function EventMilestonesCard({
@@ -46,8 +52,16 @@ export function EventMilestonesCard({
   onDelete,
   onAdd,
   onEdit,
+  onAddMember,
+  onRemoveMember,
 }: EventMilestonesCardProps) {
   const [open, setOpen] = useState(false);
+  const [members, setMembers] = useState<Member[]>([]);
+  const [addMemberMilestoneId, setAddMemberMilestoneId] = useState<string | null>(null);
+
+  useEffect(() => {
+    api.members.list().then(setMembers);
+  }, []);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [milestoneMonth, setMilestoneMonth] = useState(1);
   const [milestoneYear, setMilestoneYear] = useState(new Date().getFullYear());
@@ -176,7 +190,7 @@ export function EventMilestonesCard({
                               return (
                                 <li
                                   key={m.id}
-                                  className={`flex items-center justify-between gap-2 rounded border px-2 py-1.5 text-sm transition-colors hover:bg-muted/50 ${
+                                  className={`flex flex-col gap-1.5 rounded border px-2 py-1.5 text-sm transition-colors hover:bg-muted/50 ${
                                     m.completed
                                       ? "bg-muted/30 opacity-75"
                                       : isOverdue
@@ -184,50 +198,88 @@ export function EventMilestonesCard({
                                         : ""
                                   }`}
                                 >
-                                  <div className="flex items-center gap-2 min-w-0 flex-1">
-                                    <button
-                                      type="button"
-                                      onClick={() =>
-                                        onToggleComplete(m.id, !m.completed)
-                                      }
-                                      className="shrink-0 flex size-4 items-center justify-center rounded border border-muted-foreground/50 transition-colors hover:border-muted-foreground"
-                                      aria-label={m.completed ? "Mark incomplete" : "Mark complete"}
-                                    >
-                                      {m.completed && <Check className="size-2.5" />}
-                                    </button>
-                                    <span
-                                      className={
-                                        m.completed ? "line-through text-muted-foreground" : ""
-                                      }
-                                    >
-                                      {m.description}
-                                    </span>
-                                    <span
-                                      className={`text-xs shrink-0 ${
-                                        isOverdue ? "font-medium text-red-600 dark:text-red-400" : "text-muted-foreground"
-                                      }`}
-                                    >
-                                      {m.due_date ? formatDueDate(m.due_date) : ""}
-                                      {isOverdue && " (overdue)"}
-                                    </span>
+                                  <div className="flex items-center justify-between gap-2 min-w-0">
+                                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          onToggleComplete(m.id, !m.completed)
+                                        }
+                                        className="shrink-0 flex size-4 items-center justify-center rounded border border-muted-foreground/50 transition-colors hover:border-muted-foreground"
+                                        aria-label={m.completed ? "Mark incomplete" : "Mark complete"}
+                                      >
+                                        {m.completed && <Check className="size-2.5" />}
+                                      </button>
+                                      <span
+                                        className={
+                                          m.completed ? "line-through text-muted-foreground" : ""
+                                        }
+                                      >
+                                        {m.description}
+                                      </span>
+                                      <span
+                                        className={`text-xs shrink-0 ${
+                                          isOverdue ? "font-medium text-red-600 dark:text-red-400" : "text-muted-foreground"
+                                        }`}
+                                      >
+                                        {m.due_date ? formatDueDate(m.due_date) : ""}
+                                        {isOverdue && " (overdue)"}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center gap-1 shrink-0">
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+                                        onClick={() => openEdit(m)}
+                                        aria-label="Edit milestone"
+                                      >
+                                        <Pencil className="size-3" />
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+                                        onClick={() => onDelete(m.id)}
+                                      >
+                                        <Trash2 className="size-3" />
+                                      </Button>
+                                    </div>
                                   </div>
-                                  <div className="flex items-center gap-1 shrink-0">
+                                  <div className="flex flex-wrap items-center gap-1.5 pl-6">
+                                    {(m.members ?? []).map((mm) =>
+                                      mm.member ? (
+                                        <div key={mm.id} className="flex items-center gap-0.5 group/chip">
+                                          <MemberChip
+                                            memberId={mm.member.id}
+                                            name={mm.member.name}
+                                            photo={mm.member.photo}
+                                            clickable={true}
+                                          />
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-5 w-5 p-0 text-muted-foreground hover:text-destructive opacity-0 group-hover/chip:opacity-100 transition-opacity"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              onRemoveMember(m.id, mm.member_id);
+                                            }}
+                                            aria-label={`Remove ${mm.member.name}`}
+                                          >
+                                            <Trash2 className="size-3" />
+                                          </Button>
+                                        </div>
+                                      ) : null
+                                    )}
                                     <Button
                                       variant="ghost"
                                       size="sm"
-                                      className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
-                                      onClick={() => openEdit(m)}
-                                      aria-label="Edit milestone"
+                                      className="h-6 px-1.5 text-muted-foreground hover:text-foreground"
+                                      onClick={() => setAddMemberMilestoneId(m.id)}
+                                      aria-label="Add responsible member"
                                     >
-                                      <Pencil className="size-3" />
-                                    </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="h-7 w-7 p-0 text-destructive hover:text-destructive"
-                                      onClick={() => onDelete(m.id)}
-                                    >
-                                      <Trash2 className="size-3" />
+                                      <UserPlus className="size-3" />
+                                      <span className="text-xs">Add</span>
                                     </Button>
                                   </div>
                                 </li>
@@ -248,6 +300,36 @@ export function EventMilestonesCard({
           </CollapsibleContent>
         </Collapsible>
       </Card>
+
+      <Dialog open={addMemberMilestoneId != null} onOpenChange={(o) => !o && setAddMemberMilestoneId(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Responsible Member</DialogTitle>
+            <CardDescription>Assign a member responsible for this milestone</CardDescription>
+          </DialogHeader>
+          {addMemberMilestoneId && (
+            <div className="py-4">
+              <MemberSelectCombobox
+                members={members}
+                excludedIds={new Set(
+                  (event.milestones?.find((mil) => mil.id === addMemberMilestoneId)?.members ?? []).map((mm) => mm.member_id)
+                )}
+                placeholder="Search or select a member"
+                label="Member"
+                onSelect={async (memberId) => {
+                  await onAddMember(addMemberMilestoneId, memberId);
+                  setAddMemberMilestoneId(null);
+                }}
+              />
+              <DialogFooter className="pt-4">
+                <Button variant="outline" onClick={() => setAddMemberMilestoneId(null)}>
+                  Cancel
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setEditingId(null); }}>
         <DialogContent>

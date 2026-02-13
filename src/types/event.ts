@@ -1,3 +1,11 @@
+export interface EventMilestoneMember {
+  id: string;
+  milestone_id: string;
+  member_id: string;
+  sort_order: number;
+  member?: { id: string; name: string; photo: string | null };
+}
+
 export interface EventPlanningMilestone {
   id: string;
   event_id: string;
@@ -7,6 +15,7 @@ export interface EventPlanningMilestone {
   sort_order: number;
   completed: boolean;
   due_date: string;
+  members?: EventMilestoneMember[];
 }
 
 export interface EventPackingCategory {

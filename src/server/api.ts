@@ -83,6 +83,33 @@ export const api = {
       const milestones = db
         .query("SELECT * FROM event_planning_milestones WHERE event_id = ? ORDER BY year, month, sort_order")
         .all(id) as Array<Record<string, unknown>>;
+      const milestoneMembers = milestones.length
+        ? (db
+            .query(
+              "SELECT emm.* FROM event_milestone_members emm WHERE emm.milestone_id IN (" +
+                milestones.map(() => "?").join(",") +
+                ") ORDER BY emm.milestone_id, emm.sort_order"
+            )
+            .all(...(milestones.map((m) => m.id) as string[])) as Array<Record<string, unknown>>)
+        : [];
+      const milestoneMemberIds = [...new Set(milestoneMembers.map((mm) => mm.member_id as string))];
+      const milestoneMembersMap = new Map<string, { id: string; name: string; photo: string | null }>();
+      for (const mid of milestoneMemberIds) {
+        const m = db.query("SELECT id, name, photo FROM members WHERE id = ?").get(mid) as Record<string, unknown> | undefined;
+        if (m) {
+          milestoneMembersMap.set(mid, {
+            id: m.id as string,
+            name: m.name as string,
+            photo: m.photo != null ? `data:image/jpeg;base64,${Buffer.from(m.photo as Uint8Array).toString("base64")}` : null,
+          });
+        }
+      }
+      const membersByMilestone = new Map<string, Array<Record<string, unknown>>>();
+      for (const mm of milestoneMembers) {
+        const list = membersByMilestone.get(mm.milestone_id as string) ?? [];
+        list.push(mm);
+        membersByMilestone.set(mm.milestone_id as string, list);
+      }
       const packingCategories = db
         .query("SELECT * FROM event_packing_categories WHERE event_id = ? ORDER BY sort_order, name")
         .all(id) as Array<Record<string, unknown>>;
@@ -140,6 +167,7 @@ export const api = {
           const year = m.year as number;
           const lastDay = new Date(year, month, 0);
           const defaultDueDate = `${year}-${String(month).padStart(2, "0")}-${String(lastDay.getDate()).padStart(2, "0")}`;
+          const mmList = membersByMilestone.get(m.id as string) ?? [];
           return {
             id: m.id,
             event_id: m.event_id,
@@ -149,6 +177,13 @@ export const api = {
             sort_order: m.sort_order ?? 0,
             completed: m.completed === 1,
             due_date: (m.due_date as string | null) ?? defaultDueDate,
+            members: mmList.map((mm) => ({
+              id: mm.id,
+              milestone_id: mm.milestone_id,
+              member_id: mm.member_id,
+              sort_order: mm.sort_order ?? 0,
+              member: milestoneMembersMap.get(mm.member_id as string),
+            })),
           };
         }),
         packingCategories: packingCategories.map((c) => ({
@@ -376,6 +411,23 @@ export const api = {
         const db = getDb();
         db.run("DELETE FROM event_planning_milestones WHERE id = ? AND event_id = ?", [mid, eventId]);
         return { ok: true };
+      },
+      addMember: async (eventId: string, mid: string, memberId: string) => {
+        const db = getDb();
+        const existing = db.query("SELECT 1 FROM event_planning_milestones WHERE id = ? AND event_id = ?").get(mid, eventId);
+        if (!existing) return null;
+        const id = uuid();
+        const maxOrder = db.query("SELECT COALESCE(MAX(sort_order), 0) as m FROM event_milestone_members WHERE milestone_id = ?").get(mid) as { m: number };
+        db.run(
+          "INSERT INTO event_milestone_members (id, milestone_id, member_id, sort_order) VALUES (?, ?, ?, ?)",
+          [id, mid, memberId, (maxOrder?.m ?? 0) + 1]
+        );
+        return api.events.get(eventId);
+      },
+      removeMember: async (eventId: string, mid: string, memberId: string) => {
+        const db = getDb();
+        db.run("DELETE FROM event_milestone_members WHERE milestone_id = ? AND member_id = ?", [mid, memberId]);
+        return api.events.get(eventId);
       },
     },
     packingCategories: {

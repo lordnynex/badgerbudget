@@ -54,6 +54,15 @@ export const api = {
         }),
       delete: (eventId: string, mid: string) =>
         fetchJson<{ ok: boolean }>(`/api/events/${eventId}/milestones/${mid}`, { method: "DELETE" }),
+      addMember: (eventId: string, mid: string, memberId: string) =>
+        fetchJson<Event>(`/api/events/${eventId}/milestones/${mid}/members`, {
+          method: "POST",
+          body: JSON.stringify({ member_id: memberId }),
+        }),
+      removeMember: (eventId: string, mid: string, memberId: string) =>
+        fetchJson<Event>(`/api/events/${eventId}/milestones/${mid}/members/${memberId}`, {
+          method: "DELETE",
+        }),
     },
     packingCategories: {
       create: (eventId: string, body: { name: string }) =>

@@ -125,6 +125,18 @@ export function EventDetailPage() {
     await refresh();
   };
 
+  const handleAddMemberToMilestone = async (mid: string, memberId: string) => {
+    if (!id) return;
+    await api.events.milestones.addMember(id, mid, memberId);
+    await refresh();
+  };
+
+  const handleRemoveMemberFromMilestone = async (mid: string, memberId: string) => {
+    if (!id) return;
+    await api.events.milestones.removeMember(id, mid, memberId);
+    await refresh();
+  };
+
   const handleAddPackingCategory = async (name: string) => {
     if (!id) return;
     await api.events.packingCategories.create(id, { name });
@@ -247,6 +259,8 @@ export function EventDetailPage() {
         onDelete={handleDeleteMilestone}
         onAdd={handleAddMilestone}
         onEdit={handleEditMilestone}
+        onAddMember={handleAddMemberToMilestone}
+        onRemoveMember={handleRemoveMemberFromMilestone}
       />
 
       <EventAssignmentsCard
