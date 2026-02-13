@@ -47,6 +47,17 @@ const MONTHS = [
   "July", "August", "September", "October", "November", "December",
 ];
 
+// Separate from budget categories - for load out packing items
+const LOAD_OUT_PACKING_CATEGORIES = [
+  "Tools & Equipment",
+  "Safety",
+  "Cables & Power",
+  "Documents",
+  "Food & Beverage",
+  "Office Supplies",
+  "Miscellaneous",
+];
+
 function formatMilestone(m: EventPlanningMilestone) {
   return `${MONTHS[m.month - 1] ?? m.month} ${m.year}: ${m.description}`;
 }
@@ -83,7 +94,7 @@ export function EventDetailPage() {
   const [milestoneDesc, setMilestoneDesc] = useState("");
 
   // Packing form
-  const [packingCategory, setPackingCategory] = useState("Equipment");
+  const [packingCategory, setPackingCategory] = useState(LOAD_OUT_PACKING_CATEGORIES[0]);
   const [packingName, setPackingName] = useState("");
 
   // Volunteer form
@@ -176,6 +187,12 @@ export function EventDetailPage() {
     await refresh();
   };
 
+  const handleUpdatePackingCategory = async (pid: string, category: string) => {
+    if (!id) return;
+    await api.events.packingItems.update(id, pid, { category });
+    await refresh();
+  };
+
   const handleAddVolunteer = async () => {
     if (!id || !volunteerName.trim() || !volunteerDept.trim()) return;
     await api.events.volunteers.create(id, {
@@ -211,6 +228,14 @@ export function EventDetailPage() {
     },
     {} as Record<string, EventPackingItem[]>
   );
+
+  const packingCategories = [
+    ...LOAD_OUT_PACKING_CATEGORIES,
+    ...(event.packingItems ?? [])
+      .map((p) => p.category)
+      .filter((c) => !LOAD_OUT_PACKING_CATEGORIES.includes(c))
+      .filter((c, i, arr) => arr.indexOf(c) === i),
+  ];
 
   // Use Google Maps embed URL ( Share > Embed a map ). Regular place links may not embed.
   const mapEmbedUrl = event.event_location?.includes("embed") ? event.event_location : null;
@@ -435,13 +460,26 @@ export function EventDetailPage() {
                         {items.map((item) => (
                           <li
                             key={item.id}
-                            className="flex items-center justify-between rounded border px-3 py-2"
+                            className="flex items-center justify-between gap-2 rounded border px-3 py-2"
                           >
-                            <span>{item.name}</span>
+                            <span className="flex-1 min-w-0 truncate">{item.name}</span>
+                            <Select
+                              value={packingCategories.includes(item.category) ? item.category : "Miscellaneous"}
+                              onValueChange={(v) => handleUpdatePackingCategory(item.id, v)}
+                            >
+                              <SelectTrigger className="h-8 w-[140px] text-xs shrink-0">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {packingCategories.map((c) => (
+                                  <SelectItem key={c} value={c}>{c}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="text-destructive hover:text-destructive"
+                              className="text-destructive hover:text-destructive shrink-0"
                               onClick={() => handleDeletePacking(item.id)}
                             >
                               <Trash2 className="size-4" />
@@ -743,7 +781,7 @@ export function EventDetailPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {["Equipment", "Food & Beverage", "Admin", "Transport", "Venue", "Merchandise", "Miscellaneous"].map((c) => (
+                  {LOAD_OUT_PACKING_CATEGORIES.map((c) => (
                     <SelectItem key={c} value={c}>{c}</SelectItem>
                   ))}
                 </SelectContent>

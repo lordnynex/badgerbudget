@@ -72,8 +72,17 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, selectedBudgetId: action.payload };
     case "SET_SELECTED_SCENARIO":
       return { ...state, selectedScenarioId: action.payload };
-    case "SET_CURRENT_BUDGET":
-      return { ...state, currentBudget: action.payload };
+    case "SET_CURRENT_BUDGET": {
+      const budget = action.payload;
+      if (!budget?.lineItems?.length) return { ...state, currentBudget: budget };
+      // Merge categories from line items so custom categories display correctly after reload
+      const lineItemCategories = [...new Set(budget.lineItems.map((li) => li.category).filter(Boolean))];
+      const mergedCategories = [...DEFAULT_CATEGORIES];
+      for (const cat of lineItemCategories) {
+        if (!mergedCategories.includes(cat)) mergedCategories.push(cat);
+      }
+      return { ...state, currentBudget: budget, categories: mergedCategories };
+    }
     case "SET_CURRENT_SCENARIO":
       return { ...state, currentScenario: action.payload };
     case "UPDATE_SCENARIO_INPUTS_LOCAL":
