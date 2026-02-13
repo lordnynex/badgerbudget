@@ -6,6 +6,7 @@ import { Header } from "@/components/layout/Header";
 import { Main } from "@/components/layout/Main";
 import { EventDetailPage } from "@/components/events/EventDetailPage";
 import { ProjectionsSubNav } from "@/components/layout/ProjectionsSubNav";
+import { EventDetailSubNav } from "@/components/layout/EventDetailSubNav";
 import { PrintView } from "@/components/export/PrintView";
 import { EmailView } from "@/components/export/EmailView";
 import {
@@ -65,6 +66,9 @@ function AppContent() {
             <Header />
             {location.pathname === "/projections" && (
               <ProjectionsSubNav onPrint={onPrint} onEmail={onEmail} />
+            )}
+            {location.pathname.startsWith("/events/") && location.pathname !== "/events" && (
+              <EventDetailSubNav />
             )}
           </div>
           <Routes>

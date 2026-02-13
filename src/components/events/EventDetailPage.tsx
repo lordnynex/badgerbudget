@@ -262,7 +262,7 @@ export function EventDetailPage() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
-        <Card>
+        <Card id="event-details" className="scroll-mt-28">
           <CardHeader>
             <CardTitle className="text-lg">Event Details</CardTitle>
             <CardDescription>Key information about this event</CardDescription>
@@ -348,11 +348,17 @@ export function EventDetailPage() {
                 )}
               </div>
             )}
+            {event.description && (
+              <div className="space-y-2 border-t pt-4">
+                <h4 className="text-sm font-medium text-muted-foreground">Description</h4>
+                <p className="text-muted-foreground whitespace-pre-wrap text-sm">{event.description}</p>
+              </div>
+            )}
           </CardContent>
         </Card>
 
         {mapEmbedUrl && (
-          <Card className="overflow-hidden">
+          <Card id="location" className="overflow-hidden scroll-mt-28">
             <CardHeader>
               <CardTitle className="text-lg">Location</CardTitle>
               <CardDescription>Event venue on map</CardDescription>
@@ -374,18 +380,7 @@ export function EventDetailPage() {
         )}
       </div>
 
-      {event.description && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Description</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground whitespace-pre-wrap">{event.description}</p>
-          </CardContent>
-        </Card>
-      )}
-
-      <Card>
+      <Card id="milestones" className="scroll-mt-28">
         <Collapsible defaultOpen className="group/collapsible">
           <CardHeader>
             <CollapsibleTrigger className="flex w-full items-center justify-between text-left hover:bg-muted/50 -m-4 p-4 rounded-lg transition-colors">
@@ -434,7 +429,7 @@ export function EventDetailPage() {
         </Collapsible>
       </Card>
 
-      <Card>
+      <Card id="packing" className="scroll-mt-28">
         <Collapsible defaultOpen className="group/collapsible">
           <CardHeader>
             <CollapsibleTrigger className="flex w-full items-center justify-between text-left hover:bg-muted/50 -m-4 p-4 rounded-lg transition-colors">
@@ -503,7 +498,7 @@ export function EventDetailPage() {
         </Collapsible>
       </Card>
 
-      <Card>
+      <Card id="volunteers" className="scroll-mt-28">
         <Collapsible defaultOpen className="group/collapsible">
           <CardHeader>
             <CollapsibleTrigger className="flex w-full items-center justify-between text-left hover:bg-muted/50 -m-4 p-4 rounded-lg transition-colors">
@@ -568,7 +563,7 @@ export function EventDetailPage() {
         </Collapsible>
       </Card>
 
-      <Card>
+      <Card id="notes" className="scroll-mt-28">
         <CardHeader>
           <CardTitle className="text-lg">Planning Notes</CardTitle>
           <CardDescription>Free-form notes about the event</CardDescription>
