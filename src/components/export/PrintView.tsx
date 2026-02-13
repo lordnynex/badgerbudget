@@ -186,7 +186,10 @@ export function PrintView({ state, metrics }: PrintViewProps) {
 
       {/* Summary Section – matches dashboard cards */}
       <section>
-        <h2 className="mb-4 text-lg font-semibold">Summary</h2>
+        <h2 className="mb-2 text-lg font-semibold">Summary</h2>
+        <p className="mb-4 text-sm text-gray-600 max-w-2xl">
+          This section shows the key numbers at a glance. These figures help you understand how much the event costs, how much revenue you need to cover costs and hit your profit goal, and which ticket and staff prices might work best. All numbers are calculated from your budget and the assumptions below.
+        </p>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div className="rounded border p-4">
             <p className="text-sm text-gray-600">Total event cost</p>
@@ -316,7 +319,10 @@ export function PrintView({ state, metrics }: PrintViewProps) {
 
       {/* Inputs */}
       <section>
-        <h2 className="mb-4 text-lg font-semibold">Scenario Inputs</h2>
+        <h2 className="mb-2 text-lg font-semibold">Scenario Inputs</h2>
+        <p className="mb-4 text-sm text-gray-600 max-w-2xl">
+          These are the assumptions used for all calculations in this report. Max occupancy is your venue capacity; staff count is how many people get discounted tickets. The profit target is how much money you want to make beyond covering costs. Ticket and staff prices are the options we test to see which combinations are profitable.
+        </p>
         <table className="w-full border text-sm">
           <tbody>
             <tr>
@@ -360,7 +366,10 @@ export function PrintView({ state, metrics }: PrintViewProps) {
       {/* Food Cost Breakdown */}
       {foodCost && (
         <section>
-          <h2 className="mb-4 text-lg font-semibold">Food Cost Breakdown</h2>
+          <h2 className="mb-2 text-lg font-semibold">Food Cost Breakdown</h2>
+          <p className="mb-3 text-sm text-gray-600 max-w-2xl">
+            This section shows how your total food and beverage spending breaks down per person. We assume a 4-day event: attendees and staff each get 4 days of meals, while day-pass holders get 1 meal. Use these numbers to understand the cost of feeding each type of participant.
+          </p>
           <p className="mb-4 text-sm text-gray-600">
             Total food & beverage: ${foodCost.totalFoodCost.toLocaleString()}. 4-day event.
           </p>
@@ -391,7 +400,10 @@ export function PrintView({ state, metrics }: PrintViewProps) {
 
       {/* Budget Line Items */}
       <section>
-        <h2 className="mb-4 text-lg font-semibold">Budget Line Items</h2>
+        <h2 className="mb-2 text-lg font-semibold">Budget Line Items</h2>
+        <p className="mb-4 text-sm text-gray-600 max-w-2xl">
+          This is your full expense list—every item you plan to spend money on. Each row shows the item name, category, unit cost (price per item), quantity, and total (unit cost × quantity). The sum at the bottom is your total event cost, which feeds into all the revenue and profit calculations above.
+        </p>
         <table className="w-full border text-sm">
           <thead>
             <tr className="bg-gray-100">
@@ -421,7 +433,10 @@ export function PrintView({ state, metrics }: PrintViewProps) {
 
       {/* Cost Charts */}
       <section>
-        <h2 className="mb-4 text-lg font-semibold">Cost by Category</h2>
+        <h2 className="mb-2 text-lg font-semibold">Cost by Category</h2>
+        <p className="mb-4 text-sm text-gray-600 max-w-2xl">
+          These charts show where your money goes. The donut (left) shows each category as a slice of the total. The bar chart (right) shows the same breakdown in dollar amounts. Use these to see which areas—e.g. venue, food, equipment—absorb the most of your budget.
+        </p>
         <div className="grid gap-6 print:grid-cols-2">
           <div>
             <h3 className="mb-2 text-sm font-medium">Donut</h3>
@@ -451,7 +466,10 @@ export function PrintView({ state, metrics }: PrintViewProps) {
       {/* Profit Heatmap */}
       {metrics.length > 0 && (
         <section className="break-before-page">
-          <h2 className="mb-4 text-lg font-semibold">Profit by Scenario Heatmap</h2>
+          <h2 className="mb-2 text-lg font-semibold">Profit by Scenario Heatmap</h2>
+          <p className="mb-4 text-sm text-gray-600 max-w-2xl">
+            This heatmap shows profit (or loss) for different combinations of ticket price, staff price, and attendance level. Each cell = one scenario. Green means you meet your profit target; orange means you make money but below target; red means a loss. Rows = attendance levels; columns = ticket/staff price pairs. Use it to quickly spot which pricing works at different turnout levels.
+          </p>
           <div className="h-[320px]">
             <Chart
               options={heatmapOptions}
@@ -465,7 +483,10 @@ export function PrintView({ state, metrics }: PrintViewProps) {
 
       {/* Scenario Matrix – Tables per Attendance Level */}
       <section>
-        <h2 className="mb-4 text-lg font-semibold">Scenario Matrix</h2>
+        <h2 className="mb-2 text-lg font-semibold">Scenario Matrix</h2>
+        <p className="mb-4 text-sm text-gray-600 max-w-2xl">
+          This section shows the detailed numbers behind each scenario. Each table covers one attendance level (e.g. 50% full). Gross revenue = money from tickets before costs; Net revenue (profit) = Gross minus all expenses. Profit margin = profit as % of revenue. Cost coverage = how many times revenue covers costs (1× = break-even). Charts below each table compare scenarios side by side.
+        </p>
         <p className="mb-6 text-sm text-gray-600">
           Gross = ticket income; Net = Gross − costs. One table per attendance level.
         </p>

@@ -134,6 +134,7 @@ export function EmailView({ state, metrics }: EmailViewProps) {
     const foodCostHtml = foodCost
       ? `
       <h2 style="font-size: 18px; margin-top: 24px; margin-bottom: 8px;">Food Cost Breakdown</h2>
+      <p style="color: #666; font-size: 14px; margin-bottom: 12px; max-width: 600px;">This section shows how your total food and beverage spending breaks down per person. We assume a 4-day event: attendees and staff each get 4 days of meals, while day-pass holders get 1 meal. Use these numbers to understand the cost of feeding each type of participant.</p>
       <p style="color: #666; margin-bottom: 12px;">Total food & beverage: $${foodCost.totalFoodCost.toLocaleString()}. 4-day event.</p>
       <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px;">
         <tr><td style="padding: 6px 0; border-bottom: 1px solid #eee;">Per attendee (4 days)</td><td style="padding: 6px 0; border-bottom: 1px solid #eee; text-align: right;">$${foodCost.foodCostPerAttendee.toFixed(2)}</td></tr>
@@ -156,6 +157,7 @@ export function EmailView({ state, metrics }: EmailViewProps) {
   ${budgetScenario ? `<p style="color: #666; margin-bottom: 24px;">${budgetScenario}</p>` : ""}
 
   <h2 style="font-size: 18px; margin-top: 24px; margin-bottom: 8px;">Summary</h2>
+  <p style="color: #666; font-size: 14px; margin-bottom: 16px; max-width: 600px;">This section shows the key numbers at a glance. These figures help you understand how much the event costs, how much revenue you need to cover costs and hit your profit goal, and which ticket and staff prices might work best. All numbers are calculated from your budget and the assumptions below.</p>
   <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px;">
     <tr><td style="padding: 6px 0; border-bottom: 1px solid #eee;">Total event cost</td><td style="padding: 6px 0; border-bottom: 1px solid #eee; text-align: right; font-weight: 600;">$${summary.totalCosts.toLocaleString("en-US", { minimumFractionDigits: 2 })}</td></tr>
     <tr><td style="padding: 6px 0; border-bottom: 1px solid #eee;">Cost + profit target</td><td style="padding: 6px 0; border-bottom: 1px solid #eee; text-align: right; font-weight: 600;">$${summary.totalWithProfitTarget.toLocaleString("en-US", { minimumFractionDigits: 2 })}</td></tr>
@@ -173,7 +175,8 @@ export function EmailView({ state, metrics }: EmailViewProps) {
     ${summary.revenueMix ? `<tr><td style="padding: 6px 0; border-bottom: 1px solid #eee;">Revenue mix</td><td style="padding: 6px 0; border-bottom: 1px solid #eee; text-align: right;">${summary.revenueMix.attendee.toFixed(0)}% attendees · ${summary.revenueMix.staff.toFixed(0)}% staff · ${summary.revenueMix.dayPass.toFixed(0)}% day pass</td></tr>` : ""}
   </table>
 
-  <h2 style="font-size: 18px; margin-top: 24px; margin-bottom: 8px;">Inputs</h2>
+  <h2 style="font-size: 18px; margin-top: 24px; margin-bottom: 8px;">Scenario Inputs</h2>
+  <p style="color: #666; font-size: 14px; margin-bottom: 16px; max-width: 600px;">These are the assumptions used for all calculations in this report. Max occupancy is your venue capacity; staff count is how many people get discounted tickets. The profit target is how much money you want to make beyond covering costs. Ticket and staff prices are the options we test to see which combinations are profitable.</p>
   <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px;">
     <tr><td style="padding: 6px 0; border-bottom: 1px solid #eee;">Max Occupancy</td><td style="padding: 6px 0; border-bottom: 1px solid #eee;">${state.inputs.maxOccupancy}</td></tr>
     <tr><td style="padding: 6px 0; border-bottom: 1px solid #eee;">Staff Count</td><td style="padding: 6px 0; border-bottom: 1px solid #eee;">${state.inputs.staffCount}</td></tr>
@@ -184,9 +187,11 @@ export function EmailView({ state, metrics }: EmailViewProps) {
   </table>
 
   <h2 style="font-size: 18px; margin-top: 24px; margin-bottom: 8px;">Budget Total</h2>
+  <p style="color: #666; font-size: 14px; margin-bottom: 8px; max-width: 600px;">This is the sum of all expenses in your budget—the total amount you plan to spend on the event.</p>
   <p style="font-size: 18px; font-weight: bold;">$${totalCosts.toLocaleString("en-US", { minimumFractionDigits: 2 })}</p>
 
   <h2 style="font-size: 18px; margin-top: 24px; margin-bottom: 8px;">Budget Line Items</h2>
+  <p style="color: #666; font-size: 14px; margin-bottom: 16px; max-width: 600px;">This is your full expense list—every item you plan to spend money on. Each row shows the item name, category, unit cost (price per item), quantity, and total. The sum equals your Budget Total above.</p>
   <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px;">
     <tr style="background: #f5f5f5;">
       <th style="padding: 8px; text-align: left;">Name</th>
@@ -212,13 +217,16 @@ export function EmailView({ state, metrics }: EmailViewProps) {
   ${foodCostHtml}
 
   <h2 style="font-size: 18px; margin-top: 24px; margin-bottom: 8px;">Cost by Category</h2>
+  <p style="color: #666; font-size: 14px; margin-bottom: 16px; max-width: 600px;">These charts show where your money goes. The donut shows each category as a slice of the total. The bar chart shows the same breakdown in dollar amounts. Use these to see which areas—e.g. venue, food, equipment—absorb the most of your budget.</p>
   ${chartImg("costDonut")}
   ${chartImg("costBar")}
 
   <h2 style="font-size: 18px; margin-top: 24px; margin-bottom: 8px;">Profit by Scenario Heatmap</h2>
+  <p style="color: #666; font-size: 14px; margin-bottom: 16px; max-width: 600px;">This heatmap shows profit (or loss) for different combinations of ticket price, staff price, and attendance level. Each cell = one scenario. Green means you meet your profit target; orange means you make money but below target; red means a loss. Use it to quickly spot which pricing works at different turnout levels.</p>
   ${chartImg("heatmap")}
 
   <h2 style="font-size: 18px; margin-top: 24px; margin-bottom: 8px;">Scenario Matrix</h2>
+  <p style="color: #666; font-size: 14px; margin-bottom: 12px; max-width: 600px;">This section shows the detailed numbers behind each scenario. Each table covers one attendance level (e.g. 50% full). Gross revenue = money from tickets before costs; Net revenue (profit) = Gross minus all expenses. Profit margin = profit as % of revenue. Cost coverage = how many times revenue covers costs (1× = break-even). Charts below each table compare scenarios side by side.</p>
   <p style="color: #666; margin-bottom: 12px;">Gross = ticket income; Net = Gross − costs. One table per attendance level.</p>
   ${scenarioTablesHtml}
 
