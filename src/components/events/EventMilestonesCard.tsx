@@ -128,14 +128,14 @@ export function EventMilestonesCard({
             </CollapsibleTrigger>
           </CardHeader>
           <CollapsibleContent>
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-3">
               {total === 0 ? (
                 <p className="text-muted-foreground text-sm">No milestones yet.</p>
               ) : (
-                <div className="space-y-4">
-                  <div className="flex flex-wrap items-center gap-4">
+                <div className="space-y-3">
+                  <div className="flex flex-wrap items-center gap-2">
                     <span
-                      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-sm font-medium ${
+                      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
                         pct === 100
                           ? "bg-emerald-500/20 text-emerald-700 dark:text-emerald-400"
                           : pct >= 50
@@ -147,7 +147,7 @@ export function EventMilestonesCard({
                     </span>
                     {overdue.length > 0 && (
                       <div className="flex items-center gap-2">
-                        <span className="inline-flex items-center rounded-full bg-red-500/20 px-2.5 py-0.5 text-sm font-medium text-red-700 dark:text-red-400">
+                        <span className="inline-flex items-center rounded-full bg-red-500/20 px-2 py-0.5 text-xs font-medium text-red-700 dark:text-red-400">
                           {overdue.length} overdue
                         </span>
                         <span className="text-muted-foreground text-sm">
@@ -156,7 +156,7 @@ export function EventMilestonesCard({
                       </div>
                     )}
                   </div>
-                  <div className="space-y-4">
+                  <div className="space-y-2">
                     {sortedMonths.map((key) => {
                       const [y, m] = key.split("-").map(Number);
                       const year = y ?? new Date().getFullYear();
@@ -166,17 +166,17 @@ export function EventMilestonesCard({
                       );
                       return (
                         <div key={key}>
-                          <h4 className="font-medium text-muted-foreground mb-2">
+                          <h4 className="mb-1 text-xs font-medium text-muted-foreground">
                             {MONTHS[month - 1]} {year}
                           </h4>
-                          <ul className="space-y-1 pl-4 border-l-2 border-muted">
+                          <ul className="space-y-0.5 pl-3 border-l-2 border-muted">
                             {items.map((m) => {
                               const isOverdue =
                                 !m.completed && m.due_date && m.due_date < today;
                               return (
                                 <li
                                   key={m.id}
-                                  className={`flex items-center justify-between gap-2 rounded border px-3 py-2 ${
+                                  className={`flex items-center justify-between gap-2 rounded border px-2 py-1.5 text-sm ${
                                     m.completed
                                       ? "bg-muted/30 opacity-75"
                                       : isOverdue
@@ -190,10 +190,10 @@ export function EventMilestonesCard({
                                       onClick={() =>
                                         onToggleComplete(m.id, !m.completed)
                                       }
-                                      className="shrink-0 flex size-5 items-center justify-center rounded border border-muted-foreground/50 hover:border-muted-foreground transition-colors"
+                                      className="shrink-0 flex size-4 items-center justify-center rounded border border-muted-foreground/50 transition-colors hover:border-muted-foreground"
                                       aria-label={m.completed ? "Mark incomplete" : "Mark complete"}
                                     >
-                                      {m.completed && <Check className="size-3" />}
+                                      {m.completed && <Check className="size-2.5" />}
                                     </button>
                                     <span
                                       className={
@@ -215,19 +215,19 @@ export function EventMilestonesCard({
                                     <Button
                                       variant="ghost"
                                       size="sm"
-                                      className="text-muted-foreground hover:text-foreground"
+                                      className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
                                       onClick={() => openEdit(m)}
                                       aria-label="Edit milestone"
                                     >
-                                      <Pencil className="size-4" />
+                                      <Pencil className="size-3" />
                                     </Button>
                                     <Button
                                       variant="ghost"
                                       size="sm"
-                                      className="text-destructive hover:text-destructive"
+                                      className="h-7 w-7 p-0 text-destructive hover:text-destructive"
                                       onClick={() => onDelete(m.id)}
                                     >
-                                      <Trash2 className="size-4" />
+                                      <Trash2 className="size-3" />
                                     </Button>
                                   </div>
                                 </li>

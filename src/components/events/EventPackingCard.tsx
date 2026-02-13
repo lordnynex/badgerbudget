@@ -96,7 +96,7 @@ export function EventPackingCard({
             </CollapsibleTrigger>
           </CardHeader>
           <CollapsibleContent>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-3">
               {!hasCategories ? (
                 <div className="space-y-2">
                   <p className="text-muted-foreground text-sm">
@@ -122,7 +122,7 @@ export function EventPackingCard({
                   </div>
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {categories.map((cat) => (
                     <PackingCategorySection
                       key={cat.id}

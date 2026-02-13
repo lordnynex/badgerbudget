@@ -22,19 +22,19 @@ export function PackingCategorySection({
 }: PackingCategorySectionProps) {
   return (
     <div>
-      <div className="mb-2 flex items-center gap-2">
-        <h4 className="font-medium text-sm text-muted-foreground">{category.name}</h4>
+      <div className="mb-1.5 flex items-center gap-2">
+        <h4 className="text-xs font-medium text-muted-foreground">{category.name}</h4>
         <Button
           variant="ghost"
           size="icon"
-          className="h-6 w-6 shrink-0 text-muted-foreground hover:text-foreground"
+          className="h-5 w-5 shrink-0 text-muted-foreground hover:text-foreground"
           onClick={() => onAddItemInCategory(category.id)}
           aria-label={`Add item to ${category.name}`}
         >
-          <Plus className="size-3.5" />
+          <Plus className="size-3" />
         </Button>
       </div>
-      <ul className="space-y-1">
+      <ul className="space-y-0.5">
         {items.map((item) => (
           <PackingItemRow
             key={item.id}
