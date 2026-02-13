@@ -190,7 +190,7 @@ export function EventMilestonesCard({
                               return (
                                 <li
                                   key={m.id}
-                                  className={`flex flex-col gap-1.5 rounded border px-2 py-1.5 text-sm transition-colors hover:bg-muted/50 ${
+                                  className={`flex items-center justify-between gap-2 rounded border px-2 py-1.5 text-sm transition-colors hover:bg-muted/50 ${
                                     m.completed
                                       ? "bg-muted/30 opacity-75"
                                       : isOverdue
@@ -198,88 +198,85 @@ export function EventMilestonesCard({
                                         : ""
                                   }`}
                                 >
-                                  <div className="flex items-center justify-between gap-2 min-w-0">
-                                    <div className="flex items-center gap-2 min-w-0 flex-1">
-                                      <button
-                                        type="button"
-                                        onClick={() =>
-                                          onToggleComplete(m.id, !m.completed)
-                                        }
-                                        className="shrink-0 flex size-4 items-center justify-center rounded border border-muted-foreground/50 transition-colors hover:border-muted-foreground"
-                                        aria-label={m.completed ? "Mark incomplete" : "Mark complete"}
-                                      >
-                                        {m.completed && <Check className="size-2.5" />}
-                                      </button>
-                                      <span
-                                        className={
-                                          m.completed ? "line-through text-muted-foreground" : ""
-                                        }
-                                      >
-                                        {m.description}
-                                      </span>
-                                      <span
-                                        className={`text-xs shrink-0 ${
-                                          isOverdue ? "font-medium text-red-600 dark:text-red-400" : "text-muted-foreground"
-                                        }`}
-                                      >
-                                        {m.due_date ? formatDueDate(m.due_date) : ""}
-                                        {isOverdue && " (overdue)"}
-                                      </span>
-                                    </div>
-                                    <div className="flex items-center gap-1 shrink-0">
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
-                                        onClick={() => openEdit(m)}
-                                        aria-label="Edit milestone"
-                                      >
-                                        <Pencil className="size-3" />
-                                      </Button>
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="h-7 w-7 p-0 text-destructive hover:text-destructive"
-                                        onClick={() => onDelete(m.id)}
-                                      >
-                                        <Trash2 className="size-3" />
-                                      </Button>
-                                    </div>
+                                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        onToggleComplete(m.id, !m.completed)
+                                      }
+                                      className="shrink-0 flex size-4 items-center justify-center rounded border border-muted-foreground/50 transition-colors hover:border-muted-foreground"
+                                      aria-label={m.completed ? "Mark incomplete" : "Mark complete"}
+                                    >
+                                      {m.completed && <Check className="size-2.5" />}
+                                    </button>
+                                    <span
+                                      className={
+                                        m.completed ? "line-through text-muted-foreground" : ""
+                                      }
+                                    >
+                                      {m.description}
+                                    </span>
+                                    <span
+                                      className={`text-xs shrink-0 ${
+                                        isOverdue ? "font-medium text-red-600 dark:text-red-400" : "text-muted-foreground"
+                                      }`}
+                                    >
+                                      {m.due_date ? formatDueDate(m.due_date) : ""}
+                                      {isOverdue && " (overdue)"}
+                                    </span>
                                   </div>
-                                  <div className="flex flex-wrap items-center gap-1.5 pl-6">
-                                    {(m.members ?? []).map((mm) =>
-                                      mm.member ? (
-                                        <div key={mm.id} className="flex items-center gap-0.5 group/chip">
-                                          <MemberChip
-                                            memberId={mm.member.id}
-                                            name={mm.member.name}
-                                            photo={mm.member.photo}
-                                            clickable={true}
-                                          />
-                                          <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            className="h-5 w-5 p-0 text-muted-foreground hover:text-destructive opacity-0 group-hover/chip:opacity-100 transition-opacity"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              onRemoveMember(m.id, mm.member_id);
-                                            }}
-                                            aria-label={`Remove ${mm.member.name}`}
-                                          >
-                                            <Trash2 className="size-3" />
-                                          </Button>
-                                        </div>
-                                      ) : null
-                                    )}
+                                  <div className="flex items-center gap-1.5 shrink-0">
+                                    <div className="flex flex-wrap items-center gap-1 justify-end">
+                                      {(m.members ?? []).map((mm) =>
+                                        mm.member ? (
+                                          <div key={mm.id} className="flex items-center gap-0.5 group/chip">
+                                            <MemberChip
+                                              memberId={mm.member.id}
+                                              name={mm.member.name}
+                                              photo={mm.member.photo}
+                                              clickable={true}
+                                            />
+                                            <Button
+                                              variant="ghost"
+                                              size="sm"
+                                              className="h-5 w-5 p-0 text-muted-foreground hover:text-destructive opacity-0 group-hover/chip:opacity-100 transition-opacity"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                onRemoveMember(m.id, mm.member_id);
+                                              }}
+                                              aria-label={`Remove ${mm.member.name}`}
+                                            >
+                                              <Trash2 className="size-3" />
+                                            </Button>
+                                          </div>
+                                        ) : null
+                                      )}
+                                    </div>
                                     <Button
                                       variant="ghost"
                                       size="sm"
-                                      className="h-6 px-1.5 text-muted-foreground hover:text-foreground"
+                                      className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
                                       onClick={() => setAddMemberMilestoneId(m.id)}
                                       aria-label="Add responsible member"
                                     >
                                       <UserPlus className="size-3" />
-                                      <span className="text-xs">Add</span>
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+                                      onClick={() => openEdit(m)}
+                                      aria-label="Edit milestone"
+                                    >
+                                      <Pencil className="size-3" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+                                      onClick={() => onDelete(m.id)}
+                                    >
+                                      <Trash2 className="size-3" />
                                     </Button>
                                   </div>
                                 </li>

@@ -77,7 +77,7 @@ export function MemberSelectCombobox({
   return (
     <div className={cn("space-y-2", className)}>
       {label && <Label>{label}</Label>}
-      <Popover open={open} onOpenChange={setOpen}>
+      <Popover open={open} onOpenChange={setOpen} modal={false}>
         <PopoverTrigger asChild>
           <div className="relative flex w-full">
             <Input
@@ -98,7 +98,10 @@ export function MemberSelectCombobox({
           align="start"
           onOpenAutoFocus={(e) => e.preventDefault()}
         >
-          <div className="max-h-[200px] overflow-y-auto p-1">
+          <div
+            className="max-h-[200px] overflow-y-auto overscroll-contain p-1"
+            onWheel={(e) => e.stopPropagation()}
+          >
             {filteredMembers.length === 0 ? (
               <div className="px-2 py-4 text-center text-sm text-muted-foreground">
                 {availableMembers.length === 0
