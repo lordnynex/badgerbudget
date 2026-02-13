@@ -40,7 +40,8 @@ export function EventDetailPage() {
 
   const refresh = async () => {
     if (!id) return;
-    setLoading(true);
+    const isInitialLoad = !event || event.id !== id;
+    if (isInitialLoad) setLoading(true);
     try {
       const e = await api.events.get(id);
       setEvent(e ?? null);
@@ -61,7 +62,7 @@ export function EventDetailPage() {
         setEditPlanningNotes(e.planning_notes ?? "");
       }
     } finally {
-      setLoading(false);
+      if (isInitialLoad) setLoading(false);
     }
   };
 
