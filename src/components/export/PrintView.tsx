@@ -478,7 +478,7 @@ export function PrintView({ state, metrics }: PrintViewProps) {
               return a.staffPrice - b.staffPrice;
             });
           const showCharts = tableMetrics.length > 1 && tableMetrics.length <= 12;
-          const chartLabels = tableMetrics.map((m) => m.scenarioKey);
+          const chartLabels = tableMetrics.map((m) => `$${m.ticketPrice}/$${m.staffPrice}`);
           return (
             <div key={pct} className="mb-8 break-inside-avoid">
               <h3 className="mb-2 text-base font-semibold">{pct}% Attendance</h3>
@@ -562,7 +562,7 @@ export function PrintView({ state, metrics }: PrintViewProps) {
                 <div className="mt-4 grid grid-cols-2 gap-4 print:grid-cols-2">
                   <div>
                     <h4 className="mb-1 text-xs font-medium">ROI</h4>
-                    <div className="h-[160px]">
+                    <div className="h-[200px]">
                       <Chart
                         options={{
                           chart: { type: "bar", fontFamily: "inherit", background: "#fff" },
@@ -570,19 +570,19 @@ export function PrintView({ state, metrics }: PrintViewProps) {
                           colors: ["#22c55e"],
                           plotOptions: { bar: { horizontal: false, columnWidth: "60%", borderRadius: 4 } },
                           dataLabels: { enabled: false },
-                          xaxis: { categories: chartLabels, labels: { rotate: -45 } },
+                          xaxis: { categories: chartLabels, labels: { rotate: -45, style: { fontSize: "9px" } } },
                           yaxis: { labels: { formatter: (v: number) => `${(v * 100).toFixed(0)}%` } },
                           legend: { show: false },
                         }}
                         series={[{ name: "ROI", data: tableMetrics.map((m) => Math.round(m.roi * 100) / 100) }]}
                         type="bar"
-                        height={150}
+                        height={180}
                       />
                     </div>
                   </div>
                   <div>
                     <h4 className="mb-1 text-xs font-medium">Net Revenue</h4>
-                    <div className="h-[160px]">
+                    <div className="h-[200px]">
                       <Chart
                         options={{
                           chart: { type: "bar", fontFamily: "inherit", background: "#fff" },
@@ -590,7 +590,7 @@ export function PrintView({ state, metrics }: PrintViewProps) {
                           colors: tableMetrics.map((m) => (m.profit >= 0 ? "#22c55e" : "#ef4444")),
                           plotOptions: { bar: { horizontal: false, columnWidth: "60%", borderRadius: 4, distributed: true } },
                           dataLabels: { enabled: true, formatter: (v: number) => `$${Number(v).toLocaleString()}` },
-                          xaxis: { categories: chartLabels, labels: { rotate: -45 } },
+                          xaxis: { categories: chartLabels, labels: { rotate: -45, style: { fontSize: "9px" } } },
                           legend: { show: false },
                           ...(typeof state.inputs.profitTarget === "number" && state.inputs.profitTarget > 0 && {
                             annotations: {
@@ -600,13 +600,13 @@ export function PrintView({ state, metrics }: PrintViewProps) {
                         }}
                         series={[{ name: "Profit", data: tableMetrics.map((m) => m.profit) }]}
                         type="bar"
-                        height={150}
+                        height={180}
                       />
                     </div>
                   </div>
                   <div>
                     <h4 className="mb-1 text-xs font-medium">Gross Revenue</h4>
-                    <div className="h-[160px]">
+                    <div className="h-[200px]">
                       <Chart
                         options={{
                           chart: { type: "bar", fontFamily: "inherit", background: "#fff" },
@@ -614,18 +614,18 @@ export function PrintView({ state, metrics }: PrintViewProps) {
                           colors: ["#3b82f6"],
                           plotOptions: { bar: { horizontal: false, columnWidth: "60%", borderRadius: 4 } },
                           dataLabels: { enabled: true, formatter: (v: number) => `$${(Number(v) / 1000).toFixed(0)}k` },
-                          xaxis: { categories: chartLabels, labels: { rotate: -45 } },
+                          xaxis: { categories: chartLabels, labels: { rotate: -45, style: { fontSize: "9px" } } },
                           legend: { show: false },
                         }}
                         series={[{ name: "Revenue", data: tableMetrics.map((m) => m.revenue) }]}
                         type="bar"
-                        height={150}
+                        height={180}
                       />
                     </div>
                   </div>
                   <div>
                     <h4 className="mb-1 text-xs font-medium">Profit Margin</h4>
-                    <div className="h-[160px]">
+                    <div className="h-[200px]">
                       <Chart
                         options={{
                           chart: { type: "bar", fontFamily: "inherit", background: "#fff" },
@@ -633,19 +633,19 @@ export function PrintView({ state, metrics }: PrintViewProps) {
                           colors: tableMetrics.map((m) => (m.profitMargin >= 0 ? "#22c55e" : "#ef4444")),
                           plotOptions: { bar: { horizontal: false, columnWidth: "60%", borderRadius: 4, distributed: true } },
                           dataLabels: { enabled: true, formatter: (v: number) => `${Number(v).toFixed(1)}%` },
-                          xaxis: { categories: chartLabels, labels: { rotate: -45 } },
+                          xaxis: { categories: chartLabels, labels: { rotate: -45, style: { fontSize: "9px" } } },
                           yaxis: { labels: { formatter: (v: number) => `${Number(v).toFixed(0)}%` } },
                           legend: { show: false },
                         }}
                         series={[{ name: "Profit Margin", data: tableMetrics.map((m) => Math.round(m.profitMargin * 10) / 10) }]}
                         type="bar"
-                        height={150}
+                        height={180}
                       />
                     </div>
                   </div>
                   <div>
                     <h4 className="mb-1 text-xs font-medium">Profit per Attendee</h4>
-                    <div className="h-[160px]">
+                    <div className="h-[200px]">
                       <Chart
                         options={{
                           chart: { type: "bar", fontFamily: "inherit", background: "#fff" },
@@ -653,18 +653,18 @@ export function PrintView({ state, metrics }: PrintViewProps) {
                           colors: tableMetrics.map((m) => (m.profitPerAttendee >= 0 ? "#22c55e" : "#ef4444")),
                           plotOptions: { bar: { horizontal: false, columnWidth: "60%", borderRadius: 4, distributed: true } },
                           dataLabels: { enabled: true, formatter: (v: number) => `$${Number(v).toLocaleString()}` },
-                          xaxis: { categories: chartLabels, labels: { rotate: -45 } },
+                          xaxis: { categories: chartLabels, labels: { rotate: -45, style: { fontSize: "9px" } } },
                           legend: { show: false },
                         }}
                         series={[{ name: "Profit/Attendee", data: tableMetrics.map((m) => Math.round(m.profitPerAttendee * 100) / 100) }]}
                         type="bar"
-                        height={150}
+                        height={180}
                       />
                     </div>
                   </div>
                   <div>
                     <h4 className="mb-1 text-xs font-medium">Cost Coverage</h4>
-                    <div className="h-[160px]">
+                    <div className="h-[200px]">
                       <Chart
                         options={{
                           chart: { type: "bar", fontFamily: "inherit", background: "#fff" },
@@ -672,14 +672,14 @@ export function PrintView({ state, metrics }: PrintViewProps) {
                           colors: tableMetrics.map((m) => (m.costCoverageRatio >= 1 ? "#22c55e" : "#ef4444")),
                           plotOptions: { bar: { horizontal: false, columnWidth: "60%", borderRadius: 4, distributed: true } },
                           dataLabels: { enabled: true, formatter: (v: number) => `${Number(v).toFixed(2)}×` },
-                          xaxis: { categories: chartLabels, labels: { rotate: -45 } },
+                          xaxis: { categories: chartLabels, labels: { rotate: -45, style: { fontSize: "9px" } } },
                           yaxis: { labels: { formatter: (v: number) => `${Number(v).toFixed(1)}×` } },
                           legend: { show: false },
                           annotations: { yaxis: [{ y: 1, borderColor: "#a78bfa", strokeDashArray: 4 }] },
                         }}
                         series={[{ name: "Cost Coverage", data: tableMetrics.map((m) => Math.round(m.costCoverageRatio * 100) / 100) }]}
                         type="bar"
-                        height={150}
+                        height={180}
                       />
                     </div>
                   </div>

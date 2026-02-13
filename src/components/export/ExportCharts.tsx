@@ -287,7 +287,7 @@ export function ExportCharts({
         });
         const showCharts = tableMetrics.length > 1 && tableMetrics.length <= 12;
         if (!showCharts) return null;
-        const chartLabels = tableMetrics.map((m) => m.scenarioKey);
+        const chartLabels = tableMetrics.map((m) => `$${m.ticketPrice}/$${m.staffPrice}`);
         const baseChartOpts = {
           fontFamily: "inherit" as const,
           background: "#fff",
@@ -304,8 +304,8 @@ export function ExportCharts({
                   colors: ["#22c55e"],
                   plotOptions: { bar: { horizontal: false, columnWidth: "60%", borderRadius: 4 } },
                   dataLabels: { enabled: false },
-                  xaxis: { categories: chartLabels, labels: { rotate: -45, style: { fontSize: "10px" } } },
-                  yaxis: { labels: { formatter: (v: number) => `${(v * 100).toFixed(0)}%`, style: { fontSize: "10px" } } },
+                  xaxis: { categories: chartLabels, labels: { rotate: -45, style: { fontSize: "9px" } } },
+                  yaxis: { labels: { formatter: (v: number) => `${(v * 100).toFixed(0)}%` } },
                   legend: { show: false },
                 }}
                 series={[{ name: "ROI", data: tableMetrics.map((m) => Math.round(m.roi * 100) / 100) }]}
@@ -322,7 +322,7 @@ export function ExportCharts({
                   colors: tableMetrics.map((m) => (m.profit >= 0 ? "#22c55e" : "#ef4444")),
                   plotOptions: { bar: { horizontal: false, columnWidth: "60%", borderRadius: 4, distributed: true } },
                   dataLabels: { enabled: true, formatter: (v: number) => `$${Number(v).toLocaleString()}` },
-                  xaxis: { categories: chartLabels, labels: { rotate: -45, style: { fontSize: "10px" } } },
+                  xaxis: { categories: chartLabels, labels: { rotate: -45, style: { fontSize: "9px" } } },
                   legend: { show: false },
                 }}
                 series={[{ name: "Profit", data: tableMetrics.map((m) => m.profit) }]}
@@ -339,7 +339,7 @@ export function ExportCharts({
                   colors: ["#3b82f6"],
                   plotOptions: { bar: { horizontal: false, columnWidth: "60%", borderRadius: 4 } },
                   dataLabels: { enabled: true, formatter: (v: number) => `$${(Number(v) / 1000).toFixed(0)}k` },
-                  xaxis: { categories: chartLabels, labels: { rotate: -45, style: { fontSize: "10px" } } },
+                  xaxis: { categories: chartLabels, labels: { rotate: -45, style: { fontSize: "9px" } } },
                   legend: { show: false },
                 }}
                 series={[{ name: "Revenue", data: tableMetrics.map((m) => m.revenue) }]}
@@ -356,7 +356,7 @@ export function ExportCharts({
                   colors: tableMetrics.map((m) => (m.profitMargin >= 0 ? "#22c55e" : "#ef4444")),
                   plotOptions: { bar: { horizontal: false, columnWidth: "60%", borderRadius: 4, distributed: true } },
                   dataLabels: { enabled: true, formatter: (v: number) => `${Number(v).toFixed(1)}%` },
-                  xaxis: { categories: chartLabels, labels: { rotate: -45, style: { fontSize: "10px" } } },
+                  xaxis: { categories: chartLabels, labels: { rotate: -45, style: { fontSize: "9px" } } },
                   yaxis: { labels: { formatter: (v: number) => `${Number(v).toFixed(0)}%` } },
                   legend: { show: false },
                 }}
@@ -374,7 +374,7 @@ export function ExportCharts({
                   colors: tableMetrics.map((m) => (m.profitPerAttendee >= 0 ? "#22c55e" : "#ef4444")),
                   plotOptions: { bar: { horizontal: false, columnWidth: "60%", borderRadius: 4, distributed: true } },
                   dataLabels: { enabled: true, formatter: (v: number) => `$${Number(v).toLocaleString()}` },
-                  xaxis: { categories: chartLabels, labels: { rotate: -45, style: { fontSize: "10px" } } },
+                  xaxis: { categories: chartLabels, labels: { rotate: -45, style: { fontSize: "9px" } } },
                   legend: { show: false },
                 }}
                 series={[{ name: "Profit/Attendee", data: tableMetrics.map((m) => Math.round(m.profitPerAttendee * 100) / 100) }]}
@@ -391,7 +391,7 @@ export function ExportCharts({
                   colors: tableMetrics.map((m) => (m.costCoverageRatio >= 1 ? "#22c55e" : "#ef4444")),
                   plotOptions: { bar: { horizontal: false, columnWidth: "60%", borderRadius: 4, distributed: true } },
                   dataLabels: { enabled: true, formatter: (v: number) => `${Number(v).toFixed(2)}×` },
-                  xaxis: { categories: chartLabels, labels: { rotate: -45, style: { fontSize: "10px" } } },
+                  xaxis: { categories: chartLabels, labels: { rotate: -45, style: { fontSize: "9px" } } },
                   yaxis: { labels: { formatter: (v: number) => `${Number(v).toFixed(1)}×` } },
                   legend: { show: false },
                 }}
