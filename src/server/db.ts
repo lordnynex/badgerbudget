@@ -17,6 +17,56 @@ function hasColumn(db: Database, table: string, col: string): boolean {
   return rows.length > 0;
 }
 
+function migratePackingToCategories(database: Database) {
+  const items = database.query("SELECT * FROM event_packing_items").all() as Array<{
+    id: string;
+    event_id: string;
+    category: string;
+    name: string;
+    sort_order: number;
+  }>;
+  database.run(`
+    CREATE TABLE event_packing_items_new (
+      id TEXT PRIMARY KEY,
+      event_id TEXT NOT NULL,
+      category_id TEXT NOT NULL,
+      name TEXT NOT NULL,
+      sort_order INTEGER DEFAULT 0,
+      quantity INTEGER,
+      note TEXT,
+      loaded INTEGER DEFAULT 0,
+      FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE,
+      FOREIGN KEY (category_id) REFERENCES event_packing_categories(id) ON DELETE CASCADE
+    )
+  `);
+  const eventCategories = new Map<string, Map<string, string>>();
+  for (const item of items) {
+    let catMap = eventCategories.get(item.event_id);
+    if (!catMap) {
+      catMap = new Map();
+      eventCategories.set(item.event_id, catMap);
+    }
+    if (!catMap.has(item.category)) {
+      const catId = crypto.randomUUID();
+      catMap.set(item.category, catId);
+      const order = catMap.size - 1;
+      database.run(
+        "INSERT INTO event_packing_categories (id, event_id, name, sort_order) VALUES (?, ?, ?, ?)",
+        [catId, item.event_id, item.category, order]
+      );
+    }
+  }
+  for (const item of items) {
+    const catId = eventCategories.get(item.event_id)!.get(item.category)!;
+    database.run(
+      "INSERT INTO event_packing_items_new (id, event_id, category_id, name, sort_order, quantity, note, loaded) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+      [item.id, item.event_id, catId, item.name, item.sort_order ?? 0, null, null, 0]
+    );
+  }
+  database.run("DROP TABLE event_packing_items");
+  database.run("ALTER TABLE event_packing_items_new RENAME TO event_packing_items");
+}
+
 function initSchema(database: Database) {
   database.run(`
     CREATE TABLE IF NOT EXISTS events (
@@ -75,15 +125,33 @@ function initSchema(database: Database) {
     }
   }
   database.run(`
-    CREATE TABLE IF NOT EXISTS event_packing_items (
+    CREATE TABLE IF NOT EXISTS event_packing_categories (
       id TEXT PRIMARY KEY,
       event_id TEXT NOT NULL,
-      category TEXT NOT NULL,
       name TEXT NOT NULL,
       sort_order INTEGER DEFAULT 0,
       FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE
     )
   `);
+  const hasOldPackingSchema = hasColumn(database, "event_packing_items", "category");
+  if (hasOldPackingSchema) {
+    migratePackingToCategories(database);
+  } else {
+    database.run(`
+      CREATE TABLE IF NOT EXISTS event_packing_items (
+        id TEXT PRIMARY KEY,
+        event_id TEXT NOT NULL,
+        category_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        sort_order INTEGER DEFAULT 0,
+        quantity INTEGER,
+        note TEXT,
+        loaded INTEGER DEFAULT 0,
+        FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE,
+        FOREIGN KEY (category_id) REFERENCES event_packing_categories(id) ON DELETE CASCADE
+      )
+    `);
+  }
   database.run(`
     CREATE TABLE IF NOT EXISTS event_volunteers (
       id TEXT PRIMARY KEY,

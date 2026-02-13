@@ -3,16 +3,6 @@ export const MONTHS = [
   "July", "August", "September", "October", "November", "December",
 ];
 
-export const LOAD_OUT_PACKING_CATEGORIES = [
-  "Tools & Equipment",
-  "Safety",
-  "Cables & Power",
-  "Documents",
-  "Food & Beverage",
-  "Office Supplies",
-  "Miscellaneous",
-];
-
 export function formatDueDate(d: string) {
   const [y, mo, day] = d.split("-");
   return `${MONTHS[parseInt(mo ?? "1", 10) - 1] ?? mo} ${day}, ${y}`;

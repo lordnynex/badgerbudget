@@ -1,65 +1,90 @@
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { ChevronDown, Package, Plus, Trash2 } from "lucide-react";
-import { LOAD_OUT_PACKING_CATEGORIES } from "./eventUtils";
-import type { Event, EventPackingItem } from "@/types/budget";
+import { ChevronDown, Package, Plus, FolderPlus } from "lucide-react";
+import { PackingCategorySection } from "./PackingCategorySection";
+import { AddPackingCategoryDialog } from "./AddPackingCategoryDialog";
+import { AddEditPackingItemDialog } from "./AddEditPackingItemDialog";
+import type { Event, EventPackingCategory, EventPackingItem } from "@/types/budget";
 
 interface EventPackingCardProps {
   event: Event;
-  packingByCategory: Record<string, EventPackingItem[]>;
-  packingCategories: string[];
-  onUpdateCategory: (pid: string, category: string) => Promise<void>;
-  onDelete: (pid: string) => Promise<void>;
-  onAdd: (payload: { category: string; name: string }) => Promise<void>;
+  onAddCategory: (name: string) => Promise<void>;
+  onAddItem: (payload: {
+    category_id: string;
+    name: string;
+    quantity?: number;
+    note?: string;
+  }) => Promise<void>;
+  onEditItem: (
+    pid: string,
+    payload: { category_id?: string; name?: string; quantity?: number; note?: string }
+  ) => Promise<void>;
+  onToggleLoaded: (pid: string, loaded: boolean) => Promise<void>;
+  onDeleteItem: (pid: string) => Promise<void>;
 }
 
 export function EventPackingCard({
   event,
-  packingByCategory,
-  packingCategories,
-  onUpdateCategory,
-  onDelete,
-  onAdd,
+  onAddCategory,
+  onAddItem,
+  onEditItem,
+  onToggleLoaded,
+  onDeleteItem,
 }: EventPackingCardProps) {
-  const [open, setOpen] = useState(false);
-  const [packingCategory, setPackingCategory] = useState(LOAD_OUT_PACKING_CATEGORIES[0]);
-  const [packingName, setPackingName] = useState("");
+  const [addCategoryOpen, setAddCategoryOpen] = useState(false);
+  const [addEditItemOpen, setAddEditItemOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<EventPackingItem | null>(null);
 
-  const handleAdd = async () => {
-    if (!packingName.trim()) return;
-    await onAdd({ category: packingCategory, name: packingName.trim() });
-    setPackingName("");
-    setOpen(false);
+  const categories = event.packingCategories ?? [];
+  const items = event.packingItems ?? [];
+
+  const itemsByCategory = categories.reduce(
+    (acc, cat) => {
+      acc[cat.id] = items
+        .filter((i) => i.category_id === cat.id)
+        .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+      return acc;
+    },
+    {} as Record<string, EventPackingItem[]>
+  );
+
+  const hasCategories = categories.length > 0;
+  const hasItems = items.length > 0;
+
+  const openAddItem = () => {
+    setEditingItem(null);
+    setAddEditItemOpen(true);
   };
 
-  const hasItems = Object.keys(packingByCategory).length > 0;
+  const openEditItem = (item: EventPackingItem) => {
+    setEditingItem(item);
+    setAddEditItemOpen(true);
+  };
+
+  const handleSubmitItem = async (payload: {
+    category_id: string;
+    name: string;
+    quantity?: number;
+    note?: string;
+  }) => {
+    if (editingItem) {
+      await onEditItem(editingItem.id, payload);
+    } else {
+      await onAddItem(payload);
+    }
+    setEditingItem(null);
+  };
 
   return (
     <>
       <Card id="packing" className="scroll-mt-28">
         <Collapsible defaultOpen className="group/collapsible">
           <CardHeader>
-            <CollapsibleTrigger className="flex w-full items-center justify-between text-left hover:bg-muted/50 -m-4 p-4 rounded-lg transition-colors">
+            <CollapsibleTrigger className="-m-4 flex w-full items-center justify-between rounded-lg p-4 text-left transition-colors hover:bg-muted/50">
               <div>
-                <CardTitle className="text-lg flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2 text-lg">
                   <Package className="size-4" />
                   Load Out Packing List
                 </CardTitle>
@@ -70,88 +95,75 @@ export function EventPackingCard({
           </CardHeader>
           <CollapsibleContent>
             <CardContent className="space-y-4">
-              {!hasItems ? (
-                <p className="text-muted-foreground text-sm">No packing items yet.</p>
+              {!hasCategories ? (
+                <div className="space-y-2">
+                  <p className="text-muted-foreground text-sm">
+                    No categories yet. Create a category to organize your packing items.
+                  </p>
+                  <Button variant="outline" size="sm" onClick={() => setAddCategoryOpen(true)}>
+                    <FolderPlus className="size-4" />
+                    Add Category
+                  </Button>
+                </div>
+              ) : !hasItems ? (
+                <div className="space-y-2">
+                  <p className="text-muted-foreground text-sm">No packing items yet.</p>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={() => setAddCategoryOpen(true)}>
+                      <FolderPlus className="size-4" />
+                      Add Category
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={openAddItem}>
+                      <Plus className="size-4" />
+                      Add Item
+                    </Button>
+                  </div>
+                </div>
               ) : (
                 <div className="space-y-4">
-                  {Object.entries(packingByCategory).map(([cat, items]) => (
-                    <div key={cat}>
-                      <h4 className="font-medium text-sm text-muted-foreground mb-2">{cat}</h4>
-                      <ul className="space-y-1">
-                        {items.map((item) => (
-                          <li
-                            key={item.id}
-                            className="flex items-center justify-between gap-2 rounded border px-3 py-2"
-                          >
-                            <span className="flex-1 min-w-0 truncate">{item.name}</span>
-                            <Select
-                              value={packingCategories.includes(item.category) ? item.category : "Miscellaneous"}
-                              onValueChange={(v) => onUpdateCategory(item.id, v)}
-                            >
-                              <SelectTrigger className="h-8 w-[140px] text-xs shrink-0">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {packingCategories.map((c) => (
-                                  <SelectItem key={c} value={c}>{c}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="text-destructive hover:text-destructive shrink-0"
-                              onClick={() => onDelete(item.id)}
-                            >
-                              <Trash2 className="size-4" />
-                            </Button>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
+                  {categories.map((cat) => (
+                    <PackingCategorySection
+                      key={cat.id}
+                      category={cat}
+                      items={itemsByCategory[cat.id] ?? []}
+                      onToggleLoaded={onToggleLoaded}
+                      onEditItem={openEditItem}
+                      onDeleteItem={onDeleteItem}
+                    />
                   ))}
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={() => setAddCategoryOpen(true)}>
+                      <FolderPlus className="size-4" />
+                      Add Category
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={openAddItem}>
+                      <Plus className="size-4" />
+                      Add Item
+                    </Button>
+                  </div>
                 </div>
               )}
-              <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
-                <Plus className="size-4" />
-                Add Item
-              </Button>
             </CardContent>
           </CollapsibleContent>
         </Collapsible>
       </Card>
 
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Add Packing Item</DialogTitle>
-            <CardDescription>Add an item to the load out list</CardDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Category</Label>
-              <Select value={packingCategory} onValueChange={setPackingCategory}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {LOAD_OUT_PACKING_CATEGORIES.map((c) => (
-                    <SelectItem key={c} value={c}>{c}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Item Name</Label>
-              <Input value={packingName} onChange={(e) => setPackingName(e.target.value)} placeholder="e.g. Extension cords" />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button onClick={handleAdd}>Add</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <AddPackingCategoryDialog
+        open={addCategoryOpen}
+        onOpenChange={setAddCategoryOpen}
+        onSubmit={onAddCategory}
+      />
+
+      <AddEditPackingItemDialog
+        open={addEditItemOpen}
+        onOpenChange={(o) => {
+          setAddEditItemOpen(o);
+          if (!o) setEditingItem(null);
+        }}
+        categories={categories}
+        item={editingItem}
+        onSubmit={handleSubmitItem}
+      />
     </>
   );
 }

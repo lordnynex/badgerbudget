@@ -102,11 +102,37 @@ export async function handleApiRequest(req: Request): Promise<Response | null> {
     }
   }
 
+  // /api/events/:id/packing-categories
+  const eventPackingCategoriesMatch = path.match(/^\/api\/events\/([^/]+)\/packing-categories$/);
+  if (eventPackingCategoriesMatch && method === "POST") {
+    const eventId = eventPackingCategoriesMatch[1]!;
+    const body = await jsonBody<{ name: string }>(req);
+    const created = await api.events.packingCategories.create(eventId, body);
+    return json(created);
+  }
+
+  // /api/events/:id/packing-categories/:cid
+  const eventPackingCategoryMatch = path.match(/^\/api\/events\/([^/]+)\/packing-categories\/([^/]+)$/);
+  if (eventPackingCategoryMatch) {
+    const eventId = eventPackingCategoryMatch[1]!;
+    const cid = eventPackingCategoryMatch[2]!;
+    if (method === "PUT") {
+      const body = await jsonBody<{ name?: string }>(req);
+      const updated = await api.events.packingCategories.update(eventId, cid, body);
+      if (!updated) return notFound();
+      return json(updated);
+    }
+    if (method === "DELETE") {
+      await api.events.packingCategories.delete(eventId, cid);
+      return json({ ok: true });
+    }
+  }
+
   // /api/events/:id/packing-items
   const eventPackingMatch = path.match(/^\/api\/events\/([^/]+)\/packing-items$/);
   if (eventPackingMatch && method === "POST") {
     const eventId = eventPackingMatch[1]!;
-    const body = await jsonBody<{ category: string; name: string }>(req);
+    const body = await jsonBody<{ category_id: string; name: string; quantity?: number; note?: string }>(req);
     const created = await api.events.packingItems.create(eventId, body);
     return json(created);
   }
@@ -117,7 +143,7 @@ export async function handleApiRequest(req: Request): Promise<Response | null> {
     const eventId = eventPackingItemMatch[1]!;
     const pid = eventPackingItemMatch[2]!;
     if (method === "PUT") {
-      const body = await jsonBody<{ category?: string; name?: string }>(req);
+      const body = await jsonBody<{ category_id?: string; name?: string; quantity?: number; note?: string; loaded?: boolean }>(req);
       const updated = await api.events.packingItems.update(eventId, pid, body);
       if (!updated) return notFound();
       return json(updated);

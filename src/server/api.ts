@@ -82,8 +82,11 @@ export const api = {
       const milestones = db
         .query("SELECT * FROM event_planning_milestones WHERE event_id = ? ORDER BY year, month, sort_order")
         .all(id) as Array<Record<string, unknown>>;
+      const packingCategories = db
+        .query("SELECT * FROM event_packing_categories WHERE event_id = ? ORDER BY sort_order, name")
+        .all(id) as Array<Record<string, unknown>>;
       const packing = db
-        .query("SELECT * FROM event_packing_items WHERE event_id = ? ORDER BY category, sort_order, name")
+        .query("SELECT * FROM event_packing_items WHERE event_id = ? ORDER BY category_id, sort_order, name")
         .all(id) as Array<Record<string, unknown>>;
       const volunteers = db
         .query("SELECT * FROM event_volunteers WHERE event_id = ? ORDER BY department, sort_order, name")
@@ -117,12 +120,21 @@ export const api = {
             due_date: (m.due_date as string | null) ?? defaultDueDate,
           };
         }),
+        packingCategories: packingCategories.map((c) => ({
+          id: c.id,
+          event_id: c.event_id,
+          name: c.name,
+          sort_order: c.sort_order ?? 0,
+        })),
         packingItems: packing.map((p) => ({
           id: p.id,
           event_id: p.event_id,
-          category: p.category,
+          category_id: p.category_id,
           name: p.name,
           sort_order: p.sort_order ?? 0,
+          quantity: p.quantity != null ? Number(p.quantity) : null,
+          note: (p.note as string | null) ?? null,
+          loaded: p.loaded === 1,
         })),
         volunteers: volunteers.map((v) => ({
           id: v.id,
@@ -218,6 +230,7 @@ export const api = {
       const db = getDb();
       db.run("DELETE FROM event_planning_milestones WHERE event_id = ?", [id]);
       db.run("DELETE FROM event_packing_items WHERE event_id = ?", [id]);
+      db.run("DELETE FROM event_packing_categories WHERE event_id = ?", [id]);
       db.run("DELETE FROM event_volunteers WHERE event_id = ?", [id]);
       db.run("DELETE FROM events WHERE id = ?", [id]);
       return { ok: true };
@@ -254,26 +267,55 @@ export const api = {
         return { ok: true };
       },
     },
-    packingItems: {
-      create: async (eventId: string, body: { category: string; name: string }) => {
+    packingCategories: {
+      create: async (eventId: string, body: { name: string }) => {
         const db = getDb();
         const id = uuid();
-        const maxOrder = db.query("SELECT COALESCE(MAX(sort_order), 0) as m FROM event_packing_items WHERE event_id = ? AND category = ?").get(eventId, body.category) as { m: number };
+        const maxOrder = db.query("SELECT COALESCE(MAX(sort_order), 0) as m FROM event_packing_categories WHERE event_id = ?").get(eventId) as { m: number };
         db.run(
-          "INSERT INTO event_packing_items (id, event_id, category, name, sort_order) VALUES (?, ?, ?, ?, ?)",
-          [id, eventId, body.category, body.name, (maxOrder?.m ?? 0) + 1]
+          "INSERT INTO event_packing_categories (id, event_id, name, sort_order) VALUES (?, ?, ?, ?)",
+          [id, eventId, body.name, (maxOrder?.m ?? 0) + 1]
         );
-        return { id, event_id: eventId, ...body, sort_order: (maxOrder?.m ?? 0) + 1 };
+        return { id, event_id: eventId, name: body.name, sort_order: (maxOrder?.m ?? 0) + 1 };
       },
-      update: async (eventId: string, pid: string, body: { category?: string; name?: string }) => {
+      update: async (eventId: string, cid: string, body: { name?: string }) => {
+        const db = getDb();
+        const existing = db.query("SELECT * FROM event_packing_categories WHERE id = ? AND event_id = ?").get(cid, eventId);
+        if (!existing) return null;
+        const row = existing as Record<string, unknown>;
+        const name = body.name ?? (row.name as string);
+        db.run("UPDATE event_packing_categories SET name = ? WHERE id = ? AND event_id = ?", [name, cid, eventId]);
+        return { id: cid, event_id: eventId, name, sort_order: row.sort_order };
+      },
+      delete: async (eventId: string, cid: string) => {
+        const db = getDb();
+        db.run("DELETE FROM event_packing_categories WHERE id = ? AND event_id = ?", [cid, eventId]);
+        return { ok: true };
+      },
+    },
+    packingItems: {
+      create: async (eventId: string, body: { category_id: string; name: string; quantity?: number; note?: string }) => {
+        const db = getDb();
+        const id = uuid();
+        const maxOrder = db.query("SELECT COALESCE(MAX(sort_order), 0) as m FROM event_packing_items WHERE event_id = ? AND category_id = ?").get(eventId, body.category_id) as { m: number };
+        db.run(
+          "INSERT INTO event_packing_items (id, event_id, category_id, name, sort_order, quantity, note, loaded) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+          [id, eventId, body.category_id, body.name, (maxOrder?.m ?? 0) + 1, body.quantity ?? null, body.note ?? null, 0]
+        );
+        return { id, event_id: eventId, category_id: body.category_id, name: body.name, sort_order: (maxOrder?.m ?? 0) + 1, quantity: body.quantity ?? null, note: body.note ?? null, loaded: false };
+      },
+      update: async (eventId: string, pid: string, body: { category_id?: string; name?: string; quantity?: number; note?: string; loaded?: boolean }) => {
         const db = getDb();
         const existing = db.query("SELECT * FROM event_packing_items WHERE id = ? AND event_id = ?").get(pid, eventId);
         if (!existing) return null;
         const row = existing as Record<string, unknown>;
-        const category = body.category ?? (row.category as string);
+        const category_id = body.category_id ?? (row.category_id as string);
         const name = body.name ?? (row.name as string);
-        db.run("UPDATE event_packing_items SET category = ?, name = ? WHERE id = ? AND event_id = ?", [category, name, pid, eventId]);
-        return { id: pid, event_id: eventId, category, name, sort_order: row.sort_order };
+        const quantity = body.quantity !== undefined ? body.quantity : (row.quantity != null ? Number(row.quantity) : null);
+        const note = body.note !== undefined ? body.note : (row.note as string | null);
+        const loaded = body.loaded !== undefined ? (body.loaded ? 1 : 0) : (row.loaded as number);
+        db.run("UPDATE event_packing_items SET category_id = ?, name = ?, quantity = ?, note = ?, loaded = ? WHERE id = ? AND event_id = ?", [category_id, name, quantity, note, loaded, pid, eventId]);
+        return { id: pid, event_id: eventId, category_id, name, sort_order: row.sort_order, quantity, note, loaded: loaded === 1 };
       },
       delete: async (eventId: string, pid: string) => {
         const db = getDb();

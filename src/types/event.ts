@@ -9,12 +9,22 @@ export interface EventPlanningMilestone {
   due_date: string;
 }
 
+export interface EventPackingCategory {
+  id: string;
+  event_id: string;
+  name: string;
+  sort_order: number;
+}
+
 export interface EventPackingItem {
   id: string;
   event_id: string;
-  category: string;
+  category_id: string;
   name: string;
   sort_order: number;
+  quantity?: number | null;
+  note?: string | null;
+  loaded?: boolean;
 }
 
 export interface EventVolunteer {
@@ -43,6 +53,7 @@ export interface Event {
   planning_notes: string | null;
   created_at?: string;
   milestones?: EventPlanningMilestone[];
+  packingCategories?: EventPackingCategory[];
   packingItems?: EventPackingItem[];
   volunteers?: EventVolunteer[];
 }

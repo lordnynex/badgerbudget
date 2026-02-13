@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { api } from "@/data/api";
 import { useAppState } from "@/state/AppState";
 import { extractEmbedUrlFromHtml, getMapEmbedUrl } from "@/lib/maps";
-import type { Event, EventPackingItem } from "@/types/budget";
+import type { Event } from "@/types/budget";
 import { EventDetailsCard } from "./EventDetailsCard";
 import { EventLocationCard } from "./EventLocationCard";
 import { EventMilestonesCard } from "./EventMilestonesCard";
@@ -12,7 +12,6 @@ import { EventPackingCard } from "./EventPackingCard";
 import { EventVolunteersCard } from "./EventVolunteersCard";
 import { EventNotesCard } from "./EventNotesCard";
 import { EditEventDialog } from "./EditEventDialog";
-import { LOAD_OUT_PACKING_CATEGORIES } from "./eventUtils";
 import { ArrowLeft, Pencil } from "lucide-react";
 
 export function EventDetailPage() {
@@ -124,21 +123,41 @@ export function EventDetailPage() {
     await refresh();
   };
 
-  const handleAddPacking = async (payload: { category: string; name: string }) => {
+  const handleAddPackingCategory = async (name: string) => {
+    if (!id) return;
+    await api.events.packingCategories.create(id, { name });
+    await refresh();
+  };
+
+  const handleAddPackingItem = async (payload: {
+    category_id: string;
+    name: string;
+    quantity?: number;
+    note?: string;
+  }) => {
     if (!id) return;
     await api.events.packingItems.create(id, payload);
     await refresh();
   };
 
-  const handleDeletePacking = async (pid: string) => {
+  const handleEditPackingItem = async (
+    pid: string,
+    payload: { category_id?: string; name?: string; quantity?: number; note?: string }
+  ) => {
     if (!id) return;
-    await api.events.packingItems.delete(id, pid);
+    await api.events.packingItems.update(id, pid, payload);
     await refresh();
   };
 
-  const handleUpdatePackingCategory = async (pid: string, category: string) => {
+  const handleTogglePackingLoaded = async (pid: string, loaded: boolean) => {
     if (!id) return;
-    await api.events.packingItems.update(id, pid, { category });
+    await api.events.packingItems.update(id, pid, { loaded });
+    await refresh();
+  };
+
+  const handleDeletePackingItem = async (pid: string) => {
+    if (!id) return;
+    await api.events.packingItems.delete(id, pid);
     await refresh();
   };
 
@@ -163,22 +182,6 @@ export function EventDetailPage() {
       </div>
     );
   }
-
-  const packingByCategory = (event.packingItems ?? []).reduce(
-    (acc, item) => {
-      (acc[item.category] ??= []).push(item);
-      return acc;
-    },
-    {} as Record<string, EventPackingItem[]>
-  );
-
-  const packingCategories = [
-    ...LOAD_OUT_PACKING_CATEGORIES,
-    ...(event.packingItems ?? [])
-      .map((p) => p.category)
-      .filter((c) => !LOAD_OUT_PACKING_CATEGORIES.includes(c))
-      .filter((c, i, arr) => arr.indexOf(c) === i),
-  ];
 
   const mapEmbedUrl = event.event_location_embed ?? getMapEmbedUrl(event.event_location);
   const budgetName = budgets.find((b) => b.id === event.budget_id)?.name;
@@ -222,11 +225,11 @@ export function EventDetailPage() {
 
       <EventPackingCard
         event={event}
-        packingByCategory={packingByCategory}
-        packingCategories={packingCategories}
-        onUpdateCategory={handleUpdatePackingCategory}
-        onDelete={handleDeletePacking}
-        onAdd={handleAddPacking}
+        onAddCategory={handleAddPackingCategory}
+        onAddItem={handleAddPackingItem}
+        onEditItem={handleEditPackingItem}
+        onToggleLoaded={handleTogglePackingLoaded}
+        onDeleteItem={handleDeletePackingItem}
       />
 
       <EventVolunteersCard
