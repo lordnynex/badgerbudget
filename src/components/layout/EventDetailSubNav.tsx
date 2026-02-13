@@ -1,3 +1,5 @@
+import { Button } from "@/components/ui/button";
+import { ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const SECTIONS = [
@@ -17,7 +19,7 @@ export function EventDetailSubNav({ className }: EventDetailSubNavProps) {
   return (
     <div
       className={cn(
-        "flex flex-wrap items-center gap-4 border-b bg-background/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/60",
+        "flex flex-wrap items-center justify-between gap-4 border-b bg-background/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/60",
         className
       )}
     >
@@ -35,6 +37,15 @@ export function EventDetailSubNav({ className }: EventDetailSubNavProps) {
           </a>
         ))}
       </nav>
+      <Button
+        variant="ghost"
+        size="icon"
+        className="shrink-0 text-muted-foreground hover:text-foreground"
+        onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+        aria-label="Scroll to top"
+      >
+        <ChevronUp className="size-4" />
+      </Button>
     </div>
   );
 }

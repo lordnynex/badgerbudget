@@ -5,7 +5,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAppState } from "@/state/AppState";
 import { ExportDropdown } from "./ExportDropdown";
@@ -94,9 +96,20 @@ export function ProjectionsSubNav({ className, onPrint, onEmail }: ProjectionsSu
           ))}
         </nav>
       </div>
-      {onPrint && onEmail && (
-        <ExportDropdown onPrint={onPrint} onEmail={onEmail} />
-      )}
+      <div className="flex shrink-0 items-center gap-2">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="text-muted-foreground hover:text-foreground"
+          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          aria-label="Scroll to top"
+        >
+          <ChevronUp className="size-4" />
+        </Button>
+        {onPrint && onEmail && (
+          <ExportDropdown onPrint={onPrint} onEmail={onEmail} />
+        )}
+      </div>
     </div>
   );
 }
