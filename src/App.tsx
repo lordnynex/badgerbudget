@@ -5,6 +5,8 @@ import { api } from "@/data/api";
 import { Header } from "@/components/layout/Header";
 import { Main } from "@/components/layout/Main";
 import { EventDetailPage } from "@/components/events/EventDetailPage";
+import { MembersPanel } from "@/components/members/MembersPanel";
+import { MemberDetailPage } from "@/components/members/MemberDetailPage";
 import { ProjectionsSubNav } from "@/components/layout/ProjectionsSubNav";
 import { EventDetailSubNav } from "@/components/layout/EventDetailSubNav";
 import { PrintView } from "@/components/export/PrintView";
@@ -96,6 +98,22 @@ function AppContent() {
             <Route
               path="/scenarios"
               element={<Main activeTab="scenarios" onPrint={onPrint} onEmail={onEmail} />}
+            />
+            <Route
+              path="/members"
+              element={
+                <main className="space-y-6 p-4 md:p-6">
+                  <MembersPanel />
+                </main>
+              }
+            />
+            <Route
+              path="/members/:id"
+              element={
+                <main className="space-y-6 p-4 md:p-6">
+                  <MemberDetailPage />
+                </main>
+              }
             />
             <Route path="/print" element={null} />
             <Route path="*" element={<Navigate to="/projections" replace />} />

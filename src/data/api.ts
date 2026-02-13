@@ -6,6 +6,7 @@ import type {
   EventPlanningMilestone,
   EventVolunteer,
   LineItem,
+  Member,
   Scenario,
   ScenarioSummary,
 } from "@/types/budget";
@@ -118,6 +119,16 @@ export const api = {
       fetchJson<{ ok: boolean }>(`/api/budgets/${budgetId}/line-items/${itemId}`, {
         method: "DELETE",
       }),
+  },
+
+  members: {
+    list: () => fetchJson<Member[]>("/api/members"),
+    get: (id: string) => fetchJson<Member | null>(`/api/members/${id}`),
+    create: (body: Partial<Member> & { name: string }) =>
+      fetchJson<Member>("/api/members", { method: "POST", body: JSON.stringify(body) }),
+    update: (id: string, body: Partial<Member>) =>
+      fetchJson<Member>(`/api/members/${id}`, { method: "PUT", body: JSON.stringify(body) }),
+    delete: (id: string) => fetchJson<{ ok: boolean }>(`/api/members/${id}`, { method: "DELETE" }),
   },
 
   scenarios: {

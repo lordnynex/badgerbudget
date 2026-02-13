@@ -21,6 +21,27 @@ function uuid(): string {
   return crypto.randomUUID();
 }
 
+const VALID_POSITIONS = new Set([
+  "President",
+  "Vice President",
+  "Road Captain",
+  "Treasurer",
+  "Recording Secretary",
+  "Correspondence Secretary",
+  "Member",
+]);
+
+function parsePhotoToBlob(photo: string): Buffer | null {
+  if (!photo || typeof photo !== "string") return null;
+  const base64 = photo.includes(",") ? photo.split(",")[1] : photo;
+  if (!base64) return null;
+  try {
+    return Buffer.from(base64, "base64");
+  } catch {
+    return null;
+  }
+}
+
 export function corsHeaders(): Record<string, string> {
   return {
     "Access-Control-Allow-Origin": "*",
@@ -406,6 +427,115 @@ export const api = {
     deleteLineItem: async (budgetId: string, itemId: string) => {
       const db = getDb();
       db.run("DELETE FROM line_items WHERE id = ? AND budget_id = ?", [itemId, budgetId]);
+      return { ok: true };
+    },
+  },
+  members: {
+    list: async () => {
+      const db = getDb();
+      const rows = db.query("SELECT * FROM members ORDER BY name").all() as Array<Record<string, unknown>>;
+      return rows.map((m) => ({
+        id: m.id,
+        name: m.name,
+        phone_number: m.phone_number ?? null,
+        email: m.email ?? null,
+        address: m.address ?? null,
+        birthday: m.birthday ?? null,
+        position: m.position ?? null,
+        emergency_contact_name: m.emergency_contact_name ?? null,
+        emergency_contact_phone: m.emergency_contact_phone ?? null,
+        photo: m.photo != null ? `data:image/jpeg;base64,${Buffer.from(m.photo as Uint8Array).toString("base64")}` : null,
+        created_at: m.created_at as string | undefined,
+      }));
+    },
+    get: async (id: string) => {
+      const db = getDb();
+      const row = db.query("SELECT * FROM members WHERE id = ?").get(id);
+      if (!row) return null;
+      const m = row as Record<string, unknown>;
+      return {
+        id: m.id,
+        name: m.name,
+        phone_number: m.phone_number ?? null,
+        email: m.email ?? null,
+        address: m.address ?? null,
+        birthday: m.birthday ?? null,
+        position: m.position ?? null,
+        emergency_contact_name: m.emergency_contact_name ?? null,
+        emergency_contact_phone: m.emergency_contact_phone ?? null,
+        photo: m.photo != null ? `data:image/jpeg;base64,${Buffer.from(m.photo as Uint8Array).toString("base64")}` : null,
+        created_at: m.created_at as string | undefined,
+      };
+    },
+    create: async (body: {
+      name: string;
+      phone_number?: string;
+      email?: string;
+      address?: string;
+      birthday?: string;
+      position?: string;
+      emergency_contact_name?: string;
+      emergency_contact_phone?: string;
+      photo?: string;
+    }) => {
+      const db = getDb();
+      const id = uuid();
+      const photoBlob = body.photo ? parsePhotoToBlob(body.photo) : null;
+      db.run(
+        `INSERT INTO members (id, name, phone_number, email, address, birthday, position, emergency_contact_name, emergency_contact_phone, photo) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          id,
+          body.name,
+          body.phone_number ?? null,
+          body.email ?? null,
+          body.address ?? null,
+          body.birthday ?? null,
+          VALID_POSITIONS.has(body.position ?? "") ? body.position : null,
+          body.emergency_contact_name ?? null,
+          body.emergency_contact_phone ?? null,
+          photoBlob,
+        ]
+      );
+      return api.members.get(id)!;
+    },
+    update: async (id: string, body: Partial<{
+      name: string;
+      phone_number: string;
+      email: string;
+      address: string;
+      birthday: string;
+      position: string;
+      emergency_contact_name: string;
+      emergency_contact_phone: string;
+      photo: string;
+    }>) => {
+      const db = getDb();
+      const existing = db.query("SELECT * FROM members WHERE id = ?").get(id);
+      if (!existing) return null;
+      const row = existing as Record<string, unknown>;
+      const get = (k: string, def: unknown) => (body[k as keyof typeof body] !== undefined ? body[k as keyof typeof body] : row[k] ?? def);
+      const name = get("name", row.name) as string;
+      const phone_number = get("phone_number", null) as string | null;
+      const email = get("email", null) as string | null;
+      const address = get("address", null) as string | null;
+      const birthday = get("birthday", null) as string | null;
+      const positionRaw = get("position", null) as string | null;
+      const position = positionRaw && VALID_POSITIONS.has(positionRaw) ? positionRaw : null;
+      const emergency_contact_name = get("emergency_contact_name", null) as string | null;
+      const emergency_contact_phone = get("emergency_contact_phone", null) as string | null;
+      const photoBlob =
+        body.photo !== undefined
+          ? (body.photo === null ? null : parsePhotoToBlob(body.photo) ?? null)
+          : (row.photo as Uint8Array | null);
+      db.run(
+        `UPDATE members SET name = ?, phone_number = ?, email = ?, address = ?, birthday = ?, position = ?, emergency_contact_name = ?, emergency_contact_phone = ?, photo = ? WHERE id = ?`,
+        [name, phone_number, email, address, birthday, position, emergency_contact_name, emergency_contact_phone, photoBlob, id]
+      );
+      return api.members.get(id)!;
+    },
+    delete: async (id: string) => {
+      const db = getDb();
+      db.run("DELETE FROM members WHERE id = ?", [id]);
       return { ok: true };
     },
   },

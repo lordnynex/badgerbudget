@@ -47,6 +47,32 @@ export interface EventVolunteer {
   sort_order: number;
 }
 
+export const MEMBER_POSITIONS = [
+  "President",
+  "Vice President",
+  "Road Captain",
+  "Treasurer",
+  "Recording Secretary",
+  "Correspondence Secretary",
+  "Member",
+] as const;
+
+export type MemberPosition = (typeof MEMBER_POSITIONS)[number];
+
+export interface Member {
+  id: string;
+  name: string;
+  phone_number: string | null;
+  email: string | null;
+  address: string | null;
+  birthday: string | null;
+  position: string | null;
+  emergency_contact_name: string | null;
+  emergency_contact_phone: string | null;
+  photo: string | null;
+  created_at?: string;
+}
+
 export interface Inputs {
   profitTarget: number;
   staffCount: number;

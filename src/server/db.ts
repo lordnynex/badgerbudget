@@ -125,4 +125,30 @@ function initSchema(database: Database) {
       created_at TEXT DEFAULT (datetime('now'))
     )
   `);
+  database.run(`
+    CREATE TABLE IF NOT EXISTS members (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      phone_number TEXT,
+      address TEXT,
+      birthday TEXT,
+      emergency_contact_name TEXT,
+      emergency_contact_phone TEXT,
+      photo BLOB,
+      created_at TEXT DEFAULT (datetime('now'))
+    )
+  `);
+  const memberCols: [string, string][] = [
+    ["position", "TEXT"],
+    ["email", "TEXT"],
+  ];
+  for (const [col, typ] of memberCols) {
+    if (!hasColumn(database, "members", col)) {
+      try {
+        database.run(`ALTER TABLE members ADD COLUMN ${col} ${typ}`);
+      } catch {
+        // Column may already exist
+      }
+    }
+  }
 }

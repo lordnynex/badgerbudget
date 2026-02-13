@@ -226,6 +226,48 @@ export async function handleApiRequest(req: Request): Promise<Response | null> {
     }
   }
 
+  // /api/members
+  if (path === "/api/members" && method === "GET") {
+    const list = await api.members.list();
+    return json(list);
+  }
+  if (path === "/api/members" && method === "POST") {
+    const body = await jsonBody<{
+      name: string;
+      phone_number?: string;
+      email?: string;
+      address?: string;
+      birthday?: string;
+      position?: string;
+      emergency_contact_name?: string;
+      emergency_contact_phone?: string;
+      photo?: string;
+    }>(req);
+    const created = await api.members.create(body);
+    return json(created);
+  }
+
+  // /api/members/:id
+  const memberIdMatch = path.match(/^\/api\/members\/([^/]+)$/);
+  if (memberIdMatch) {
+    const id = memberIdMatch[1]!;
+    if (method === "GET") {
+      const member = await api.members.get(id);
+      if (!member) return notFound();
+      return json(member);
+    }
+    if (method === "PUT") {
+      const body = await jsonBody<Record<string, unknown>>(req);
+      const updated = await api.members.update(id, body);
+      if (!updated) return notFound();
+      return json(updated);
+    }
+    if (method === "DELETE") {
+      await api.members.delete(id);
+      return json({ ok: true });
+    }
+  }
+
   // /api/scenarios
   if (path === "/api/scenarios" && method === "GET") {
     const list = await api.scenarios.list();
