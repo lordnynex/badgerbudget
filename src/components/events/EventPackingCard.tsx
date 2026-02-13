@@ -36,6 +36,7 @@ export function EventPackingCard({
   const [addCategoryOpen, setAddCategoryOpen] = useState(false);
   const [addEditItemOpen, setAddEditItemOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<EventPackingItem | null>(null);
+  const [initialCategoryId, setInitialCategoryId] = useState<string | undefined>(undefined);
 
   const categories = event.packingCategories ?? [];
   const items = event.packingItems ?? [];
@@ -53,8 +54,9 @@ export function EventPackingCard({
   const hasCategories = categories.length > 0;
   const hasItems = items.length > 0;
 
-  const openAddItem = () => {
+  const openAddItem = (categoryId?: string) => {
     setEditingItem(null);
+    setInitialCategoryId(categoryId);
     setAddEditItemOpen(true);
   };
 
@@ -129,6 +131,7 @@ export function EventPackingCard({
                       onToggleLoaded={onToggleLoaded}
                       onEditItem={openEditItem}
                       onDeleteItem={onDeleteItem}
+                      onAddItemInCategory={(cid) => openAddItem(cid)}
                     />
                   ))}
                   <div className="flex gap-2">
@@ -158,10 +161,14 @@ export function EventPackingCard({
         open={addEditItemOpen}
         onOpenChange={(o) => {
           setAddEditItemOpen(o);
-          if (!o) setEditingItem(null);
+          if (!o) {
+            setEditingItem(null);
+            setInitialCategoryId(undefined);
+          }
         }}
         categories={categories}
         item={editingItem}
+        initialCategoryId={initialCategoryId}
         onSubmit={handleSubmitItem}
       />
     </>

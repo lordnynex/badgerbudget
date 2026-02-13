@@ -24,6 +24,7 @@ interface AddEditPackingItemDialogProps {
   onOpenChange: (open: boolean) => void;
   categories: EventPackingCategory[];
   item?: EventPackingItem | null;
+  initialCategoryId?: string;
   onSubmit: (payload: {
     category_id: string;
     name: string;
@@ -37,6 +38,7 @@ export function AddEditPackingItemDialog({
   onOpenChange,
   categories,
   item,
+  initialCategoryId,
   onSubmit,
 }: AddEditPackingItemDialogProps) {
   const [categoryId, setCategoryId] = useState("");
@@ -54,13 +56,13 @@ export function AddEditPackingItemDialog({
         setQuantity(item.quantity != null ? String(item.quantity) : "");
         setNote(item.note ?? "");
       } else {
-        setCategoryId(categories[0]?.id ?? "");
+        setCategoryId(initialCategoryId ?? categories[0]?.id ?? "");
         setName("");
         setQuantity("");
         setNote("");
       }
     }
-  }, [open, item, categories]);
+  }, [open, item, categories, initialCategoryId]);
 
   const handleSubmit = async () => {
     if (!name.trim() || !categoryId) return;
