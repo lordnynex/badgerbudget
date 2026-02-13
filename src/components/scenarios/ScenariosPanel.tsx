@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { Check, Pencil, Plus, Trash2 } from "lucide-react";
 import { useAppState } from "@/state/AppState";
 import { api } from "@/data/api";
 import {
@@ -31,6 +31,7 @@ export function ScenariosPanel() {
   const [editingScenario, setEditingScenario] = useState<{ id: string; name: string; description: string | null } | null>(null);
   const [editName, setEditName] = useState("");
   const [editDescription, setEditDescription] = useState("");
+  const [editSaved, setEditSaved] = useState(false);
 
   const handleCreate = async () => {
     if (!newName.trim()) return;
@@ -57,6 +58,7 @@ export function ScenariosPanel() {
     setEditingScenario(s);
     setEditName(s.name);
     setEditDescription(s.description ?? "");
+    setEditSaved(false);
     setEditOpen(true);
   };
 
@@ -70,8 +72,12 @@ export function ScenariosPanel() {
     if (currentScenario?.id === editingScenario.id) {
       await refreshScenario(editingScenario.id);
     }
-    setEditOpen(false);
-    setEditingScenario(null);
+    setEditSaved(true);
+    setTimeout(() => {
+      setEditOpen(false);
+      setEditingScenario(null);
+      setEditSaved(false);
+    }, 600);
   };
 
   return (
@@ -163,7 +169,16 @@ export function ScenariosPanel() {
             <Button variant="outline" onClick={() => setEditOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleSaveEdit}>Save</Button>
+            <Button onClick={handleSaveEdit}>
+              {editSaved ? (
+                <>
+                  <Check className="size-4" />
+                  Saved
+                </>
+              ) : (
+                "Save"
+              )}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

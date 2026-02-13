@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { EditableNumberInput } from "@/components/inputs/EditableNumberInput";
 import { useAppState } from "@/state/AppState";
 import { api } from "@/data/api";
+import { Check } from "lucide-react";
 import type { Inputs } from "@/types/budget";
 
 const DEFAULT_INPUTS: Inputs = {
@@ -27,6 +28,17 @@ export function ScenarioInputsCard() {
   const { currentScenario, selectedScenarioId, refreshScenario } = useAppState();
   const [inputs, setInputs] = useState<Inputs>(DEFAULT_INPUTS);
   const [saving, setSaving] = useState(false);
+  const [savedAt, setSavedAt] = useState<number | null>(null);
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showSaved = useCallback(() => {
+    setSavedAt(Date.now());
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    saveTimeoutRef.current = setTimeout(() => {
+      setSavedAt(null);
+      saveTimeoutRef.current = null;
+    }, 2000);
+  }, []);
 
   useEffect(() => {
     if (currentScenario?.inputs) {
@@ -62,6 +74,7 @@ export function ScenarioInputsCard() {
     try {
       await api.scenarios.update(selectedScenarioId, { inputs });
       await refreshScenario(selectedScenarioId);
+      showSaved();
     } finally {
       setSaving(false);
     }
@@ -78,9 +91,17 @@ export function ScenarioInputsCard() {
             Edit variables for &quot;{currentScenario.name}&quot;. Click Save to persist changes.
           </CardDescription>
         </div>
-        <Button onClick={handleSave} size="sm" disabled={saving}>
-          {saving ? "Saving..." : "Save"}
-        </Button>
+        <div className="flex items-center gap-2">
+          {savedAt != null && (
+            <span className="flex items-center gap-1 text-xs text-green-600 animate-in fade-in duration-200">
+              <Check className="size-3.5" />
+              Saved
+            </span>
+          )}
+          <Button onClick={handleSave} size="sm" disabled={saving}>
+            {saving ? "Saving..." : "Save"}
+          </Button>
+        </div>
       </CardHeader>
       <CardContent className="space-y-6 border-t pt-6">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
