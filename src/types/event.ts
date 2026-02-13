@@ -35,6 +35,25 @@ export interface EventVolunteer {
   sort_order: number;
 }
 
+export type EventAssignmentCategory = "planning" | "during";
+
+export interface EventAssignmentMember {
+  id: string;
+  assignment_id: string;
+  member_id: string;
+  sort_order: number;
+  member?: { id: string; name: string; photo: string | null };
+}
+
+export interface EventAssignment {
+  id: string;
+  event_id: string;
+  name: string;
+  category: EventAssignmentCategory;
+  sort_order: number;
+  members?: EventAssignmentMember[];
+}
+
 export interface Event {
   id: string;
   name: string;
@@ -56,4 +75,5 @@ export interface Event {
   packingCategories?: EventPackingCategory[];
   packingItems?: EventPackingItem[];
   volunteers?: EventVolunteer[];
+  assignments?: EventAssignment[];
 }

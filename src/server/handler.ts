@@ -154,6 +154,54 @@ export async function handleApiRequest(req: Request): Promise<Response | null> {
     }
   }
 
+  // /api/events/:id/assignments
+  const eventAssignmentsMatch = path.match(/^\/api\/events\/([^/]+)\/assignments$/);
+  if (eventAssignmentsMatch && method === "POST") {
+    const eventId = eventAssignmentsMatch[1]!;
+    const body = await jsonBody<{ name: string; category: "planning" | "during" }>(req);
+    const assignment = await api.events.assignments.create(eventId, body);
+    return json(assignment);
+  }
+
+  // /api/events/:id/assignments/:aid
+  const eventAssignmentMatch = path.match(/^\/api\/events\/([^/]+)\/assignments\/([^/]+)$/);
+  if (eventAssignmentMatch) {
+    const eventId = eventAssignmentMatch[1]!;
+    const aid = eventAssignmentMatch[2]!;
+    if (method === "PUT") {
+      const body = await jsonBody<{ name?: string; category?: "planning" | "during" }>(req);
+      const updated = await api.events.assignments.update(eventId, aid, body);
+      if (!updated) return notFound();
+      return json(updated);
+    }
+    if (method === "DELETE") {
+      await api.events.assignments.delete(eventId, aid);
+      return json({ ok: true });
+    }
+  }
+
+  // /api/events/:id/assignments/:aid/members
+  const eventAssignmentMembersMatch = path.match(/^\/api\/events\/([^/]+)\/assignments\/([^/]+)\/members$/);
+  if (eventAssignmentMembersMatch && method === "POST") {
+    const eventId = eventAssignmentMembersMatch[1]!;
+    const aid = eventAssignmentMembersMatch[2]!;
+    const body = await jsonBody<{ member_id: string }>(req);
+    const updated = await api.events.assignments.addMember(eventId, aid, body.member_id);
+    if (!updated) return notFound();
+    return json(updated);
+  }
+
+  // /api/events/:id/assignments/:aid/members/:memberId
+  const eventAssignmentMemberMatch = path.match(/^\/api\/events\/([^/]+)\/assignments\/([^/]+)\/members\/([^/]+)$/);
+  if (eventAssignmentMemberMatch && method === "DELETE") {
+    const eventId = eventAssignmentMemberMatch[1]!;
+    const aid = eventAssignmentMemberMatch[2]!;
+    const memberId = eventAssignmentMemberMatch[3]!;
+    const updated = await api.events.assignments.removeMember(eventId, aid, memberId);
+    if (!updated) return notFound();
+    return json(updated);
+  }
+
   // /api/events/:id/volunteers
   const eventVolunteersMatch = path.match(/^\/api\/events\/([^/]+)\/volunteers$/);
   if (eventVolunteersMatch && method === "POST") {

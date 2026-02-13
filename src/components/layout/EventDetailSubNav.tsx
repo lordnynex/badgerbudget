@@ -6,6 +6,7 @@ const SECTIONS = [
   { id: "event-details", label: "Details" },
   { id: "location", label: "Location" },
   { id: "milestones", label: "Milestones" },
+  { id: "assignments", label: "Assignments" },
   { id: "packing", label: "Packing" },
   { id: "volunteers", label: "Volunteers" },
   { id: "notes", label: "Notes" },

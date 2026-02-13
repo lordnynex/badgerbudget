@@ -8,6 +8,7 @@ import type { Event } from "@/types/budget";
 import { EventDetailsCard } from "./EventDetailsCard";
 import { EventLocationCard } from "./EventLocationCard";
 import { EventMilestonesCard } from "./EventMilestonesCard";
+import { EventAssignmentsCard } from "./EventAssignmentsCard";
 import { EventPackingCard } from "./EventPackingCard";
 import { EventVolunteersCard } from "./EventVolunteersCard";
 import { EventNotesCard } from "./EventNotesCard";
@@ -174,6 +175,30 @@ export function EventDetailPage() {
     await refresh();
   };
 
+  const handleCreateRole = async (payload: { name: string; category: "planning" | "during" }) => {
+    if (!id) return;
+    await api.events.assignments.create(id, payload);
+    await refresh();
+  };
+
+  const handleDeleteRole = async (aid: string) => {
+    if (!id) return;
+    await api.events.assignments.delete(id, aid);
+    await refresh();
+  };
+
+  const handleAddMemberToRole = async (aid: string, memberId: string) => {
+    if (!id) return;
+    await api.events.assignments.addMember(id, aid, memberId);
+    await refresh();
+  };
+
+  const handleRemoveMemberFromRole = async (aid: string, memberId: string) => {
+    if (!id) return;
+    await api.events.assignments.removeMember(id, aid, memberId);
+    await refresh();
+  };
+
   if (loading || !event) {
     return (
       <div className="flex min-h-[200px] items-center justify-center">
@@ -222,6 +247,14 @@ export function EventDetailPage() {
         onDelete={handleDeleteMilestone}
         onAdd={handleAddMilestone}
         onEdit={handleEditMilestone}
+      />
+
+      <EventAssignmentsCard
+        event={event}
+        onCreateRole={handleCreateRole}
+        onDeleteRole={handleDeleteRole}
+        onAddMember={handleAddMemberToRole}
+        onRemoveMember={handleRemoveMemberFromRole}
       />
 
       <EventPackingCard

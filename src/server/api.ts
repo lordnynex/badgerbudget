@@ -91,6 +91,36 @@ export const api = {
       const volunteers = db
         .query("SELECT * FROM event_volunteers WHERE event_id = ? ORDER BY department, sort_order, name")
         .all(id) as Array<Record<string, unknown>>;
+      const assignments = db
+        .query("SELECT * FROM event_assignments WHERE event_id = ? ORDER BY category, sort_order, name")
+        .all(id) as Array<Record<string, unknown>>;
+      const assignmentMembers = assignments.length
+        ? (db
+            .query(
+              "SELECT eam.* FROM event_assignment_members eam WHERE eam.assignment_id IN (" +
+                assignments.map(() => "?").join(",") +
+                ") ORDER BY eam.assignment_id, eam.sort_order"
+            )
+            .all(...(assignments.map((a) => a.id) as string[])) as Array<Record<string, unknown>>)
+        : [];
+      const memberIds = [...new Set(assignmentMembers.map((am) => am.member_id as string))];
+      const membersMap = new Map<string, { id: string; name: string; photo: string | null }>();
+      for (const mid of memberIds) {
+        const m = db.query("SELECT id, name, photo FROM members WHERE id = ?").get(mid) as Record<string, unknown> | undefined;
+        if (m) {
+          membersMap.set(mid, {
+            id: m.id as string,
+            name: m.name as string,
+            photo: m.photo != null ? `data:image/jpeg;base64,${Buffer.from(m.photo as Uint8Array).toString("base64")}` : null,
+          });
+        }
+      }
+      const membersByAssignment = new Map<string, Array<Record<string, unknown>>>();
+      for (const am of assignmentMembers) {
+        const list = membersByAssignment.get(am.assignment_id as string) ?? [];
+        list.push(am);
+        membersByAssignment.set(am.assignment_id as string, list);
+      }
       return {
         ...e,
         event_date: e.event_date ?? null,
@@ -143,6 +173,23 @@ export const api = {
           department: v.department,
           sort_order: v.sort_order ?? 0,
         })),
+        assignments: assignments.map((a) => {
+          const amList = membersByAssignment.get(a.id as string) ?? [];
+          return {
+            id: a.id,
+            event_id: a.event_id,
+            name: a.name,
+            category: a.category,
+            sort_order: a.sort_order ?? 0,
+            members: amList.map((am) => ({
+              id: am.id,
+              assignment_id: am.assignment_id,
+              member_id: am.member_id,
+              sort_order: am.sort_order ?? 0,
+              member: membersMap.get(am.member_id as string),
+            })),
+          };
+        }),
       };
     },
     create: async (body: {
@@ -228,12 +275,75 @@ export const api = {
     },
     delete: async (id: string) => {
       const db = getDb();
+      db.run("DELETE FROM event_assignment_members WHERE assignment_id IN (SELECT id FROM event_assignments WHERE event_id = ?)", [id]);
+      db.run("DELETE FROM event_assignments WHERE event_id = ?", [id]);
       db.run("DELETE FROM event_planning_milestones WHERE event_id = ?", [id]);
       db.run("DELETE FROM event_packing_items WHERE event_id = ?", [id]);
       db.run("DELETE FROM event_packing_categories WHERE event_id = ?", [id]);
       db.run("DELETE FROM event_volunteers WHERE event_id = ?", [id]);
       db.run("DELETE FROM events WHERE id = ?", [id]);
       return { ok: true };
+    },
+    assignments: {
+      create: async (eventId: string, body: { name: string; category: "planning" | "during" }) => {
+        const db = getDb();
+        const id = uuid();
+        const maxOrder = db.query("SELECT COALESCE(MAX(sort_order), 0) as m FROM event_assignments WHERE event_id = ? AND category = ?").get(eventId, body.category) as { m: number } | undefined;
+        const sortOrder = (maxOrder?.m ?? 0) + 1;
+        db.run(
+          "INSERT INTO event_assignments (id, event_id, name, category, sort_order) VALUES (?, ?, ?, ?, ?)",
+          [id, eventId, body.name, body.category, sortOrder]
+        );
+        return { id, event_id: eventId, name: body.name, category: body.category, sort_order: sortOrder, members: [] };
+      },
+      update: async (eventId: string, aid: string, body: { name?: string; category?: "planning" | "during" }) => {
+        const db = getDb();
+        const existing = db.query("SELECT * FROM event_assignments WHERE id = ? AND event_id = ?").get(aid, eventId);
+        if (!existing) return null;
+        const row = existing as Record<string, unknown>;
+        const name = (body.name ?? row.name) as string;
+        const category = (body.category ?? row.category) as "planning" | "during";
+        db.run("UPDATE event_assignments SET name = ?, category = ? WHERE id = ? AND event_id = ?", [name, category, aid, eventId]);
+        const amList = db.query("SELECT * FROM event_assignment_members WHERE assignment_id = ? ORDER BY sort_order").all(aid) as Array<Record<string, unknown>>;
+        const members = amList.map((am) => {
+          const m = db.query("SELECT id, name, photo FROM members WHERE id = ?").get(am.member_id as string) as Record<string, unknown> | undefined;
+          return {
+            id: am.id,
+            assignment_id: am.assignment_id,
+            member_id: am.member_id,
+            sort_order: am.sort_order ?? 0,
+            member: m ? { id: m.id, name: m.name, photo: m.photo != null ? `data:image/jpeg;base64,${Buffer.from(m.photo as Uint8Array).toString("base64")}` : null } : undefined,
+          };
+        });
+        return { id: aid, event_id: eventId, name, category, sort_order: row.sort_order, members };
+      },
+      delete: async (eventId: string, aid: string) => {
+        const db = getDb();
+        db.run("DELETE FROM event_assignment_members WHERE assignment_id = ?", [aid]);
+        db.run("DELETE FROM event_assignments WHERE id = ? AND event_id = ?", [aid, eventId]);
+        return { ok: true };
+      },
+      addMember: async (eventId: string, aid: string, memberId: string) => {
+        const db = getDb();
+        const existing = db.query("SELECT * FROM event_assignments WHERE id = ? AND event_id = ?").get(aid, eventId);
+        if (!existing) return null;
+        const maxOrder = db.query("SELECT COALESCE(MAX(sort_order), 0) as m FROM event_assignment_members WHERE assignment_id = ?").get(aid) as { m: number };
+        const id = uuid();
+        try {
+          db.run(
+            "INSERT INTO event_assignment_members (id, assignment_id, member_id, sort_order) VALUES (?, ?, ?, ?)",
+            [id, aid, memberId, (maxOrder?.m ?? 0) + 1]
+          );
+        } catch {
+          return null;
+        }
+        return api.events.get(eventId);
+      },
+      removeMember: async (eventId: string, aid: string, memberId: string) => {
+        const db = getDb();
+        db.run("DELETE FROM event_assignment_members WHERE assignment_id = ? AND member_id = ?", [aid, memberId]);
+        return api.events.get(eventId);
+      },
     },
     milestones: {
       create: async (eventId: string, body: { month: number; year: number; description: string; due_date?: string }) => {

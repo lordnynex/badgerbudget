@@ -2,6 +2,7 @@ import type {
   Budget,
   BudgetSummary,
   Event,
+  EventAssignment,
   EventPackingCategory,
   EventPackingItem,
   EventPlanningMilestone,
@@ -95,6 +96,29 @@ export const api = {
         }),
       delete: (eventId: string, vid: string) =>
         fetchJson<{ ok: boolean }>(`/api/events/${eventId}/volunteers/${vid}`, { method: "DELETE" }),
+    },
+    assignments: {
+      create: (eventId: string, body: { name: string; category: "planning" | "during" }) =>
+        fetchJson<EventAssignment>(`/api/events/${eventId}/assignments`, {
+          method: "POST",
+          body: JSON.stringify(body),
+        }),
+      update: (eventId: string, aid: string, body: { name?: string; category?: "planning" | "during" }) =>
+        fetchJson<EventAssignment>(`/api/events/${eventId}/assignments/${aid}`, {
+          method: "PUT",
+          body: JSON.stringify(body),
+        }),
+      delete: (eventId: string, aid: string) =>
+        fetchJson<{ ok: boolean }>(`/api/events/${eventId}/assignments/${aid}`, { method: "DELETE" }),
+      addMember: (eventId: string, aid: string, memberId: string) =>
+        fetchJson<Event>(`/api/events/${eventId}/assignments/${aid}/members`, {
+          method: "POST",
+          body: JSON.stringify({ member_id: memberId }),
+        }),
+      removeMember: (eventId: string, aid: string, memberId: string) =>
+        fetchJson<Event>(`/api/events/${eventId}/assignments/${aid}/members/${memberId}`, {
+          method: "DELETE",
+        }),
     },
   },
 

@@ -163,6 +163,27 @@ function initSchema(database: Database) {
     )
   `);
   database.run(`
+    CREATE TABLE IF NOT EXISTS event_assignments (
+      id TEXT PRIMARY KEY,
+      event_id TEXT NOT NULL,
+      name TEXT NOT NULL,
+      category TEXT NOT NULL CHECK (category IN ('planning', 'during')),
+      sort_order INTEGER DEFAULT 0,
+      FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE
+    )
+  `);
+  database.run(`
+    CREATE TABLE IF NOT EXISTS event_assignment_members (
+      id TEXT PRIMARY KEY,
+      assignment_id TEXT NOT NULL,
+      member_id TEXT NOT NULL,
+      sort_order INTEGER DEFAULT 0,
+      FOREIGN KEY (assignment_id) REFERENCES event_assignments(id) ON DELETE CASCADE,
+      FOREIGN KEY (member_id) REFERENCES members(id) ON DELETE CASCADE,
+      UNIQUE(assignment_id, member_id)
+    )
+  `);
+  database.run(`
     CREATE TABLE IF NOT EXISTS budgets (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
