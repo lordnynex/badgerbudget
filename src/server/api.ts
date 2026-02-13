@@ -80,14 +80,22 @@ export const api = {
         budget_id: e.budget_id ?? null,
         scenario_id: e.scenario_id ?? null,
         planning_notes: e.planning_notes ?? null,
-        milestones: milestones.map((m) => ({
-          id: m.id,
-          event_id: m.event_id,
-          month: m.month,
-          year: m.year,
-          description: m.description,
-          sort_order: m.sort_order ?? 0,
-        })),
+        milestones: milestones.map((m) => {
+          const month = m.month as number;
+          const year = m.year as number;
+          const lastDay = new Date(year, month, 0);
+          const defaultDueDate = `${year}-${String(month).padStart(2, "0")}-${String(lastDay.getDate()).padStart(2, "0")}`;
+          return {
+            id: m.id,
+            event_id: m.event_id,
+            month,
+            year,
+            description: m.description,
+            sort_order: m.sort_order ?? 0,
+            completed: m.completed === 1,
+            due_date: (m.due_date as string | null) ?? defaultDueDate,
+          };
+        }),
         packingItems: packing.map((p) => ({
           id: p.id,
           event_id: p.event_id,
@@ -194,17 +202,19 @@ export const api = {
       return { ok: true };
     },
     milestones: {
-      create: async (eventId: string, body: { month: number; year: number; description: string }) => {
+      create: async (eventId: string, body: { month: number; year: number; description: string; due_date?: string }) => {
         const db = getDb();
         const id = uuid();
         const maxOrder = db.query("SELECT COALESCE(MAX(sort_order), 0) as m FROM event_planning_milestones WHERE event_id = ?").get(eventId) as { m: number };
+        const lastDay = new Date(body.year, body.month, 0);
+        const dueDate = body.due_date ?? `${body.year}-${String(body.month).padStart(2, "0")}-${String(lastDay.getDate()).padStart(2, "0")}`;
         db.run(
-          "INSERT INTO event_planning_milestones (id, event_id, month, year, description, sort_order) VALUES (?, ?, ?, ?, ?, ?)",
-          [id, eventId, body.month, body.year, body.description, (maxOrder?.m ?? 0) + 1]
+          "INSERT INTO event_planning_milestones (id, event_id, month, year, description, sort_order, completed, due_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+          [id, eventId, body.month, body.year, body.description, (maxOrder?.m ?? 0) + 1, 0, dueDate]
         );
-        return { id, event_id: eventId, ...body, sort_order: (maxOrder?.m ?? 0) + 1 };
+        return { id, event_id: eventId, ...body, sort_order: (maxOrder?.m ?? 0) + 1, completed: false, due_date: dueDate };
       },
-      update: async (eventId: string, mid: string, body: { month?: number; year?: number; description?: string }) => {
+      update: async (eventId: string, mid: string, body: { month?: number; year?: number; description?: string; completed?: boolean; due_date?: string }) => {
         const db = getDb();
         const existing = db.query("SELECT * FROM event_planning_milestones WHERE id = ? AND event_id = ?").get(mid, eventId);
         if (!existing) return null;
@@ -212,8 +222,10 @@ export const api = {
         const month = body.month ?? (row.month as number);
         const year = body.year ?? (row.year as number);
         const description = body.description ?? (row.description as string);
-        db.run("UPDATE event_planning_milestones SET month = ?, year = ?, description = ? WHERE id = ? AND event_id = ?", [month, year, description, mid, eventId]);
-        return { id: mid, event_id: eventId, month, year, description, sort_order: row.sort_order };
+        const completed = body.completed !== undefined ? (body.completed ? 1 : 0) : (row.completed as number);
+        const dueDate = body.due_date ?? (row.due_date as string | null);
+        db.run("UPDATE event_planning_milestones SET month = ?, year = ?, description = ?, completed = ?, due_date = ? WHERE id = ? AND event_id = ?", [month, year, description, completed, dueDate, mid, eventId]);
+        return { id: mid, event_id: eventId, month, year, description, sort_order: row.sort_order, completed: completed === 1, due_date: dueDate };
       },
       delete: async (eventId: string, mid: string) => {
         const db = getDb();

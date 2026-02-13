@@ -23,6 +23,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import {
   ArrowLeft,
   Calendar,
+  Check,
   ExternalLink,
   MapPin,
   Pencil,
@@ -59,8 +60,14 @@ const LOAD_OUT_PACKING_CATEGORIES = [
   "Miscellaneous",
 ];
 
-function formatMilestone(m: EventPlanningMilestone) {
-  return `${MONTHS[m.month - 1] ?? m.month} ${m.year}: ${m.description}`;
+function formatDueDate(d: string) {
+  const [y, mo, day] = d.split("-");
+  return `${MONTHS[parseInt(mo ?? "1", 10) - 1] ?? mo} ${day}, ${y}`;
+}
+
+function getLastDayOfMonth(year: number, month: number): string {
+  const lastDay = new Date(year, month, 0);
+  return `${year}-${String(month).padStart(2, "0")}-${String(lastDay.getDate()).padStart(2, "0")}`;
 }
 
 export function EventDetailPage() {
@@ -94,6 +101,7 @@ export function EventDetailPage() {
   const [milestoneMonth, setMilestoneMonth] = useState(1);
   const [milestoneYear, setMilestoneYear] = useState(new Date().getFullYear());
   const [milestoneDesc, setMilestoneDesc] = useState("");
+  const [milestoneDueDate, setMilestoneDueDate] = useState("");
 
   // Packing form
   const [packingCategory, setPackingCategory] = useState(LOAD_OUT_PACKING_CATEGORIES[0]);
@@ -158,13 +166,22 @@ export function EventDetailPage() {
 
   const handleAddMilestone = async () => {
     if (!id || !milestoneDesc.trim()) return;
+    const dueDate = milestoneDueDate || getLastDayOfMonth(milestoneYear, milestoneMonth);
     await api.events.milestones.create(id, {
       month: milestoneMonth,
       year: milestoneYear,
       description: milestoneDesc.trim(),
+      due_date: dueDate,
     });
     setMilestoneDesc("");
+    setMilestoneDueDate("");
     setMilestoneOpen(false);
+    await refresh();
+  };
+
+  const handleToggleMilestoneComplete = async (mid: string, completed: boolean) => {
+    if (!id) return;
+    await api.events.milestones.update(id, mid, { completed });
     await refresh();
   };
 
@@ -397,30 +414,88 @@ export function EventDetailPage() {
             </CollapsibleTrigger>
           </CardHeader>
           <CollapsibleContent>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-6">
               {(event.milestones ?? []).length === 0 ? (
                 <p className="text-muted-foreground text-sm">No milestones yet.</p>
               ) : (
-                <ul className="space-y-2">
-                  {(event.milestones ?? []).map((m) => (
-                    <li
-                      key={m.id}
-                      className="flex items-center justify-between rounded-lg border p-3"
-                    >
-                      <span>{formatMilestone(m)}</span>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-destructive hover:text-destructive"
-                        onClick={() => handleDeleteMilestone(m.id)}
-                      >
-                        <Trash2 className="size-4" />
-                      </Button>
-                    </li>
-                  ))}
-                </ul>
+                (() => {
+                  const byMonth = (event.milestones ?? []).reduce(
+                    (acc, m) => {
+                      const key = `${m.year}-${String(m.month).padStart(2, "0")}`;
+                      (acc[key] ??= []).push(m);
+                      return acc;
+                    },
+                    {} as Record<string, EventPlanningMilestone[]>
+                  );
+                  const sortedMonths = Object.keys(byMonth).sort();
+                  return (
+                    <div className="space-y-4">
+                      {sortedMonths.map((key) => {
+                        const [year, month] = key.split("-").map(Number);
+                        const items = [...byMonth[key]!].sort(
+                          (a, b) => (a.due_date ?? "").localeCompare(b.due_date ?? "")
+                        );
+                        return (
+                          <div key={key}>
+                            <h4 className="font-medium text-muted-foreground mb-2">
+                              {MONTHS[month - 1]} {year}
+                            </h4>
+                            <ul className="space-y-1 pl-4 border-l-2 border-muted">
+                              {items.map((m) => (
+                                <li
+                                  key={m.id}
+                                  className={`flex items-center justify-between gap-2 rounded border px-3 py-2 ${
+                                    m.completed ? "bg-muted/30 opacity-75" : ""
+                                  }`}
+                                >
+                                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        handleToggleMilestoneComplete(m.id, !m.completed)
+                                      }
+                                      className="shrink-0 flex size-5 items-center justify-center rounded border border-muted-foreground/50 hover:border-muted-foreground transition-colors"
+                                      aria-label={m.completed ? "Mark incomplete" : "Mark complete"}
+                                    >
+                                      {m.completed && <Check className="size-3" />}
+                                    </button>
+                                    <span
+                                      className={
+                                        m.completed ? "line-through text-muted-foreground" : ""
+                                      }
+                                    >
+                                      {m.description}
+                                    </span>
+                                    <span className="text-muted-foreground text-xs shrink-0">
+                                      {m.due_date ? formatDueDate(m.due_date) : ""}
+                                    </span>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-destructive hover:text-destructive shrink-0"
+                                    onClick={() => handleDeleteMilestone(m.id)}
+                                  >
+                                    <Trash2 className="size-4" />
+                                  </Button>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })()
               )}
-              <Button variant="outline" size="sm" onClick={() => setMilestoneOpen(true)}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setMilestoneDueDate(getLastDayOfMonth(milestoneYear, milestoneMonth));
+                  setMilestoneOpen(true);
+                }}
+              >
                 <Plus className="size-4" />
                 Add Milestone
               </Button>
@@ -738,7 +813,14 @@ export function EventDetailPage() {
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label>Month</Label>
-                <Select value={String(milestoneMonth)} onValueChange={(v) => setMilestoneMonth(parseInt(v, 10))}>
+                <Select
+                  value={String(milestoneMonth)}
+                  onValueChange={(v) => {
+                    const m = parseInt(v, 10);
+                    setMilestoneMonth(m);
+                    setMilestoneDueDate(getLastDayOfMonth(milestoneYear, m));
+                  }}
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -754,9 +836,21 @@ export function EventDetailPage() {
                 <Input
                   type="number"
                   value={milestoneYear}
-                  onChange={(e) => setMilestoneYear(parseInt(e.target.value, 10) || new Date().getFullYear())}
+                  onChange={(e) => {
+                    const y = parseInt(e.target.value, 10) || new Date().getFullYear();
+                    setMilestoneYear(y);
+                    setMilestoneDueDate(getLastDayOfMonth(y, milestoneMonth));
+                  }}
                 />
               </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Due Date</Label>
+              <Input
+                type="date"
+                value={milestoneDueDate}
+                onChange={(e) => setMilestoneDueDate(e.target.value)}
+              />
             </div>
             <div className="space-y-2">
               <Label>Description</Label>

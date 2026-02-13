@@ -27,6 +27,8 @@ export interface EventPlanningMilestone {
   year: number;
   description: string;
   sort_order: number;
+  completed: boolean;
+  due_date: string;
 }
 
 export interface EventPackingItem {

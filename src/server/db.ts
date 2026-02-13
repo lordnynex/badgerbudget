@@ -61,6 +61,19 @@ function initSchema(database: Database) {
       FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE
     )
   `);
+  const milestoneCols: [string, string][] = [
+    ["completed", "INTEGER"],
+    ["due_date", "TEXT"],
+  ];
+  for (const [col, typ] of milestoneCols) {
+    if (!hasColumn(database, "event_planning_milestones", col)) {
+      try {
+        database.run(`ALTER TABLE event_planning_milestones ADD COLUMN ${col} ${typ}`);
+      } catch {
+        // Column may already exist
+      }
+    }
+  }
   database.run(`
     CREATE TABLE IF NOT EXISTS event_packing_items (
       id TEXT PRIMARY KEY,

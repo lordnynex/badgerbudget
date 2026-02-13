@@ -39,12 +39,12 @@ export const api = {
       fetchJson<Event>(`/api/events/${id}`, { method: "PUT", body: JSON.stringify(body) }),
     delete: (id: string) => fetchJson<{ ok: boolean }>(`/api/events/${id}`, { method: "DELETE" }),
     milestones: {
-      create: (eventId: string, body: { month: number; year: number; description: string }) =>
+      create: (eventId: string, body: { month: number; year: number; description: string; due_date?: string }) =>
         fetchJson<EventPlanningMilestone>(`/api/events/${eventId}/milestones`, {
           method: "POST",
           body: JSON.stringify(body),
         }),
-      update: (eventId: string, mid: string, body: { month?: number; year?: number; description?: string }) =>
+      update: (eventId: string, mid: string, body: { month?: number; year?: number; description?: string; completed?: boolean; due_date?: string }) =>
         fetchJson<EventPlanningMilestone>(`/api/events/${eventId}/milestones/${mid}`, {
           method: "PUT",
           body: JSON.stringify(body),

@@ -80,7 +80,7 @@ export async function handleApiRequest(req: Request): Promise<Response | null> {
   const eventMilestonesMatch = path.match(/^\/api\/events\/([^/]+)\/milestones$/);
   if (eventMilestonesMatch && method === "POST") {
     const eventId = eventMilestonesMatch[1]!;
-    const body = await jsonBody<{ month: number; year: number; description: string }>(req);
+    const body = await jsonBody<{ month: number; year: number; description: string; due_date?: string }>(req);
     const created = await api.events.milestones.create(eventId, body);
     return json(created);
   }
@@ -91,7 +91,7 @@ export async function handleApiRequest(req: Request): Promise<Response | null> {
     const eventId = eventMilestoneMatch[1]!;
     const mid = eventMilestoneMatch[2]!;
     if (method === "PUT") {
-      const body = await jsonBody<{ month?: number; year?: number; description?: string }>(req);
+      const body = await jsonBody<{ month?: number; year?: number; description?: string; completed?: boolean; due_date?: string }>(req);
       const updated = await api.events.milestones.update(eventId, mid, body);
       if (!updated) return notFound();
       return json(updated);
