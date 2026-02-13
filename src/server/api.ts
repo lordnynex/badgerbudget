@@ -498,7 +498,7 @@ export const api = {
           body.birthday ?? null,
           body.member_since ?? null,
           body.is_baby ? 1 : 0,
-          VALID_POSITIONS.has(body.position ?? "") ? body.position : null,
+          body.position && VALID_POSITIONS.has(body.position) ? body.position : null,
           body.emergency_contact_name ?? null,
           body.emergency_contact_phone ?? null,
           photoBlob,
