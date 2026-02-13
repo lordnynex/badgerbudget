@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ChevronDown, ClipboardList, Plus, Trash2, UserPlus } from "lucide-react";
-import { MemberChip } from "@/components/members/MemberChip";
+import { MemberChipPopover } from "@/components/members/MemberChipPopover";
 import { MemberSelectCombobox } from "@/components/members/MemberSelectCombobox";
 import { ALL_MEMBERS_ID } from "@/lib/constants";
 import { api } from "@/data/api";
@@ -230,26 +230,14 @@ function AssignmentColumn({
               <div className="flex flex-wrap gap-1.5">
                 {(role.members ?? []).map((am) =>
                   am.member ? (
-                    <div key={am.id} className="flex items-center gap-0.5 group/chip">
-                      <MemberChip
-                        memberId={am.member.id}
-                        name={am.member.name}
-                        photo={am.member.photo}
-                        clickable={am.member.id !== ALL_MEMBERS_ID}
-                      />
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-5 w-5 p-0 text-muted-foreground hover:text-destructive opacity-0 group-hover/chip:opacity-100 transition-opacity"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onRemoveMember(role.id, am.member_id);
-                        }}
-                        aria-label={`Remove ${am.member.name}`}
-                      >
-                        <Trash2 className="size-3" />
-                      </Button>
-                    </div>
+                    <MemberChipPopover
+                      key={am.id}
+                      memberId={am.member.id}
+                      name={am.member.name}
+                      photo={am.member.photo}
+                      onRemove={() => onRemoveMember(role.id, am.member_id)}
+                      removeContextLabel="role"
+                    />
                   ) : null
                 )}
               </div>

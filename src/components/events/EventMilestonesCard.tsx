@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/select";
 import { Check, ChevronDown, Flag, Pencil, Plus, Trash2, UserPlus } from "lucide-react";
 import { formatDueDate, getLastDayOfMonth, MONTHS } from "./eventUtils";
-import { MemberChip } from "@/components/members/MemberChip";
+import { MemberChipPopover } from "@/components/members/MemberChipPopover";
 import { MemberSelectCombobox } from "@/components/members/MemberSelectCombobox";
 import { api } from "@/data/api";
 import type { Event, EventPlanningMilestone } from "@/types/budget";
@@ -229,26 +229,14 @@ export function EventMilestonesCard({
                                     <div className="flex flex-wrap items-center gap-1 justify-end">
                                       {(m.members ?? []).map((mm) =>
                                         mm.member ? (
-                                          <div key={mm.id} className="flex items-center gap-0.5 group/chip">
-                                            <MemberChip
-                                              memberId={mm.member.id}
-                                              name={mm.member.name}
-                                              photo={mm.member.photo}
-                                              clickable={true}
-                                            />
-                                            <Button
-                                              variant="ghost"
-                                              size="sm"
-                                              className="h-5 w-5 p-0 text-muted-foreground hover:text-destructive opacity-0 group-hover/chip:opacity-100 transition-opacity"
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                onRemoveMember(m.id, mm.member_id);
-                                              }}
-                                              aria-label={`Remove ${mm.member.name}`}
-                                            >
-                                              <Trash2 className="size-3" />
-                                            </Button>
-                                          </div>
+                                          <MemberChipPopover
+                                            key={mm.id}
+                                            memberId={mm.member.id}
+                                            name={mm.member.name}
+                                            photo={mm.member.photo}
+                                            onRemove={() => onRemoveMember(m.id, mm.member_id)}
+                                            removeContextLabel="milestone"
+                                          />
                                         ) : null
                                       )}
                                     </div>
@@ -385,6 +373,50 @@ export function EventMilestonesCard({
                 placeholder="e.g. Send save the date mailer"
               />
             </div>
+            {isEditing && editingId && (
+              <div className="space-y-2">
+                <Label>Responsible members</Label>
+                {(() => {
+                  const editingMilestone = event.milestones?.find((mil) => mil.id === editingId);
+                  const milestoneMembers = editingMilestone?.members ?? [];
+                  return (
+                    <div className="space-y-2">
+                      {milestoneMembers.length === 0 ? (
+                        <p className="text-sm text-muted-foreground">No members assigned</p>
+                      ) : (
+                        <ul className="space-y-1">
+                          {milestoneMembers.map((mm) =>
+                            mm.member ? (
+                              <li
+                                key={mm.id}
+                                className="flex items-center justify-between gap-2 rounded border px-2 py-1.5 text-sm"
+                              >
+                                <span>{mm.member.name}</span>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                                  onClick={() => onRemoveMember(editingId, mm.member_id)}
+                                  aria-label={`Remove ${mm.member.name}`}
+                                >
+                                  <Trash2 className="size-3" />
+                                </Button>
+                              </li>
+                            ) : null
+                          )}
+                        </ul>
+                      )}
+                      <MemberSelectCombobox
+                        members={members}
+                        excludedIds={new Set(milestoneMembers.map((mm) => mm.member_id))}
+                        placeholder="Add a responsible member"
+                        onSelect={(memberId) => onAddMember(editingId, memberId)}
+                      />
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
