@@ -176,7 +176,7 @@ export function EventMilestonesCard({
                               return (
                                 <li
                                   key={m.id}
-                                  className={`flex items-center justify-between gap-2 rounded border px-2 py-1.5 text-sm ${
+                                  className={`flex items-center justify-between gap-2 rounded border px-2 py-1.5 text-sm transition-colors hover:bg-muted/50 ${
                                     m.completed
                                       ? "bg-muted/30 opacity-75"
                                       : isOverdue

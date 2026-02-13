@@ -18,7 +18,7 @@ export function PackingItemRow({
   const loaded = item.loaded ?? false;
 
   return (
-    <li className="flex items-center justify-between gap-2 rounded border px-2 py-1.5 pl-6 text-sm">
+    <li className="flex items-center justify-between gap-2 rounded border px-2 py-1.5 pl-6 text-sm transition-colors hover:bg-muted/50">
       <div className="flex min-w-0 flex-1 items-center gap-2">
         <button
           type="button"
