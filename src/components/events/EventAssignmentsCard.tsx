@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/select";
 import { ChevronDown, ClipboardList, Plus, Trash2, UserPlus } from "lucide-react";
 import { MemberChip } from "@/components/members/MemberChip";
+import { ALL_MEMBERS_ID } from "@/lib/constants";
 import { api } from "@/data/api";
 import type { Event, EventAssignment, EventAssignmentCategory, Member } from "@/types/budget";
 
@@ -233,6 +234,7 @@ function AssignmentColumn({
                         memberId={am.member.id}
                         name={am.member.name}
                         photo={am.member.photo}
+                        clickable={am.member.id !== ALL_MEMBERS_ID}
                       />
                       <Button
                         variant="ghost"
@@ -276,7 +278,11 @@ function AddMemberForm({
   const [selectedId, setSelectedId] = useState<string>("");
   const assignment = assignments.find((a) => a.id === assignmentId);
   const assignedIds = new Set((assignment?.members ?? []).map((m) => m.member_id));
-  const available = members.filter((m) => !assignedIds.has(m.id));
+  const availableMembers = members.filter((m) => !assignedIds.has(m.id));
+  const hasAllMembers = assignedIds.has(ALL_MEMBERS_ID);
+  const available = hasAllMembers
+    ? availableMembers
+    : [{ id: ALL_MEMBERS_ID, name: "All Members" } as Member, ...availableMembers];
 
   const handleAdd = () => {
     if (selectedId && assignmentId) {

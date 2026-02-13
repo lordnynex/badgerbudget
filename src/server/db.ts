@@ -1,4 +1,5 @@
 import { Database } from "bun:sqlite";
+import { ALL_MEMBERS_ID } from "@/lib/constants";
 
 const DB_PATH = import.meta.dir + "/../../data/badger.db";
 
@@ -241,5 +242,10 @@ function initSchema(database: Database) {
         // Column may already exist
       }
     }
+  }
+  // Ensure "All Members" placeholder exists for assignment roles (excluded from members list)
+  const allMembersExists = database.query("SELECT 1 FROM members WHERE id = ?").get(ALL_MEMBERS_ID);
+  if (!allMembersExists) {
+    database.run("INSERT INTO members (id, name) VALUES (?, ?)", [ALL_MEMBERS_ID, "All Members"]);
   }
 }

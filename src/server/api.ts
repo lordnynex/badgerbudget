@@ -1,4 +1,5 @@
 import { getDb } from "./db";
+import { ALL_MEMBERS_ID } from "@/lib/constants";
 
 const DEFAULT_INPUTS = {
   profitTarget: 2500,
@@ -585,7 +586,9 @@ export const api = {
   members: {
     list: async () => {
       const db = getDb();
-      const rows = db.query("SELECT * FROM members ORDER BY name").all() as Array<Record<string, unknown>>;
+      const rows = db
+        .query("SELECT * FROM members WHERE id != ? ORDER BY name")
+        .all(ALL_MEMBERS_ID) as Array<Record<string, unknown>>;
       return rows.map((m) => ({
         id: m.id,
         name: m.name,
