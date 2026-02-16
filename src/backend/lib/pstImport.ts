@@ -6,8 +6,11 @@
 import { writeFileSync, unlinkSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
-import { extractContactsFromPst, type ParsedPstContact, type PstContactPayload } from "@/shared/lib/pst";
-import { contactsApi } from "../services/contactsApi";
+import { extractContactsFromPst, type PstContactPayload } from "@/shared/lib/pst";
+
+export type GetForDeduplication = () => Promise<
+  Array<{ id: string; display_name: string; emails: string[]; addressKey: string; nameKey: string }>
+>;
 
 export interface PstImportPreviewItem {
   payload: PstContactPayload;
@@ -32,12 +35,15 @@ function fuzzyMatch(a: string, b: string): boolean {
   return na.includes(nb) || nb.includes(na);
 }
 
-export async function previewPstImport(fileBuffer: Buffer): Promise<PstImportPreviewItem[]> {
+export async function previewPstImport(
+  fileBuffer: Buffer,
+  getForDeduplication: GetForDeduplication
+): Promise<PstImportPreviewItem[]> {
   const tmpPath = join(tmpdir(), `pst-import-${Date.now()}-${Math.random().toString(36).slice(2)}.pst`);
   try {
     writeFileSync(tmpPath, fileBuffer);
     const parsed = extractContactsFromPst(tmpPath);
-    const existing = await contactsApi.getForDeduplication();
+    const existing = await getForDeduplication();
 
     const emailToContact = new Map<string, { id: string; display_name: string }>();
     const addressKeyToContact = new Map<string, { id: string; display_name: string }>();

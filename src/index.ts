@@ -1,9 +1,10 @@
 import "reflect-metadata";
-import { app } from "./backend/app";
-import { ensureDb } from "./backend/db/dbAdapter";
+import { createApp } from "./backend/app";
+import { getDbInstance } from "./backend/db/dbAdapter";
 
 async function main() {
-  await ensureDb();
+  const db = await getDbInstance();
+  const app = createApp(db);
   app.listen(3000);
   console.log("🚀 Server running at http://localhost:3000/");
 }

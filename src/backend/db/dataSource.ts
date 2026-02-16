@@ -1,5 +1,4 @@
-import type { DataSource } from "typeorm";
-import { createConnection, getConnectionManager } from "typeorm";
+import { DataSource } from "typeorm";
 import type { DataSourceOptions } from "typeorm";
 import { join } from "path";
 import {
@@ -33,7 +32,7 @@ const projectRoot = join(import.meta.dir, "../../..");
 const dbPath = join(projectRoot, "data", "badger.db");
 
 const dataSourceOptions: DataSourceOptions = {
-  name: "default",
+  name: "badger",
   type: "sqljs",
   location: dbPath,
   autoSave: true,
@@ -67,15 +66,23 @@ const dataSourceOptions: DataSourceOptions = {
   ],
 };
 
-const globalForDataSource = globalThis as unknown as { __badgerDataSourcePromise?: Promise<DataSource> };
+const globalForDataSource = globalThis as unknown as {
+  __badgerDataSource?: DataSource;
+  __badgerInitPromise?: Promise<DataSource>;
+};
 
-export function getDataSourcePromise(): Promise<DataSource> {
-  const manager = getConnectionManager();
-  if (manager.has("default")) {
-    return Promise.resolve(manager.get("default"));
+/**
+ * Returns the single DataSource instance. Initializes it once; all callers share the same instance.
+ * Do not use createConnection or getConnectionManager - this is the only connection.
+ */
+export async function getDataSource(): Promise<DataSource> {
+  if (globalForDataSource.__badgerDataSource?.isInitialized) {
+    return globalForDataSource.__badgerDataSource;
   }
-  if (!globalForDataSource.__badgerDataSourcePromise) {
-    globalForDataSource.__badgerDataSourcePromise = createConnection(dataSourceOptions);
+  if (!globalForDataSource.__badgerInitPromise) {
+    const ds = new DataSource(dataSourceOptions);
+    globalForDataSource.__badgerDataSource = ds;
+    globalForDataSource.__badgerInitPromise = ds.initialize().then(() => ds);
   }
-  return globalForDataSource.__badgerDataSourcePromise;
+  return globalForDataSource.__badgerInitPromise;
 }

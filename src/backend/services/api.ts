@@ -1,6 +1,6 @@
-import { getDb } from "../db/dbAdapter";
+import type { DbLike } from "../db/dbAdapter";
 import { ALL_MEMBERS_ID } from "@/shared/lib/constants";
-import { contactsApi, mailingListsApi, mailingBatchesApi } from "./contactsApi";
+import { createContactsApi } from "./contactsApi";
 
 const DEFAULT_INPUTS = {
   profitTarget: 2500,
@@ -44,10 +44,13 @@ function parsePhotoToBlob(photo: string): Buffer | null {
   }
 }
 
-export const api = {
+export function createApi(db: DbLike) {
+  const { contacts: contactsApi, mailingLists: mailingListsApi, mailingBatches: mailingBatchesApi } =
+    createContactsApi(db);
+
+  return {
   events: {
     list: async () => {
-      const db = getDb();
       const rows = (await await db.query("SELECT * FROM events ORDER BY year DESC, name").all()) as Array<Record<string, unknown>>;
       return rows.map((e) => ({
         id: e.id,
@@ -69,7 +72,6 @@ export const api = {
       }));
     },
     get: async (id: string) => {
-      const db = getDb();
       const row = await await db.query("SELECT * FROM events WHERE id = ?").get(id);
       if (!row) return null;
       const e = row as Record<string, unknown>;
@@ -237,7 +239,6 @@ export const api = {
       scenario_id?: string;
       planning_notes?: string;
     }) => {
-      const db = getDb();
       const id = uuid();
       await db.run(
         `INSERT INTO events (id, name, description, year, event_date, event_url, event_location, event_location_embed, ga_ticket_cost, day_pass_cost, ga_tickets_sold, day_passes_sold, budget_id, scenario_id, planning_notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -277,7 +278,6 @@ export const api = {
       scenario_id: string;
       planning_notes: string;
     }>) => {
-      const db = getDb();
       const existing = await db.query("SELECT * FROM events WHERE id = ?").get(id);
       if (!existing) return null;
       const row = existing as Record<string, unknown>;
@@ -303,7 +303,6 @@ export const api = {
       return api.events.get(id)!;
     },
     delete: async (id: string) => {
-      const db = getDb();
       await db.run("DELETE FROM event_assignment_members WHERE assignment_id IN (SELECT id FROM event_assignments WHERE event_id = ?)", [id]);
       await db.run("DELETE FROM event_assignments WHERE event_id = ?", [id]);
       await db.run("DELETE FROM event_planning_milestones WHERE event_id = ?", [id]);
@@ -315,7 +314,6 @@ export const api = {
     },
     assignments: {
       create: async (eventId: string, body: { name: string; category: "planning" | "during" }) => {
-        const db = getDb();
         const id = uuid();
         const maxOrder = await db.query("SELECT COALESCE(MAX(sort_order), 0) as m FROM event_assignments WHERE event_id = ? AND category = ?").get(eventId, body.category) as { m: number } | undefined;
         const sortOrder = (maxOrder?.m ?? 0) + 1;
@@ -326,7 +324,6 @@ export const api = {
         return { id, event_id: eventId, name: body.name, category: body.category, sort_order: sortOrder, members: [] };
       },
       update: async (eventId: string, aid: string, body: { name?: string; category?: "planning" | "during" }) => {
-        const db = getDb();
         const existing = await db.query("SELECT * FROM event_assignments WHERE id = ? AND event_id = ?").get(aid, eventId);
         if (!existing) return null;
         const row = existing as Record<string, unknown>;
@@ -349,13 +346,11 @@ export const api = {
         return { id: aid, event_id: eventId, name, category, sort_order: row.sort_order, members };
       },
       delete: async (eventId: string, aid: string) => {
-        const db = getDb();
         await db.run("DELETE FROM event_assignment_members WHERE assignment_id = ?", [aid]);
         await db.run("DELETE FROM event_assignments WHERE id = ? AND event_id = ?", [aid, eventId]);
         return { ok: true };
       },
       addMember: async (eventId: string, aid: string, memberId: string) => {
-        const db = getDb();
         const existing = await db.query("SELECT * FROM event_assignments WHERE id = ? AND event_id = ?").get(aid, eventId);
         if (!existing) return null;
         const maxOrder = await db.query("SELECT COALESCE(MAX(sort_order), 0) as m FROM event_assignment_members WHERE assignment_id = ?").get(aid) as { m: number };
@@ -371,14 +366,12 @@ export const api = {
         return api.events.get(eventId);
       },
       removeMember: async (eventId: string, aid: string, memberId: string) => {
-        const db = getDb();
         await db.run("DELETE FROM event_assignment_members WHERE assignment_id = ? AND member_id = ?", [aid, memberId]);
         return api.events.get(eventId);
       },
     },
     milestones: {
       create: async (eventId: string, body: { month: number; year: number; description: string; due_date?: string }) => {
-        const db = getDb();
         const id = uuid();
         const maxOrder = await db.query("SELECT COALESCE(MAX(sort_order), 0) as m FROM event_planning_milestones WHERE event_id = ?").get(eventId) as { m: number };
         const lastDay = new Date(body.year, body.month, 0);
@@ -390,7 +383,6 @@ export const api = {
         return { id, event_id: eventId, ...body, sort_order: (maxOrder?.m ?? 0) + 1, completed: false, due_date: dueDate };
       },
       update: async (eventId: string, mid: string, body: { month?: number; year?: number; description?: string; completed?: boolean; due_date?: string }) => {
-        const db = getDb();
         const existing = await db.query("SELECT * FROM event_planning_milestones WHERE id = ? AND event_id = ?").get(mid, eventId);
         if (!existing) return null;
         const row = existing as Record<string, unknown>;
@@ -403,12 +395,10 @@ export const api = {
         return { id: mid, event_id: eventId, month, year, description, sort_order: row.sort_order, completed: completed === 1, due_date: dueDate };
       },
       delete: async (eventId: string, mid: string) => {
-        const db = getDb();
         await db.run("DELETE FROM event_planning_milestones WHERE id = ? AND event_id = ?", [mid, eventId]);
         return { ok: true };
       },
       addMember: async (eventId: string, mid: string, memberId: string) => {
-        const db = getDb();
         const existing = await db.query("SELECT 1 FROM event_planning_milestones WHERE id = ? AND event_id = ?").get(mid, eventId);
         if (!existing) return null;
         const id = uuid();
@@ -420,14 +410,12 @@ export const api = {
         return api.events.get(eventId);
       },
       removeMember: async (eventId: string, mid: string, memberId: string) => {
-        const db = getDb();
         await db.run("DELETE FROM event_milestone_members WHERE milestone_id = ? AND member_id = ?", [mid, memberId]);
         return api.events.get(eventId);
       },
     },
     packingCategories: {
       create: async (eventId: string, body: { name: string }) => {
-        const db = getDb();
         const id = uuid();
         const maxOrder = await db.query("SELECT COALESCE(MAX(sort_order), 0) as m FROM event_packing_categories WHERE event_id = ?").get(eventId) as { m: number };
         await db.run(
@@ -437,7 +425,6 @@ export const api = {
         return { id, event_id: eventId, name: body.name, sort_order: (maxOrder?.m ?? 0) + 1 };
       },
       update: async (eventId: string, cid: string, body: { name?: string }) => {
-        const db = getDb();
         const existing = await db.query("SELECT * FROM event_packing_categories WHERE id = ? AND event_id = ?").get(cid, eventId);
         if (!existing) return null;
         const row = existing as Record<string, unknown>;
@@ -446,14 +433,12 @@ export const api = {
         return { id: cid, event_id: eventId, name, sort_order: row.sort_order };
       },
       delete: async (eventId: string, cid: string) => {
-        const db = getDb();
         await db.run("DELETE FROM event_packing_categories WHERE id = ? AND event_id = ?", [cid, eventId]);
         return { ok: true };
       },
     },
     packingItems: {
       create: async (eventId: string, body: { category_id: string; name: string; quantity?: number; note?: string }) => {
-        const db = getDb();
         const id = uuid();
         const maxOrder = await db.query("SELECT COALESCE(MAX(sort_order), 0) as m FROM event_packing_items WHERE event_id = ? AND category_id = ?").get(eventId, body.category_id) as { m: number };
         await db.run(
@@ -463,7 +448,6 @@ export const api = {
         return { id, event_id: eventId, category_id: body.category_id, name: body.name, sort_order: (maxOrder?.m ?? 0) + 1, quantity: body.quantity ?? null, note: body.note ?? null, loaded: false };
       },
       update: async (eventId: string, pid: string, body: { category_id?: string; name?: string; quantity?: number; note?: string; loaded?: boolean }) => {
-        const db = getDb();
         const existing = await db.query("SELECT * FROM event_packing_items WHERE id = ? AND event_id = ?").get(pid, eventId);
         if (!existing) return null;
         const row = existing as Record<string, unknown>;
@@ -476,14 +460,12 @@ export const api = {
         return { id: pid, event_id: eventId, category_id, name, sort_order: row.sort_order, quantity, note, loaded: loaded === 1 };
       },
       delete: async (eventId: string, pid: string) => {
-        const db = getDb();
         await db.run("DELETE FROM event_packing_items WHERE id = ? AND event_id = ?", [pid, eventId]);
         return { ok: true };
       },
     },
     volunteers: {
       create: async (eventId: string, body: { name: string; department: string }) => {
-        const db = getDb();
         const id = uuid();
         const maxOrder = await db.query("SELECT COALESCE(MAX(sort_order), 0) as m FROM event_volunteers WHERE event_id = ?").get(eventId) as { m: number };
         await db.run(
@@ -493,7 +475,6 @@ export const api = {
         return { id, event_id: eventId, ...body, sort_order: (maxOrder?.m ?? 0) + 1 };
       },
       update: async (eventId: string, vid: string, body: { name?: string; department?: string }) => {
-        const db = getDb();
         const existing = await db.query("SELECT * FROM event_volunteers WHERE id = ? AND event_id = ?").get(vid, eventId);
         if (!existing) return null;
         const row = existing as Record<string, unknown>;
@@ -503,7 +484,6 @@ export const api = {
         return { id: vid, event_id: eventId, name, department, sort_order: row.sort_order };
       },
       delete: async (eventId: string, vid: string) => {
-        const db = getDb();
         await db.run("DELETE FROM event_volunteers WHERE id = ? AND event_id = ?", [vid, eventId]);
         return { ok: true };
       },
@@ -511,12 +491,10 @@ export const api = {
   },
   budgets: {
     list: async () => {
-      const db = getDb();
       const rows = await db.query("SELECT * FROM budgets ORDER BY year DESC, name").all();
       return rows as Array<{ id: string; name: string; year: number; description: string | null; created_at: string }>;
     },
     get: async (id: string) => {
-      const db = getDb();
       const budget = await db.query("SELECT * FROM budgets WHERE id = ?").get(id);
       if (!budget) return null;
       const itemsRaw = await db
@@ -537,7 +515,6 @@ export const api = {
       };
     },
     create: async (body: { name: string; year: number; description?: string }) => {
-      const db = getDb();
       const id = uuid();
       await db.run(
         "INSERT INTO budgets (id, name, year, description) VALUES (?, ?, ?, ?)",
@@ -546,7 +523,6 @@ export const api = {
       return { id, ...body };
     },
     update: async (id: string, body: { name?: string; year?: number; description?: string }) => {
-      const db = getDb();
       const existing = await db.query("SELECT * FROM budgets WHERE id = ?").get(id);
       if (!existing) return null;
       const budget = existing as Record<string, unknown>;
@@ -557,7 +533,6 @@ export const api = {
       return { id, name, year, description };
     },
     delete: async (id: string) => {
-      const db = getDb();
       await db.run("DELETE FROM line_items WHERE budget_id = ?", [id]);
       await db.run("DELETE FROM budgets WHERE id = ?", [id]);
       return { ok: true };
@@ -573,7 +548,6 @@ export const api = {
         historicalCosts?: Record<string, number>;
       }
     ) => {
-      const db = getDb();
       const itemId = uuid();
       await db.run(
         "INSERT INTO line_items (id, budget_id, name, category, comments, unit_cost, quantity, historical_costs) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
@@ -596,7 +570,6 @@ export const api = {
         historicalCosts: Record<string, number>;
       }>
     ) => {
-      const db = getDb();
       const existing = await db.query("SELECT * FROM line_items WHERE id = ? AND budget_id = ?").get(itemId, budgetId);
       if (!existing) return null;
       const row = existing as Record<string, unknown>;
@@ -617,14 +590,12 @@ export const api = {
       return { id: itemId, name, category, comments, unitCost, quantity, historicalCosts };
     },
     deleteLineItem: async (budgetId: string, itemId: string) => {
-      const db = getDb();
       await db.run("DELETE FROM line_items WHERE id = ? AND budget_id = ?", [itemId, budgetId]);
       return { ok: true };
     },
   },
   members: {
     list: async () => {
-      const db = getDb();
       const rows = (await db
         .query("SELECT * FROM members WHERE id != ? ORDER BY name")
         .all(ALL_MEMBERS_ID)) as Array<Record<string, unknown>>;
@@ -645,7 +616,6 @@ export const api = {
       }));
     },
     get: async (id: string) => {
-      const db = getDb();
       const row = await db.query("SELECT * FROM members WHERE id = ?").get(id);
       if (!row) return null;
       const m = row as Record<string, unknown>;
@@ -678,7 +648,6 @@ export const api = {
       emergency_contact_phone?: string;
       photo?: string;
     }) => {
-      const db = getDb();
       const id = uuid();
       const photoBlob = body.photo ? parsePhotoToBlob(body.photo) : null;
       await db.run(
@@ -713,7 +682,6 @@ export const api = {
       emergency_contact_phone: string;
       photo: string;
     }>) => {
-      const db = getDb();
       const existing = await db.query("SELECT * FROM members WHERE id = ?").get(id);
       if (!existing) return null;
       const row = existing as Record<string, unknown>;
@@ -740,19 +708,16 @@ export const api = {
       return api.members.get(id)!;
     },
     delete: async (id: string) => {
-      const db = getDb();
       await db.run("DELETE FROM members WHERE id = ?", [id]);
       return { ok: true };
     },
   },
   scenarios: {
     list: async () => {
-      const db = getDb();
       const rows = await db.query("SELECT * FROM scenarios ORDER BY name").all();
       return rows as Array<{ id: string; name: string; description: string | null; inputs: string; created_at: string }>;
     },
     get: async (id: string) => {
-      const db = getDb();
       const row = await db.query("SELECT * FROM scenarios WHERE id = ?").get(id);
       if (!row) return null;
       const r = row as Record<string, unknown>;
@@ -762,7 +727,6 @@ export const api = {
       };
     },
     create: async (body: { name: string; description?: string; inputs?: Record<string, unknown> }) => {
-      const db = getDb();
       const id = uuid();
       const inputs = body.inputs ?? DEFAULT_INPUTS;
       await db.run(
@@ -775,7 +739,6 @@ export const api = {
       id: string,
       body: { name?: string; description?: string; inputs?: Record<string, unknown> }
     ) => {
-      const db = getDb();
       const existing = await db.query("SELECT * FROM scenarios WHERE id = ?").get(id);
       if (!existing) return null;
       const row = existing as Record<string, unknown>;
@@ -786,7 +749,6 @@ export const api = {
       return { id, name, description, inputs };
     },
     delete: async (id: string) => {
-      const db = getDb();
       await db.run("DELETE FROM scenarios WHERE id = ?", [id]);
       return { ok: true };
     },
@@ -794,4 +756,7 @@ export const api = {
   contacts: contactsApi,
   mailingLists: mailingListsApi,
   mailingBatches: mailingBatchesApi,
-};
+  };
+}
+
+export type Api = ReturnType<typeof createApi>;
