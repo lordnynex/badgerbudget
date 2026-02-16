@@ -1,12 +1,9 @@
 import { dataSource } from "./dataSource";
 
-let initialized = false;
-
 export async function ensureDb(): Promise<void> {
-  if (!initialized) {
+  if (!dataSource.isInitialized) {
     await dataSource.initialize();
     await ensureSchema();
-    initialized = true;
   }
 }
 

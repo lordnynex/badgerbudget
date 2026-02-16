@@ -6,8 +6,8 @@
 import { writeFileSync, unlinkSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
-import { extractContactsFromPst, type ParsedPstContact, type PstContactPayload } from "@/lib/pst";
-import { contactsApi } from "./contactsApi";
+import { extractContactsFromPst, type ParsedPstContact, type PstContactPayload } from "@/shared/lib/pst";
+import { contactsApi } from "../services/contactsApi";
 
 export interface PstImportPreviewItem {
   payload: PstContactPayload;

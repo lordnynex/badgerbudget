@@ -1,4 +1,4 @@
-import { getDb } from "./dbAdapter";
+import { getDb } from "../db/dbAdapter";
 import type {
   Contact,
   ContactEmail,
@@ -13,7 +13,7 @@ import type {
   ContactSearchParams,
   ContactSearchResult,
   MailingListCriteria,
-} from "@/types/contact";
+} from "@/shared/types/contact";
 
 function uuid(): string {
   return crypto.randomUUID();

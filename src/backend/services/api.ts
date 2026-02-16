@@ -1,5 +1,5 @@
-import { getDb } from "./dbAdapter";
-import { ALL_MEMBERS_ID } from "@/lib/constants";
+import { getDb } from "../db/dbAdapter";
+import { ALL_MEMBERS_ID } from "@/shared/lib/constants";
 import { contactsApi, mailingListsApi, mailingBatchesApi } from "./contactsApi";
 
 const DEFAULT_INPUTS = {
