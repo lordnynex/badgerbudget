@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,20 +10,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { api } from "@/data/api";
-import type { Contact, ContactSearchParams, Tag } from "@/types/contact";
+import type { ContactSearchParams } from "@/types/contact";
 import { contactsToVCardFile } from "@/lib/vcard";
 import { Link } from "react-router-dom";
 import { Plus, Search, Download, Upload, List, Trash2 } from "lucide-react";
 import { AddContactDialog } from "./AddContactDialog";
 import { ImportContactsDialog } from "./ImportContactsDialog";
 import { AddToMailingListDialog } from "./AddToMailingListDialog";
+import { useContactsSuspense, useContactTags, useInvalidateQueries } from "@/queries/hooks";
 
 function useDebounce<T>(value: T, delay: number): T {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -36,9 +31,7 @@ function useDebounce<T>(value: T, delay: number): T {
 
 export function ContactsPanel() {
   const navigate = useNavigate();
-  const [contacts, setContacts] = useState<Contact[]>([]);
-  const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const invalidate = useInvalidateQueries();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<ContactSearchParams["status"]>("active");
   const [hasPostal, setHasPostal] = useState<boolean | undefined>();
@@ -47,40 +40,29 @@ export function ContactsPanel() {
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [page, setPage] = useState(1);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [tags, setTags] = useState<Tag[]>([]);
   const [addOpen, setAddOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [addToListOpen, setAddToListOpen] = useState(false);
 
   const debouncedSearch = useDebounce(search, 300);
 
-  const refresh = useCallback(async () => {
-    setLoading(true);
-    try {
-      const result = await api.contacts.list({
-        q: debouncedSearch || undefined,
-        status,
-        hasPostalAddress: hasPostal,
-        hasEmail,
-        sort,
-        sortDir,
-        page,
-        limit: 25,
-      });
-      setContacts(result.contacts);
-      setTotal(result.total);
-    } finally {
-      setLoading(false);
-    }
-  }, [debouncedSearch, status, hasPostal, hasEmail, sort, sortDir, page]);
+  const params: ContactSearchParams = {
+    q: debouncedSearch || undefined,
+    status,
+    hasPostalAddress: hasPostal,
+    hasEmail,
+    sort,
+    sortDir,
+    page,
+    limit: 25,
+  };
 
-  useEffect(() => {
-    refresh();
-  }, [refresh]);
+  const { data: result } = useContactsSuspense(params);
+  const { data: tags = [] } = useContactTags();
+  const contacts = result.contacts;
+  const total = result.total;
 
-  useEffect(() => {
-    api.contacts.tags.list().then(setTags);
-  }, []);
+  const refresh = () => invalidate.invalidateContacts();
 
   const toggleSelect = (id: string) => {
     setSelectedIds((prev) => {
@@ -232,9 +214,7 @@ export function ContactsPanel() {
             </div>
           )}
 
-          {loading ? (
-            <div className="py-12 text-center text-muted-foreground">Loading contacts...</div>
-          ) : contacts.length === 0 ? (
+          {contacts.length === 0 ? (
             <div className="py-12 text-center text-muted-foreground">
               No contacts found. Add one or import from vCard/CSV.
             </div>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,10 +16,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { api } from "@/data/api";
-import type { MailingBatch, MailingBatchRecipient } from "@/types/contact";
+import type { MailingBatchRecipient } from "@/types/contact";
 import { contactsToVCardFile } from "@/lib/vcard";
 import { generatePdfLabels } from "@/lib/pdf-labels";
-import { ArrowLeft, Download, ChevronDown } from "lucide-react";
+import { ArrowLeft, ChevronDown } from "lucide-react";
+import { useMailingBatchSuspense, useInvalidateQueries } from "@/queries/hooks";
 
 function recipientToContact(r: MailingBatchRecipient): Parameters<typeof contactsToVCardFile>[0][number] {
   return {
@@ -60,26 +61,18 @@ function recipientToContact(r: MailingBatchRecipient): Parameters<typeof contact
 
 export function MailingBatchPage() {
   const { batchId } = useParams<{ batchId: string }>();
+  if (!batchId) return null;
+  return <MailingBatchContent batchId={batchId} />;
+}
+
+function MailingBatchContent({ batchId }: { batchId: string }) {
   const navigate = useNavigate();
-  const [batch, setBatch] = useState<MailingBatch | null>(null);
-  const [loading, setLoading] = useState(true);
+  const invalidate = useInvalidateQueries();
+  const { data: batch } = useMailingBatchSuspense(batchId);
   const [pdfFontSize, setPdfFontSize] = useState(10);
   const [pdfIncludeOrg, setPdfIncludeOrg] = useState(false);
 
-  const refresh = async () => {
-    if (!batchId) return;
-    setLoading(true);
-    try {
-      const b = await api.mailingBatches.get(batchId);
-      setBatch(b ?? null);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    refresh();
-  }, [batchId]);
+  const refresh = () => invalidate.invalidateMailingBatch(batchId);
 
   const handleExportVCard = () => {
     if (!batch?.recipients?.length) return;
@@ -139,32 +132,9 @@ export function MailingBatchPage() {
   };
 
   const handleStatusChange = async (recipientId: string, status: MailingBatchRecipient["status"], reason?: string) => {
-    if (!batchId) return;
     await api.mailingBatches.updateRecipientStatus(batchId, recipientId, status, reason);
     refresh();
   };
-
-  if (loading) {
-    return (
-      <Card>
-        <CardContent className="py-12 text-center text-muted-foreground">
-          Loading batch...
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (!batch) {
-    return (
-      <div className="space-y-4">
-        <Button variant="ghost" onClick={() => navigate("/contacts/lists")}>
-          <ArrowLeft className="size-4" />
-          Back
-        </Button>
-        <p className="text-muted-foreground">Batch not found.</p>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">

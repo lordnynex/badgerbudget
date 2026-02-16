@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Pencil, Plus } from "lucide-react";
 import { useAppState } from "@/state/AppState";
+import { useInvalidateQueries } from "@/queries/hooks";
 import { api } from "@/data/api";
 import {
   Dialog,
@@ -24,6 +25,7 @@ export function BudgetsPanel() {
     refreshBudgets,
     refreshBudget,
   } = useAppState();
+  const invalidate = useInvalidateQueries();
   const [createOpen, setCreateOpen] = useState(false);
   const [newName, setNewName] = useState("");
   const [newYear, setNewYear] = useState(new Date().getFullYear());
@@ -44,16 +46,18 @@ export function BudgetsPanel() {
     setNewYear(new Date().getFullYear());
     setNewDescription("");
     setCreateOpen(false);
+    invalidate.invalidateBudgets();
     await refreshBudgets();
-    await selectBudget(created.id);
+    selectBudget(created.id);
   };
 
   const handleDelete = async (id: string) => {
     if (!window.confirm("Delete this budget and all its line items?")) return;
     await api.budgets.delete(id);
+    invalidate.invalidateBudgets();
     await refreshBudgets();
     const remaining = budgets.filter((b) => b.id !== id);
-    await selectBudget(remaining[0]?.id ?? null);
+    selectBudget(remaining[0]?.id ?? null);
   };
 
   const openEdit = (b: { id: string; name: string; year: number; description: string | null }) => {
@@ -69,6 +73,8 @@ export function BudgetsPanel() {
       name: editName.trim(),
       description: editDescription.trim(),
     });
+    invalidate.invalidateBudgets();
+    invalidate.invalidateBudget(editingBudget.id);
     await refreshBudgets();
     if (currentBudget?.id === editingBudget.id) {
       await refreshBudget(editingBudget.id);

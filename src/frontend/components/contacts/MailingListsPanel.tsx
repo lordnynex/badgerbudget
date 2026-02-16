@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,59 +19,26 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { api } from "@/data/api";
-import type { MailingList, ListPreview, Contact, MailingListCriteria } from "@/types/contact";
+import type { MailingList, ListPreview } from "@/types/contact";
 import { contactsToVCardFile } from "@/lib/vcard";
 import { ArrowLeft, Plus, Pencil, Trash2, Download, Mail, Users } from "lucide-react";
 import { AddContactToMailingListDialog } from "./AddContactToMailingListDialog";
+import { useMailingListsSuspense, useEventsSuspense, useMailingListSuspense, useMailingListPreview, useInvalidateQueries } from "@/queries/hooks";
+import { PageLoading } from "@/components/layout/PageLoading";
 
 export function MailingListsPanel() {
   const { listId } = useParams<{ listId?: string }>();
   const navigate = useNavigate();
-  const [lists, setLists] = useState<MailingList[]>([]);
-  const [selectedList, setSelectedList] = useState<MailingList | null>(null);
-  const [preview, setPreview] = useState<ListPreview | null>(null);
-  const [loading, setLoading] = useState(true);
+  const invalidate = useInvalidateQueries();
+  const { data: lists } = useMailingListsSuspense();
+  const { data: events } = useEventsSuspense();
   const [createOpen, setCreateOpen] = useState(false);
-  const [editOpen, setEditOpen] = useState(false);
-  const [editName, setEditName] = useState("");
-  const [editDescription, setEditDescription] = useState("");
-  const [addMemberOpen, setAddMemberOpen] = useState(false);
   const [newName, setNewName] = useState("");
   const [newDescription, setNewDescription] = useState("");
   const [newListType, setNewListType] = useState<MailingList["list_type"]>("static");
   const [newEventId, setNewEventId] = useState<string>("");
-  const [events, setEvents] = useState<Array<{ id: string; name: string }>>([]);
 
-  const refreshLists = async () => {
-    const [listData, eventData] = await Promise.all([
-      api.mailingLists.list(),
-      api.events.list(),
-    ]);
-    setLists(listData);
-    setEvents(eventData);
-  };
-
-  useEffect(() => {
-    refreshLists();
-  }, []);
-
-  useEffect(() => {
-    if (listId) {
-      setLoading(true);
-      Promise.all([
-        api.mailingLists.get(listId),
-        api.mailingLists.preview(listId),
-      ]).then(([list, prev]) => {
-        setSelectedList(list ?? null);
-        setPreview(prev ?? null);
-        setLoading(false);
-      });
-    } else {
-      setSelectedList(null);
-      setPreview(null);
-      setLoading(false);
-    }
-  }, [listId]);
+  const refreshLists = () => invalidate.invalidateMailingLists();
 
   const handleCreate = async () => {
     if (!newName.trim()) return;
@@ -89,144 +56,16 @@ export function MailingListsPanel() {
     refreshLists();
   };
 
-  const handleCreateBatch = async () => {
-    if (!selectedList) return;
-    const batch = await api.mailingBatches.create(
-      selectedList.id,
-      `${selectedList.name} - ${new Date().toISOString().slice(0, 10)}`
-    );
-    if (batch) navigate(`/contacts/batches/${batch.id}`);
-  };
-
-  const handleExportVCard = () => {
-    if (!preview || preview.included.length === 0) return;
-    const contacts = preview.included.map((i) => i.contact);
-    const vcf = contactsToVCardFile(contacts);
-    const blob = new Blob([vcf], { type: "text/vcard;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${selectedList?.name ?? "list"}.vcf`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const handleDeleteList = async () => {
-    if (!selectedList || !confirm("Delete this mailing list?")) return;
-    await api.mailingLists.delete(selectedList.id);
-    navigate("/contacts/lists");
-  };
-
-  if (listId && selectedList) {
+  if (listId) {
     return (
-      <div className="space-y-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <Button variant="ghost" onClick={() => navigate("/contacts/lists")}>
-            <ArrowLeft className="size-4" />
-            Back to Lists
-          </Button>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setAddMemberOpen(true)}>
-              <Users className="size-4" />
-              Add members
-            </Button>
-            <Button variant="outline" onClick={handleExportVCard} disabled={!preview || preview.totalIncluded === 0}>
-              <Download className="size-4" />
-              Export vCard
-            </Button>
-            <Button onClick={handleCreateBatch} disabled={!preview || preview.totalIncluded === 0}>
-              <Mail className="size-4" />
-              Create mailing batch
-            </Button>
-            <Button variant="outline" onClick={() => { setEditName(selectedList.name); setEditDescription(selectedList.description ?? ""); setEditOpen(true); }}>
-              <Pencil className="size-4" />
-              Edit
-            </Button>
-            <Button variant="outline" onClick={handleDeleteList} className="text-destructive hover:text-destructive">
-              <Trash2 className="size-4" />
-              Delete
-            </Button>
-          </div>
-        </div>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>{selectedList.name}</CardTitle>
-            <p className="text-sm text-muted-foreground">
-              {selectedList.list_type} list
-              {selectedList.event_id && events.find((e) => e.id === selectedList.event_id) && (
-                <> • {events.find((e) => e.id === selectedList.event_id)!.name}</>
-              )}
-            </p>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {selectedList.description && (
-              <p className="text-muted-foreground">{selectedList.description}</p>
-            )}
-
-            <div>
-              <h3 className="font-medium">Preview</h3>
-              <p className="text-sm text-muted-foreground">
-                {preview?.totalIncluded ?? 0} included, {preview?.totalExcluded ?? 0} excluded
-              </p>
-              {preview && preview.excluded.length > 0 && (
-                <div className="mt-2 rounded-lg border p-3">
-                  <p className="text-sm font-medium">Excluded ({preview.excluded.length})</p>
-                  <ul className="mt-1 max-h-32 overflow-y-auto text-sm text-muted-foreground">
-                    {preview.excluded.slice(0, 10).map((e, i) => (
-                      <li key={i}>
-                        {e.contact.display_name} – {e.reason}
-                      </li>
-                    ))}
-                    {preview.excluded.length > 10 && (
-                      <li>... and {preview.excluded.length - 10} more</li>
-                    )}
-                  </ul>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        <AddContactToMailingListDialog
-          open={addMemberOpen}
-          onOpenChange={setAddMemberOpen}
-          listId={selectedList.id}
-          onSuccess={() => {
-            api.mailingLists.preview(selectedList.id).then(setPreview);
-          }}
+      <Suspense fallback={<PageLoading />}>
+        <MailingListDetail
+          listId={listId}
+          events={events}
+          onBack={() => navigate("/contacts/lists")}
+          invalidate={invalidate}
         />
-
-        <Dialog open={editOpen} onOpenChange={setEditOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Edit mailing list</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label>Name</Label>
-                <Input value={editName} onChange={(e) => setEditName(e.target.value)} />
-              </div>
-              <div>
-                <Label>Description</Label>
-                <Input value={editDescription} onChange={(e) => setEditDescription(e.target.value)} />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
-              <Button onClick={async () => {
-                if (!selectedList) return;
-                await api.mailingLists.update(selectedList.id, { name: editName, description: editDescription });
-                setEditOpen(false);
-                refreshLists();
-                const [list, prev] = await Promise.all([api.mailingLists.get(selectedList.id), api.mailingLists.preview(selectedList.id)]);
-                setSelectedList(list ?? null);
-                setPreview(prev ?? null);
-              }}>Save</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
+      </Suspense>
     );
   }
 
@@ -329,6 +168,165 @@ export function MailingListsPanel() {
             <Button onClick={handleCreate} disabled={!newName.trim()}>
               Create
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+function MailingListDetail({
+  listId,
+  events,
+  onBack,
+  invalidate,
+}: {
+  listId: string;
+  events: Array<{ id: string; name: string }>;
+  onBack: () => void;
+  invalidate: ReturnType<typeof useInvalidateQueries>;
+}) {
+  const navigate = useNavigate();
+  const { data: selectedList } = useMailingListSuspense(listId);
+  const { data: preview } = useMailingListPreview(listId);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editName, setEditName] = useState(selectedList.name);
+  const [editDescription, setEditDescription] = useState(selectedList.description ?? "");
+  const [addMemberOpen, setAddMemberOpen] = useState(false);
+
+  const refreshList = () => {
+    invalidate.invalidateMailingList(listId);
+  };
+
+  const handleCreateBatch = async () => {
+    const batch = await api.mailingBatches.create(
+      selectedList.id,
+      `${selectedList.name} - ${new Date().toISOString().slice(0, 10)}`
+    );
+    if (batch) navigate(`/contacts/batches/${batch.id}`);
+  };
+
+  const handleExportVCard = () => {
+    if (!preview || preview.included.length === 0) return;
+    const contacts = preview.included.map((i) => i.contact);
+    const vcf = contactsToVCardFile(contacts);
+    const blob = new Blob([vcf], { type: "text/vcard;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${selectedList.name}.vcf`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleDeleteList = async () => {
+    if (!confirm("Delete this mailing list?")) return;
+    await api.mailingLists.delete(selectedList.id);
+    onBack();
+    invalidate.invalidateMailingLists();
+  };
+
+  const handleSaveEdit = async () => {
+    await api.mailingLists.update(selectedList.id, { name: editName, description: editDescription });
+    setEditOpen(false);
+    refreshList();
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <Button variant="ghost" onClick={onBack}>
+          <ArrowLeft className="size-4" />
+          Back to Lists
+        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setAddMemberOpen(true)}>
+            <Users className="size-4" />
+            Add members
+          </Button>
+          <Button variant="outline" onClick={handleExportVCard} disabled={!preview || preview.totalIncluded === 0}>
+            <Download className="size-4" />
+            Export vCard
+          </Button>
+          <Button onClick={handleCreateBatch} disabled={!preview || preview.totalIncluded === 0}>
+            <Mail className="size-4" />
+            Create mailing batch
+          </Button>
+          <Button variant="outline" onClick={() => { setEditName(selectedList.name); setEditDescription(selectedList.description ?? ""); setEditOpen(true); }}>
+            <Pencil className="size-4" />
+            Edit
+          </Button>
+          <Button variant="outline" onClick={handleDeleteList} className="text-destructive hover:text-destructive">
+            <Trash2 className="size-4" />
+            Delete
+          </Button>
+        </div>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{selectedList.name}</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            {selectedList.list_type} list
+            {selectedList.event_id && events.find((e) => e.id === selectedList.event_id) && (
+              <> • {events.find((e) => e.id === selectedList.event_id)!.name}</>
+            )}
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {selectedList.description && (
+            <p className="text-muted-foreground">{selectedList.description}</p>
+          )}
+
+          <div>
+            <h3 className="font-medium">Preview</h3>
+            <p className="text-sm text-muted-foreground">
+              {preview?.totalIncluded ?? 0} included, {preview?.totalExcluded ?? 0} excluded
+            </p>
+            {preview && preview.excluded.length > 0 && (
+              <div className="mt-2 rounded-lg border p-3">
+                <p className="text-sm font-medium">Excluded ({preview.excluded.length})</p>
+                <ul className="mt-1 max-h-32 overflow-y-auto text-sm text-muted-foreground">
+                  {preview.excluded.slice(0, 10).map((e, i) => (
+                    <li key={i}>
+                      {e.contact.display_name} – {e.reason}
+                    </li>
+                  ))}
+                  {preview.excluded.length > 10 && (
+                    <li>... and {preview.excluded.length - 10} more</li>
+                  )}
+                </ul>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      <AddContactToMailingListDialog
+        open={addMemberOpen}
+        onOpenChange={setAddMemberOpen}
+        listId={selectedList.id}
+        onSuccess={refreshList}
+      />
+
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit mailing list</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Name</Label>
+              <Input value={editName} onChange={(e) => setEditName(e.target.value)} />
+            </div>
+            <div>
+              <Label>Description</Label>
+              <Input value={editDescription} onChange={(e) => setEditDescription(e.target.value)} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
+            <Button onClick={handleSaveEdit}>Save</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

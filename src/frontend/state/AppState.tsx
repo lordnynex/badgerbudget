@@ -142,8 +142,8 @@ function appReducer(state: AppState, action: AppAction): AppState {
 
 interface AppStateContextValue extends AppState {
   dispatch: React.Dispatch<AppAction>;
-  selectBudget: (id: string | null) => Promise<void>;
-  selectScenario: (id: string | null) => Promise<void>;
+  selectBudget: (id: string | null) => void;
+  selectScenario: (id: string | null) => void;
   refreshBudget: (id: string) => Promise<void>;
   refreshScenario: (id: string) => Promise<void>;
   refreshBudgets: () => Promise<void>;
@@ -168,28 +168,19 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     currentBudget: null,
     currentScenario: null,
     categories: DEFAULT_CATEGORIES,
-    loading: true,
+    loading: false,
     error: null,
   });
 
-  const selectBudget = useCallback(async (id: string | null) => {
+  // Selection only; actual budget/scenario data is loaded by BudgetScenarioLayout via TanStack Query.
+  const selectBudget = useCallback((id: string | null) => {
     dispatch({ type: "SET_SELECTED_BUDGET", payload: id });
-    if (!id) {
-      dispatch({ type: "SET_CURRENT_BUDGET", payload: null });
-      return;
-    }
-    const budget = await api.budgets.get(id);
-    dispatch({ type: "SET_CURRENT_BUDGET", payload: budget });
+    dispatch({ type: "SET_CURRENT_BUDGET", payload: null });
   }, []);
 
-  const selectScenario = useCallback(async (id: string | null) => {
+  const selectScenario = useCallback((id: string | null) => {
     dispatch({ type: "SET_SELECTED_SCENARIO", payload: id });
-    if (!id) {
-      dispatch({ type: "SET_CURRENT_SCENARIO", payload: null });
-      return;
-    }
-    const scenario = await api.scenarios.get(id);
-    dispatch({ type: "SET_CURRENT_SCENARIO", payload: scenario });
+    dispatch({ type: "SET_CURRENT_SCENARIO", payload: null });
   }, []);
 
   const refreshBudget = useCallback(async (id: string) => {

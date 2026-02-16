@@ -1,38 +1,11 @@
-import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { api } from "@/data/api";
-import type { Event } from "@/types/budget";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useEventsSuspense } from "@/queries/hooks";
 import { Calendar, ChevronRight } from "lucide-react";
 
 export function EventsPanel() {
   const navigate = useNavigate();
-  const [events, setEvents] = useState<Event[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const refresh = async () => {
-    setLoading(true);
-    try {
-      const list = await api.events.list();
-      setEvents(list);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    refresh();
-  }, []);
-
-  if (loading) {
-    return (
-      <Card>
-        <CardContent className="py-12 text-center text-muted-foreground">
-          Loading events...
-        </CardContent>
-      </Card>
-    );
-  }
+  const { data: events } = useEventsSuspense();
 
   return (
     <div className="space-y-6">

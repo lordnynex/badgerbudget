@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Check, Pencil, Plus, Trash2 } from "lucide-react";
 import { useAppState } from "@/state/AppState";
+import { useInvalidateQueries } from "@/queries/hooks";
 import { api } from "@/data/api";
 import {
   Dialog,
@@ -24,6 +25,7 @@ export function ScenariosPanel() {
     refreshScenarios,
     refreshScenario,
   } = useAppState();
+  const invalidate = useInvalidateQueries();
   const [createOpen, setCreateOpen] = useState(false);
   const [newName, setNewName] = useState("");
   const [newDescription, setNewDescription] = useState("");
@@ -42,16 +44,18 @@ export function ScenariosPanel() {
     setNewName("");
     setNewDescription("");
     setCreateOpen(false);
+    invalidate.invalidateScenarios();
     await refreshScenarios();
-    await selectScenario(created.id);
+    selectScenario(created.id);
   };
 
   const handleDelete = async (id: string) => {
     if (!window.confirm("Delete this scenario?")) return;
     await api.scenarios.delete(id);
+    invalidate.invalidateScenarios();
     await refreshScenarios();
     const remaining = scenarios.filter((s) => s.id !== id);
-    await selectScenario(remaining[0]?.id ?? null);
+    selectScenario(remaining[0]?.id ?? null);
   };
 
   const openEdit = (s: { id: string; name: string; description: string | null }) => {
@@ -68,6 +72,8 @@ export function ScenariosPanel() {
       name: editName.trim(),
       description: editDescription.trim(),
     });
+    invalidate.invalidateScenarios();
+    invalidate.invalidateScenario(editingScenario.id);
     await refreshScenarios();
     if (currentScenario?.id === editingScenario.id) {
       await refreshScenario(editingScenario.id);

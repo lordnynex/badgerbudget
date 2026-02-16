@@ -1,9 +1,7 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { api } from "@/data/api";
-import type { Member } from "@/types/budget";
+import { useMembersSuspense, useInvalidateQueries } from "@/queries/hooks";
 import { MemberCard } from "./MemberCard";
 import { MembersExportDropdown } from "./MembersExportDropdown";
 import { UpcomingBirthdaysSection } from "./UpcomingBirthdaysSection";
@@ -13,36 +11,14 @@ import { Plus } from "lucide-react";
 
 export function MembersPanel() {
   const navigate = useNavigate();
-  const [members, setMembers] = useState<Member[]>([]);
-  const [loading, setLoading] = useState(true);
   const [addOpen, setAddOpen] = useState(false);
-
-  const refresh = async () => {
-    setLoading(true);
-    try {
-      const list = await api.members.list();
-      setMembers(list);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    refresh();
-  }, []);
+  const invalidate = useInvalidateQueries();
+  const { data: members } = useMembersSuspense();
 
   const officers = members.filter((m) => m.position && m.position !== "Member");
   const regularMembers = members.filter((m) => !m.position || m.position === "Member");
 
-  if (loading) {
-    return (
-      <Card>
-        <CardContent className="py-12 text-center text-muted-foreground">
-          Loading members...
-        </CardContent>
-      </Card>
-    );
-  }
+  const onSuccess = () => invalidate.invalidateMembers();
 
   return (
     <div className="space-y-8">
@@ -98,7 +74,7 @@ export function MembersPanel() {
         )}
       </section>
 
-      <AddMemberDialog open={addOpen} onOpenChange={setAddOpen} onSuccess={refresh} />
+      <AddMemberDialog open={addOpen} onOpenChange={setAddOpen} onSuccess={onSuccess} />
     </div>
   );
 }

@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { api } from "@/data/api";
-import type { Member } from "@/types/budget";
+import { useMemberSuspense, useInvalidateQueries } from "@/queries/hooks";
 import { MemberProfileCard } from "./MemberProfileCard";
 import { MemberEmergencyContactCard } from "./MemberEmergencyContactCard";
 import { MemberPhotoLightbox } from "./MemberPhotoLightbox";
@@ -12,9 +12,14 @@ import { ArrowLeft, Pencil } from "lucide-react";
 
 export function MemberDetailPage() {
   const { id } = useParams<{ id: string }>();
+  if (!id) return null;
+  return <MemberDetailContent id={id} />;
+}
+
+function MemberDetailContent({ id }: { id: string }) {
   const navigate = useNavigate();
-  const [member, setMember] = useState<Member | null>(null);
-  const [loading, setLoading] = useState(true);
+  const invalidate = useInvalidateQueries();
+  const { data: member } = useMemberSuspense(id);
   const [editOpen, setEditOpen] = useState(false);
   const [photoLightboxOpen, setPhotoLightboxOpen] = useState(false);
 
@@ -32,43 +37,30 @@ export function MemberDetailPage() {
   const [editPhoto, setEditPhoto] = useState<string | null>(null);
   const [editSaving, setEditSaving] = useState(false);
 
-  const refresh = async () => {
-    if (!id) return;
-    setLoading(true);
-    try {
-      const m = await api.members.get(id);
-      setMember(m ?? null);
-      if (m) {
-        setEditName(m.name);
-        setEditPhone(m.phone_number ?? "");
-        setEditEmail(m.email ?? "");
-        setEditAddress(m.address ?? "");
-        setEditBirthday(m.birthday ?? "");
-        if (m.member_since && /^\d{4}-\d{2}$/.test(m.member_since)) {
-          const [, mo] = m.member_since.split("-");
-          setEditMemberSinceMonth(String(parseInt(mo, 10)));
-          setEditMemberSinceYear(m.member_since.slice(0, 4));
-        } else {
-          setEditMemberSinceMonth("");
-          setEditMemberSinceYear("");
-        }
-        setEditIsBaby(m.is_baby);
-        setEditPosition(m.position ?? "");
-        setEditEmergencyName(m.emergency_contact_name ?? "");
-        setEditEmergencyPhone(m.emergency_contact_phone ?? "");
-        setEditPhoto(m.photo ?? null);
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    refresh();
-  }, [id]);
+    setEditName(member.name);
+    setEditPhone(member.phone_number ?? "");
+    setEditEmail(member.email ?? "");
+    setEditAddress(member.address ?? "");
+    setEditBirthday(member.birthday ?? "");
+    if (member.member_since && /^\d{4}-\d{2}$/.test(member.member_since)) {
+      const [, mo] = member.member_since.split("-");
+      setEditMemberSinceMonth(String(parseInt(mo, 10)));
+      setEditMemberSinceYear(member.member_since.slice(0, 4));
+    } else {
+      setEditMemberSinceMonth("");
+      setEditMemberSinceYear("");
+    }
+    setEditIsBaby(member.is_baby);
+    setEditPosition(member.position ?? "");
+    setEditEmergencyName(member.emergency_contact_name ?? "");
+    setEditEmergencyPhone(member.emergency_contact_phone ?? "");
+    setEditPhoto(member.photo ?? null);
+  }, [member]);
+
+  const refresh = () => invalidate.invalidateMember(id);
 
   const handleSaveEdit = async () => {
-    if (!id) return;
     setEditSaving(true);
     try {
       const memberSince =
@@ -89,21 +81,11 @@ export function MemberDetailPage() {
         photo: editPhoto,
       });
       setEditOpen(false);
-      await refresh();
+      refresh();
     } finally {
       setEditSaving(false);
     }
   };
-
-  if (loading || !member) {
-    return (
-      <div className="flex min-h-[200px] items-center justify-center">
-        <p className="text-muted-foreground">
-          {loading ? "Loading..." : "Member not found"}
-        </p>
-      </div>
-    );
-  }
 
   const hasDetails =
     member.phone_number ||

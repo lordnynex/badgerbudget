@@ -1,10 +1,12 @@
-import { useEffect, useState } from "react";
+import { Suspense, useState } from "react";
 import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { AppStateProvider, useAppState } from "@/state/AppState";
-import { api } from "@/data/api";
 import { Header } from "@/components/layout/Header";
 import { Main } from "@/components/layout/Main";
+import { BudgetScenarioLayout } from "@/components/layout/BudgetScenarioLayout";
+import { PageLoading } from "@/components/layout/PageLoading";
 import { EventDetailPage } from "@/components/events/EventDetailPage";
+import { EventsPanel } from "@/components/events/EventsPanel";
 import { MembersPanel } from "@/components/members/MembersPanel";
 import { MemberDetailPage } from "@/components/members/MemberDetailPage";
 import { ContactsPanel } from "@/components/contacts/ContactsPanel";
@@ -81,33 +83,61 @@ function AppContent() {
             <Route path="/" element={<Navigate to="/projections" replace />} />
             <Route
               path="/events"
-              element={<Main activeTab="events" onPrint={onPrint} onEmail={onEmail} />}
+              element={
+                <main className="space-y-6 p-4 md:p-6">
+                  <Suspense fallback={<PageLoading />}>
+                    <EventsPage />
+                  </Suspense>
+                </main>
+              }
             />
             <Route
               path="/events/:id"
               element={
                 <main className="space-y-6 p-4 md:p-6">
-                  <EventDetailPage />
+                  <Suspense fallback={<PageLoading />}>
+                    <EventDetailPage />
+                  </Suspense>
                 </main>
               }
             />
             <Route
               path="/projections"
-              element={<Main activeTab="projections" onPrint={onPrint} onEmail={onEmail} />}
+              element={
+                <Suspense fallback={<PageLoading />}>
+                  <BudgetScenarioLayout>
+                    <Main activeTab="projections" onPrint={onPrint} onEmail={onEmail} />
+                  </BudgetScenarioLayout>
+                </Suspense>
+              }
             />
             <Route
               path="/budget"
-              element={<Main activeTab="budget" onPrint={onPrint} onEmail={onEmail} />}
+              element={
+                <Suspense fallback={<PageLoading />}>
+                  <BudgetScenarioLayout>
+                    <Main activeTab="budget" onPrint={onPrint} onEmail={onEmail} />
+                  </BudgetScenarioLayout>
+                </Suspense>
+              }
             />
             <Route
               path="/scenarios"
-              element={<Main activeTab="scenarios" onPrint={onPrint} onEmail={onEmail} />}
+              element={
+                <Suspense fallback={<PageLoading />}>
+                  <BudgetScenarioLayout>
+                    <Main activeTab="scenarios" onPrint={onPrint} onEmail={onEmail} />
+                  </BudgetScenarioLayout>
+                </Suspense>
+              }
             />
             <Route
               path="/contacts"
               element={
                 <main className="space-y-6 p-4 md:p-6">
-                  <ContactsPanel />
+                  <Suspense fallback={<PageLoading />}>
+                    <ContactsPanel />
+                  </Suspense>
                 </main>
               }
             />
@@ -115,7 +145,9 @@ function AppContent() {
               path="/contacts/lists"
               element={
                 <main className="space-y-6 p-4 md:p-6">
-                  <MailingListsPanel />
+                  <Suspense fallback={<PageLoading />}>
+                    <MailingListsPanel />
+                  </Suspense>
                 </main>
               }
             />
@@ -123,7 +155,9 @@ function AppContent() {
               path="/contacts/lists/:listId"
               element={
                 <main className="space-y-6 p-4 md:p-6">
-                  <MailingListsPanel />
+                  <Suspense fallback={<PageLoading />}>
+                    <MailingListsPanel />
+                  </Suspense>
                 </main>
               }
             />
@@ -131,7 +165,9 @@ function AppContent() {
               path="/contacts/batches/:batchId"
               element={
                 <main className="space-y-6 p-4 md:p-6">
-                  <MailingBatchPage />
+                  <Suspense fallback={<PageLoading />}>
+                    <MailingBatchPage />
+                  </Suspense>
                 </main>
               }
             />
@@ -139,7 +175,9 @@ function AppContent() {
               path="/contacts/:id"
               element={
                 <main className="space-y-6 p-4 md:p-6">
-                  <ContactDetailPage />
+                  <Suspense fallback={<PageLoading />}>
+                    <ContactDetailPage />
+                  </Suspense>
                 </main>
               }
             />
@@ -147,7 +185,9 @@ function AppContent() {
               path="/members"
               element={
                 <main className="space-y-6 p-4 md:p-6">
-                  <MembersPanel />
+                  <Suspense fallback={<PageLoading />}>
+                    <MembersPanel />
+                  </Suspense>
                 </main>
               }
             />
@@ -155,7 +195,9 @@ function AppContent() {
               path="/members/:id"
               element={
                 <main className="space-y-6 p-4 md:p-6">
-                  <MemberDetailPage />
+                  <Suspense fallback={<PageLoading />}>
+                    <MemberDetailPage />
+                  </Suspense>
                 </main>
               }
             />
@@ -177,50 +219,17 @@ function AppContent() {
   );
 }
 
+/** Events page: loads only events list (suspense). */
+function EventsPage() {
+  return <Main activeTab="events" onPrint={() => {}} onEmail={() => {}} />;
+}
+
 function App() {
   return (
     <AppStateProvider>
-      <AppLoader />
+      <AppContent />
     </AppStateProvider>
   );
-}
-
-function AppLoader() {
-  const { dispatch, selectBudget, selectScenario, loading } = useAppState();
-
-  useEffect(() => {
-    async function load() {
-      const [budgets, scenarios] = await Promise.all([
-        api.budgets.list(),
-        api.scenarios.list(),
-      ]);
-
-      dispatch({ type: "SET_BUDGETS", payload: budgets });
-      dispatch({ type: "SET_SCENARIOS", payload: scenarios });
-
-      const firstBudget = budgets[0];
-      if (firstBudget) {
-        await selectBudget(firstBudget.id);
-      }
-      const firstScenario = scenarios[0];
-      if (firstScenario) {
-        await selectScenario(firstScenario.id);
-      }
-
-      dispatch({ type: "SET_LOADING", payload: false });
-    }
-    load();
-  }, []);
-
-  if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <p className="text-muted-foreground">Loading dashboards...</p>
-      </div>
-    );
-  }
-
-  return <AppContent />;
 }
 
 export default App;

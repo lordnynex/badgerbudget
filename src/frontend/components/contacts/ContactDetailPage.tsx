@@ -4,46 +4,51 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api } from "@/data/api";
-import type { Contact, MailingList } from "@/types/contact";
+import type { MailingList } from "@/types/contact";
 import { contactsToVCardFile } from "@/lib/vcard";
 import { ArrowLeft, Pencil, Download, Trash2, RotateCcw } from "lucide-react";
 import { EditContactDialog } from "./EditContactDialog";
+import { useContactSuspense, useInvalidateQueries } from "@/queries/hooks";
+import { useQuery } from "@tanstack/react-query";
+import { queryKeys } from "@/queries/keys";
 
 export function ContactDetailPage() {
   const { id } = useParams<{ id: string }>();
+  if (!id) return null;
+  return <ContactDetailContent id={id} />;
+}
+
+function ContactDetailContent({ id }: { id: string }) {
   const navigate = useNavigate();
-  const [contact, setContact] = useState<Contact | null>(null);
-  const [loading, setLoading] = useState(true);
+  const invalidate = useInvalidateQueries();
+  const { data: contact } = useContactSuspense(id);
   const [editOpen, setEditOpen] = useState(false);
   const [listsWithContact, setListsWithContact] = useState<MailingList[]>([]);
 
-  const refresh = async () => {
-    if (!id) return;
-    setLoading(true);
-    try {
-      const c = await api.contacts.get(id);
-      setContact(c ?? null);
-      if (c) {
-        const allLists = await api.mailingLists.list();
-        const members = await Promise.all(
-          allLists.map(async (l) => {
-            const mems = await api.mailingLists.getMembers(l.id);
-            return mems.some((m) => m.contact_id === id) ? l : null;
-          })
-        );
-        setListsWithContact(members.filter(Boolean) as MailingList[]);
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data: allLists = [] } = useQuery({
+    queryKey: queryKeys.mailingLists,
+    queryFn: () => api.mailingLists.list(),
+  });
 
   useEffect(() => {
-    refresh();
-  }, [id]);
+    let cancelled = false;
+    (async () => {
+      const members = await Promise.all(
+        allLists.map(async (l) => {
+          const mems = await api.mailingLists.getMembers(l.id);
+          return mems.some((m) => m.contact_id === id) ? l : null;
+        })
+      );
+      if (!cancelled) setListsWithContact(members.filter(Boolean) as MailingList[]);
+    })();
+    return () => { cancelled = true; };
+  }, [id, allLists]);
+
+  const refresh = () => {
+    invalidate.invalidateContact(id);
+  };
 
   const handleExportVCard = () => {
-    if (!contact) return;
     const vcf = contactsToVCardFile([contact]);
     const blob = new Blob([vcf], { type: "text/vcard;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -55,38 +60,15 @@ export function ContactDetailPage() {
   };
 
   const handleDelete = async () => {
-    if (!id || !confirm("Soft delete this contact? You can restore it later.")) return;
+    if (!confirm("Soft delete this contact? You can restore it later.")) return;
     await api.contacts.delete(id);
     navigate("/contacts");
   };
 
   const handleRestore = async () => {
-    if (!id) return;
     await api.contacts.restore(id);
     refresh();
   };
-
-  if (loading) {
-    return (
-      <Card>
-        <CardContent className="py-12 text-center text-muted-foreground">
-          Loading contact...
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (!contact) {
-    return (
-      <div className="space-y-4">
-        <Button variant="ghost" onClick={() => navigate("/contacts")}>
-          <ArrowLeft className="size-4" />
-          Back to Contacts
-        </Button>
-        <p className="text-muted-foreground">Contact not found.</p>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">

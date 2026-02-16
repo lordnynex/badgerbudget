@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { api } from "@/data/api";
-import { useAppState } from "@/state/AppState";
 import { extractEmbedUrlFromHtml, getMapEmbedUrl } from "@/lib/maps";
-import type { Event } from "@/types/budget";
+import { useEventSuspense, useBudgetsOptional, useScenariosOptional } from "@/queries/hooks";
+import { queryKeys } from "@/queries/keys";
 import { EventDetailsCard } from "./EventDetailsCard";
 import { EventLocationCard } from "./EventLocationCard";
 import { EventMilestonesCard } from "./EventMilestonesCard";
@@ -17,13 +18,18 @@ import { ArrowLeft, Pencil } from "lucide-react";
 
 export function EventDetailPage() {
   const { id } = useParams<{ id: string }>();
+  if (!id) return null;
+  return <EventDetailContent id={id} />;
+}
+
+function EventDetailContent({ id }: { id: string }) {
   const navigate = useNavigate();
-  const { budgets, scenarios } = useAppState();
-  const [event, setEvent] = useState<Event | null>(null);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const { data: event } = useEventSuspense(id);
+  const { data: budgets = [] } = useBudgetsOptional();
+  const { data: scenarios = [] } = useScenariosOptional();
   const [editOpen, setEditOpen] = useState(false);
 
-  // Edit form state
   const [editName, setEditName] = useState("");
   const [editDescription, setEditDescription] = useState("");
   const [editYear, setEditYear] = useState<number | "">("");
@@ -39,40 +45,28 @@ export function EventDetailPage() {
   const [editScenarioId, setEditScenarioId] = useState<string>("");
   const [editPlanningNotes, setEditPlanningNotes] = useState("");
 
+  useEffect(() => {
+    setEditName(event.name);
+    setEditDescription(event.description ?? "");
+    setEditYear(event.year ?? "");
+    setEditEventDate(event.event_date ?? "");
+    setEditEventUrl(event.event_url ?? "");
+    setEditEventLocation(event.event_location ?? "");
+    setEditEventLocationEmbed(event.event_location_embed ?? "");
+    setEditGaTicketCost(event.ga_ticket_cost != null ? String(event.ga_ticket_cost) : "");
+    setEditDayPassCost(event.day_pass_cost != null ? String(event.day_pass_cost) : "");
+    setEditGaTicketsSold(event.ga_tickets_sold != null ? String(event.ga_tickets_sold) : "");
+    setEditDayPassesSold(event.day_passes_sold != null ? String(event.day_passes_sold) : "");
+    setEditBudgetId(event.budget_id ?? "");
+    setEditScenarioId(event.scenario_id ?? "");
+    setEditPlanningNotes(event.planning_notes ?? "");
+  }, [event]);
+
   const refresh = async () => {
-    if (!id) return;
-    const isInitialLoad = !event || event.id !== id;
-    if (isInitialLoad) setLoading(true);
-    try {
-      const e = await api.events.get(id);
-      setEvent(e ?? null);
-      if (e) {
-        setEditName(e.name);
-        setEditDescription(e.description ?? "");
-        setEditYear(e.year ?? "");
-        setEditEventDate(e.event_date ?? "");
-        setEditEventUrl(e.event_url ?? "");
-        setEditEventLocation(e.event_location ?? "");
-        setEditEventLocationEmbed(e.event_location_embed ?? "");
-        setEditGaTicketCost(e.ga_ticket_cost != null ? String(e.ga_ticket_cost) : "");
-        setEditDayPassCost(e.day_pass_cost != null ? String(e.day_pass_cost) : "");
-        setEditGaTicketsSold(e.ga_tickets_sold != null ? String(e.ga_tickets_sold) : "");
-        setEditDayPassesSold(e.day_passes_sold != null ? String(e.day_passes_sold) : "");
-        setEditBudgetId(e.budget_id ?? "");
-        setEditScenarioId(e.scenario_id ?? "");
-        setEditPlanningNotes(e.planning_notes ?? "");
-      }
-    } finally {
-      if (isInitialLoad) setLoading(false);
-    }
+    await queryClient.refetchQueries({ queryKey: queryKeys.event(id) });
   };
 
-  useEffect(() => {
-    refresh();
-  }, [id]);
-
   const handleSaveEdit = async () => {
-    if (!id) return;
     await api.events.update(id, {
       name: editName,
       description: editDescription || undefined,
@@ -90,7 +84,7 @@ export function EventDetailPage() {
       planning_notes: editPlanningNotes || undefined,
     });
     setEditOpen(false);
-    await refresh();
+    refresh();
   };
 
   const handleAddMilestone = async (payload: {
@@ -99,48 +93,41 @@ export function EventDetailPage() {
     description: string;
     due_date: string;
   }) => {
-    if (!id) return;
     await api.events.milestones.create(id, payload);
-    await refresh();
+    refresh();
   };
 
   const handleToggleMilestoneComplete = async (mid: string, completed: boolean) => {
-    if (!id) return;
     await api.events.milestones.update(id, mid, { completed });
-    await refresh();
+    refresh();
   };
 
   const handleDeleteMilestone = async (mid: string) => {
-    if (!id) return;
     await api.events.milestones.delete(id, mid);
-    await refresh();
+    refresh();
   };
 
   const handleEditMilestone = async (
     mid: string,
     payload: { month: number; year: number; description: string; due_date: string }
   ) => {
-    if (!id) return;
     await api.events.milestones.update(id, mid, payload);
-    await refresh();
+    refresh();
   };
 
   const handleAddMemberToMilestone = async (mid: string, memberId: string) => {
-    if (!id) return;
     await api.events.milestones.addMember(id, mid, memberId);
-    await refresh();
+    refresh();
   };
 
   const handleRemoveMemberFromMilestone = async (mid: string, memberId: string) => {
-    if (!id) return;
     await api.events.milestones.removeMember(id, mid, memberId);
-    await refresh();
+    refresh();
   };
 
   const handleAddPackingCategory = async (name: string) => {
-    if (!id) return;
     await api.events.packingCategories.create(id, { name });
-    await refresh();
+    refresh();
   };
 
   const handleAddPackingItem = async (payload: {
@@ -149,77 +136,57 @@ export function EventDetailPage() {
     quantity?: number;
     note?: string;
   }) => {
-    if (!id) return;
     await api.events.packingItems.create(id, payload);
-    await refresh();
+    refresh();
   };
 
   const handleEditPackingItem = async (
     pid: string,
     payload: { category_id?: string; name?: string; quantity?: number; note?: string }
   ) => {
-    if (!id) return;
     await api.events.packingItems.update(id, pid, payload);
-    await refresh();
+    refresh();
   };
 
   const handleTogglePackingLoaded = async (pid: string, loaded: boolean) => {
-    if (!id) return;
     await api.events.packingItems.update(id, pid, { loaded });
-    await refresh();
+    refresh();
   };
 
   const handleDeletePackingItem = async (pid: string) => {
-    if (!id) return;
     await api.events.packingItems.delete(id, pid);
-    await refresh();
+    refresh();
   };
 
   const handleAddVolunteer = async (payload: { name: string; department: string }) => {
-    if (!id) return;
     await api.events.volunteers.create(id, payload);
-    await refresh();
+    refresh();
   };
 
   const handleDeleteVolunteer = async (vid: string) => {
-    if (!id) return;
     await api.events.volunteers.delete(id, vid);
-    await refresh();
+    refresh();
   };
 
   const handleCreateRole = async (payload: { name: string; category: "planning" | "during" }) => {
-    if (!id) return;
     await api.events.assignments.create(id, payload);
-    await refresh();
+    refresh();
   };
 
   const handleDeleteRole = async (aid: string) => {
-    if (!id) return;
     await api.events.assignments.delete(id, aid);
-    await refresh();
+    refresh();
   };
 
   const handleAddMemberToRole = async (aid: string, memberId: string) => {
-    if (!id) return;
     await api.events.assignments.addMember(id, aid, memberId);
-    await refresh();
+    refresh();
   };
 
   const handleRemoveMemberFromRole = async (aid: string, memberId: string) => {
-    if (!id) return;
     await api.events.assignments.removeMember(id, aid, memberId);
-    await refresh();
+    refresh();
   };
-
-  if (loading || !event) {
-    return (
-      <div className="flex min-h-[200px] items-center justify-center">
-        <p className="text-muted-foreground">
-          {loading ? "Loading..." : "Event not found"}
-        </p>
-      </div>
-    );
-  }
 
   const mapEmbedUrl = event.event_location_embed ?? getMapEmbedUrl(event.event_location);
   const budgetName = budgets.find((b) => b.id === event.budget_id)?.name;
