@@ -1,14 +1,31 @@
-import { dataSource } from "./dataSource";
+import type { DataSource } from "typeorm";
+import { join } from "path";
+import { mkdir } from "fs/promises";
+import { getDataSourcePromise } from "./dataSource";
 
-export async function ensureDb(): Promise<void> {
-  if (!dataSource.isInitialized) {
-    await dataSource.initialize();
-    await ensureSchema();
+let dataSource: DataSource | null = null;
+
+const globalForDb = globalThis as unknown as { __badgerInitPromise?: Promise<void> };
+
+function getInitPromise(): Promise<void> {
+  if (dataSource?.isInitialized) return Promise.resolve();
+  if (!globalForDb.__badgerInitPromise) {
+    globalForDb.__badgerInitPromise = (async () => {
+      const dataDir = join(import.meta.dir, "../../..", "data");
+      await mkdir(dataDir, { recursive: true });
+      dataSource = await getDataSourcePromise();
+      await ensureSchema(dataSource);
+    })();
   }
+  return globalForDb.__badgerInitPromise;
 }
 
-async function ensureSchema(): Promise<void> {
-  const q = dataSource.createQueryRunner();
+export async function ensureDb(): Promise<void> {
+  await getInitPromise();
+}
+
+async function ensureSchema(ds: DataSource): Promise<void> {
+  const q = ds.createQueryRunner();
   try {
     await q.query(`
       CREATE TABLE IF NOT EXISTS events (
@@ -348,20 +365,20 @@ export function getDb(): DbLike {
         get: async (...args: unknown[]) => {
           await ensureDb();
           const flat = [...bound, ...args].flat();
-          const rows = await dataSource.query(sql, flat as unknown[]);
+          const rows = await dataSource!.query(sql, flat as unknown[]);
           return Array.isArray(rows) ? rows[0] : rows;
         },
         all: async (...args: unknown[]) => {
           await ensureDb();
           const flat = [...bound, ...args].flat();
-          const rows = await dataSource.query(sql, flat as unknown[]);
+          const rows = await dataSource!.query(sql, flat as unknown[]);
           return Array.isArray(rows) ? rows : [];
         },
       };
     },
     run: async (sql: string, params: unknown[] = []) => {
       await ensureDb();
-      await dataSource.query(sql, params as unknown[]);
+      await dataSource!.query(sql, params as unknown[]);
     },
   };
 }

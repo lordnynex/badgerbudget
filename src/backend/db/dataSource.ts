@@ -1,4 +1,5 @@
-import { DataSource } from "typeorm";
+import type { DataSource } from "typeorm";
+import { createConnection } from "typeorm";
 import type { DataSourceOptions } from "typeorm";
 import { join } from "path";
 import {
@@ -27,11 +28,11 @@ import {
   AuditLog,
 } from "../entities";
 
-const projectRoot = join(import.meta.dir, "../..");
+const projectRoot = join(import.meta.dir, "../../..");
 const dbPath = join(projectRoot, "data", "badger.db");
 
 const dataSourceOptions: DataSourceOptions = {
-  name: "badger",
+  name: "default",
   type: "sqljs",
   location: dbPath,
   autoSave: true,
@@ -63,7 +64,11 @@ const dataSourceOptions: DataSourceOptions = {
   ],
 };
 
-// Use global to persist DataSource across hot reloads (avoids "connection already established" error)
-const globalForDataSource = globalThis as unknown as { __badgerDataSource?: DataSource };
-export const dataSource =
-  globalForDataSource.__badgerDataSource ?? (globalForDataSource.__badgerDataSource = new DataSource(dataSourceOptions));
+const globalForDataSource = globalThis as unknown as { __badgerDataSourcePromise?: Promise<DataSource> };
+
+export function getDataSourcePromise(): Promise<DataSource> {
+  if (!globalForDataSource.__badgerDataSourcePromise) {
+    globalForDataSource.__badgerDataSourcePromise = createConnection(dataSourceOptions);
+  }
+  return globalForDataSource.__badgerDataSourcePromise;
+}
