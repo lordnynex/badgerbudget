@@ -20,10 +20,23 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
 
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@/components/*": ["./src/frontend/components/*"],
+      "@/data/*": ["./src/frontend/data/*"],
+      "@/state/*": ["./src/frontend/state/*"],
+      "@/hooks/*": ["./src/frontend/hooks/*"],
+      "@/queries/*": ["./src/frontend/queries/*"],
+      "@/lib/*": ["./src/frontend/lib/*"],
+      "@/export/*": ["./src/frontend/export/*"],
+      "@/types/*": ["./src/shared/types/*"],
+      "@/frontend/*": ["./src/frontend/*"],
+      "@/backend/*": ["./src/backend/*"],
+      "@/shared/*": ["./src/shared/*"]
     },
 
     // Some stricter flags (disabled by default)

@@ -3,9 +3,10 @@ import plugin from "bun-plugin-tailwind";
 import { existsSync } from "fs";
 import { rm } from "fs/promises";
 import path from "path";
+import { logger } from "./src/backend/logger";
 
 if (process.argv.includes("--help") || process.argv.includes("-h")) {
-  console.log(`
+  logger.info(`
 🏗️  Bun Build Script
 
 Usage: bun run build.ts [options]
@@ -105,22 +106,22 @@ const formatFileSize = (bytes: number): string => {
   return `${size.toFixed(2)} ${units[unitIndex]}`;
 };
 
-console.log("\n🚀 Starting build process...\n");
+logger.info("Starting build process");
 
 const cliConfig = parseArgs();
 const outdir = cliConfig.outdir || path.join(process.cwd(), "dist");
 
 if (existsSync(outdir)) {
-  console.log(`🗑️ Cleaning previous build at ${outdir}`);
+  logger.info({ outdir }, "Cleaning previous build");
   await rm(outdir, { recursive: true, force: true });
 }
 
 const start = performance.now();
 
-const entrypoints = [...new Bun.Glob("**.html").scanSync("src")]
-  .map(a => path.resolve("src", a))
+const entrypoints = [...new Bun.Glob("**/*.html").scanSync("src")]
+  .map(a => path.resolve(process.cwd(), "src", a))
   .filter(dir => !dir.includes("node_modules"));
-console.log(`📄 Found ${entrypoints.length} HTML ${entrypoints.length === 1 ? "file" : "files"} to process\n`);
+logger.info({ count: entrypoints.length }, `Found ${entrypoints.length} HTML ${entrypoints.length === 1 ? "file" : "files"} to process`);
 
 const result = await Bun.build({
   entrypoints,
@@ -144,7 +145,6 @@ const outputTable = result.outputs.map(output => ({
   Size: formatFileSize(output.size),
 }));
 
-console.table(outputTable);
+logger.info({ outputs: outputTable }, "Build outputs");
 const buildTime = (end - start).toFixed(2);
-
-console.log(`\n✅ Build completed in ${buildTime}ms\n`);
+logger.info({ buildTimeMs: buildTime }, "Build completed");

@@ -10,29 +10,39 @@
     "test": "bun test src/"
   },
   "dependencies": {
+    "@elysiajs/cors": "^1.4.1",
+    "@elysiajs/eden": "^1.4.8",
+    "@elysiajs/static": "^1.4.7",
     "@radix-ui/react-dropdown-menu": "^2.1.16",
     "@radix-ui/react-label": "^2.1.7",
     "@radix-ui/react-popover": "^1.1.15",
     "@radix-ui/react-select": "^2.2.6",
     "@radix-ui/react-slot": "^1.2.3",
+    "@tanstack/react-query": "^5.90.21",
     "apexcharts": "^5.3.6",
     "bun-plugin-tailwind": "^0.1.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "elysia": "^1.4.25",
     "jspdf": "^4.1.0",
     "lucide-react": "^0.545.0",
+    "pino": "^10.3.1",
+    "pino-pretty": "^13.1.3",
     "pst-extractor": "^1.12.0",
     "radix-ui": "^1.4.3",
     "react": "^19",
     "react-apexcharts": "^1.9.0",
     "react-dom": "^19",
     "react-router-dom": "^7.13.0",
-    "tailwind-merge": "^3.3.1"
+    "reflect-metadata": "^0.2.2",
+    "sql.js": "^1.14.0",
+    "tailwind-merge": "^3.3.1",
+    "typeorm": "^0.3.28"
   },
   "devDependencies": {
+    "@types/bun": "latest",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "@types/bun": "latest",
     "tailwindcss": "^4.1.11",
     "tw-animate-css": "^1.4.0"
   }
