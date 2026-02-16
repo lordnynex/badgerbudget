@@ -252,6 +252,24 @@ export const api = {
         method: "POST",
         body: JSON.stringify({ sourceId, targetId, conflictResolution }),
       }),
+    importPstPreview: async (file: File) => {
+      const form = new FormData();
+      form.append("file", file);
+      const res = await fetch(BASE + "/api/contacts/import-pst", {
+        method: "POST",
+        body: form,
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: res.statusText }));
+        throw new Error((err as { error?: string }).error ?? `PST import failed: ${res.statusText}`);
+      }
+      return res.json() as Promise<{ contacts: Array<{ payload: Partial<Contact> & { display_name: string }; status: "new" | "duplicate"; existingContact?: { id: string; display_name: string } }> }>;
+    },
+    importPstExecute: (toCreate: Array<Partial<Contact> & { display_name: string }>) =>
+      fetchJson<{ created: string[]; count: number }>("/api/contacts/import-pst-execute", {
+        method: "POST",
+        body: JSON.stringify({ toCreate }),
+      }),
     tags: {
       list: () => fetchJson<Tag[]>("/api/contacts/tags"),
       create: (name: string) =>

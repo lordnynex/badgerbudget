@@ -117,7 +117,7 @@ export const contactsApi = {
     const sortDir = params.sortDir ?? "desc";
 
     const conditions: string[] = ["deleted_at IS NULL"];
-    const args: unknown[] = [];
+    const args: (string | number)[] = [];
 
     if (params.status && params.status !== "all") {
       conditions.push("status = ?");
@@ -149,7 +149,7 @@ export const contactsApi = {
     }
 
     let searchCondition = "";
-    const searchArgs: unknown[] = [];
+    const searchArgs: (string | number)[] = [];
     if (params.q && params.q.trim()) {
       const q = `%${params.q.trim()}%`;
       searchCondition = ` AND (
@@ -202,6 +202,58 @@ export const contactsApi = {
     const contact = rowToContact(row);
     const rel = loadContactRelations(db, id);
     return { ...contact, ...rel };
+  },
+
+  /** Minimal contact data for PST import deduplication */
+  getForDeduplication: async (): Promise<
+    Array<{ id: string; display_name: string; emails: string[]; addressKey: string; nameKey: string }>
+  > => {
+    const db = getDb();
+    const rows = db
+      .query(
+        "SELECT id, display_name FROM contacts WHERE deleted_at IS NULL"
+      )
+      .all() as Array<{ id: string; display_name: string }>;
+    const result: Array<{
+      id: string;
+      display_name: string;
+      emails: string[];
+      addressKey: string;
+      nameKey: string;
+    }> = [];
+    for (const row of rows) {
+      const emails = (db
+        .query("SELECT email FROM contact_emails WHERE contact_id = ?")
+        .all(row.id) as Array<{ email: string }>).map((e) =>
+        e.email.toLowerCase().trim()
+      );
+      const addr = db
+        .query(
+          "SELECT address_line1, city, postal_code FROM contact_addresses WHERE contact_id = ? ORDER BY is_primary_mailing DESC LIMIT 1"
+        )
+        .get(row.id) as { address_line1: string | null; city: string | null; postal_code: string | null } | undefined;
+      const addressKey = addr
+        ? [
+            addr.address_line1 ?? "",
+            addr.city ?? "",
+            addr.postal_code ?? "",
+          ]
+            .map((s) => (s ?? "").toLowerCase().replace(/\s+/g, " "))
+            .join("|")
+        : "";
+      const nameKey = (row.display_name ?? "")
+        .toLowerCase()
+        .replace(/\s+/g, " ")
+        .trim();
+      result.push({
+        id: row.id,
+        display_name: row.display_name ?? "",
+        emails,
+        addressKey,
+        nameKey,
+      });
+    }
+    return result;
   },
 
   create: async (body: Partial<Contact> & { display_name: string }) => {
@@ -502,7 +554,7 @@ function evaluateDynamicCriteria(db: ReturnType<typeof getDb>, criteria: Mailing
   if (!criteria) return [];
 
   let sql = "SELECT id FROM contacts WHERE deleted_at IS NULL AND status = 'active'";
-  const args: unknown[] = [];
+  const args: (string | number)[] = [];
 
   if (criteria.active !== undefined) {
     sql += criteria.active ? " AND status = 'active'" : " AND status = 'inactive'";

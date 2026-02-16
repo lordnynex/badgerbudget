@@ -1,4 +1,6 @@
 import { api, corsHeaders } from "./api";
+import { previewPstImport } from "./pstImport";
+import type { Contact, Tag } from "@/types/contact";
 
 async function jsonBody<T>(req: Request): Promise<T> {
   return (await req.json()) as T;
@@ -9,9 +11,10 @@ export async function handleApiRequest(req: Request): Promise<Response | null> {
   const path = url.pathname;
   const method = req.method;
 
-  const json = (data: unknown) =>
+  const json = (data: unknown, init?: ResponseInit) =>
     new Response(JSON.stringify(data), {
       headers: { "Content-Type": "application/json", ...corsHeaders() },
+      ...init,
     });
 
   const notFound = () =>
@@ -432,9 +435,41 @@ export async function handleApiRequest(req: Request): Promise<Response | null> {
     return json(created);
   }
 
+  // /api/contacts/import-pst (preview with deduplication)
+  if (path === "/api/contacts/import-pst" && method === "POST") {
+    try {
+      const formData = await req.formData();
+      const file = formData.get("file") as File | null;
+      if (!file || !(file instanceof File)) {
+        return json({ error: "No file provided" }, { status: 400 });
+      }
+      const buffer = Buffer.from(await file.arrayBuffer());
+      const preview = await previewPstImport(buffer);
+      return json({ contacts: preview });
+    } catch (err) {
+      return json(
+        { error: err instanceof Error ? err.message : "PST import failed" },
+        { status: 500 }
+      );
+    }
+  }
+
+  // /api/contacts/import-pst-execute (create selected contacts)
+  if (path === "/api/contacts/import-pst-execute" && method === "POST") {
+    type ImportPstBody = { toCreate: Array<Partial<Contact> & { display_name: string }> };
+    const body = await jsonBody<ImportPstBody>(req);
+    const toCreate = body.toCreate ?? [];
+    const created: string[] = [];
+    for (const payload of toCreate) {
+      const c = await api.contacts.create(payload as Parameters<typeof api.contacts.create>[0]);
+      if (c) created.push(c.id);
+    }
+    return json({ created, count: created.length });
+  }
+
   // /api/contacts/bulk-update
   if (path === "/api/contacts/bulk-update" && method === "POST") {
-    const body = await jsonBody<{ ids: string[]; tags?: unknown[]; status?: string }>(req);
+    const body = await jsonBody<{ ids: string[]; tags?: (string | Tag)[]; status?: string }>(req);
     await api.contacts.bulkUpdate(body.ids, {
       tags: body.tags,
       status: body.status as "active" | "inactive",
@@ -444,7 +479,7 @@ export async function handleApiRequest(req: Request): Promise<Response | null> {
 
   // /api/contacts/merge
   if (path === "/api/contacts/merge" && method === "POST") {
-    const body = await jsonBody<{ sourceId: string; targetId: string; conflictResolution?: Record<string, string> }>(req);
+    const body = await jsonBody<{ sourceId: string; targetId: string; conflictResolution?: Record<string, "source" | "target"> }>(req);
     const merged = await api.contacts.merge(body.sourceId, body.targetId, body.conflictResolution);
     if (!merged) return notFound();
     return json(merged);
