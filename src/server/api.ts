@@ -1,5 +1,6 @@
 import { getDb } from "./db";
 import { ALL_MEMBERS_ID } from "@/lib/constants";
+import { contactsApi, mailingListsApi, mailingBatchesApi } from "./contactsApi";
 
 const DEFAULT_INPUTS = {
   profitTarget: 2500,
@@ -804,11 +805,16 @@ export const api = {
       return { ok: true };
     },
   },
+  contacts: contactsApi,
+  mailingLists: mailingListsApi,
+  mailingBatches: mailingBatchesApi,
   seed: async () => {
     const db = getDb();
     const budgetCount = (db.query("SELECT COUNT(*) as c FROM budgets").get() as { c: number }).c;
     const eventCount = (db.query("SELECT COUNT(*) as c FROM events").get() as { c: number }).c;
-    if (budgetCount > 0 && eventCount > 0) return { ok: true, message: "Already seeded" };
+    const contactCount = (db.query("SELECT COUNT(*) as c FROM contacts").get() as { c: number }).c;
+
+    if (budgetCount > 0 && eventCount > 0 && contactCount > 0) return { ok: true, message: "Already seeded" };
 
     try {
       const exportPath = import.meta.dir + "/../../data/export.json";
@@ -893,6 +899,78 @@ export const api = {
         db.run(
           "INSERT INTO scenarios (id, name, description, inputs) VALUES (?, ?, ?, ?)",
           [scenarioId, "Badger South Default", "Default scenario from original Badger South inputs.", JSON.stringify(DEFAULT_INPUTS)]
+        );
+      }
+
+      // Seed contacts if none exist
+      if (contactCount === 0) {
+        const badgerSouth2026 = db.query("SELECT id FROM events WHERE name = 'Badger South 2026'").get() as { id: string } | undefined;
+        const eventId = badgerSouth2026?.id ?? null;
+
+        const tagVendor = uuid();
+        const tagClub = uuid();
+        const tagVIP = uuid();
+        db.run("INSERT INTO tags (id, name) VALUES (?, ?)", [tagVendor, "Vendor"]);
+        db.run("INSERT INTO tags (id, name) VALUES (?, ?)", [tagClub, "Club"]);
+        db.run("INSERT INTO tags (id, name) VALUES (?, ?)", [tagVIP, "VIP"]);
+
+        const c1 = uuid();
+        const c2 = uuid();
+        const c3 = uuid();
+        const c4 = uuid();
+        db.run(
+          "INSERT INTO contacts (id, type, status, display_name, first_name, last_name, organization_name, notes, ok_to_email, ok_to_mail, uid) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          [c1, "person", "active", "Jane Rider", "Jane", "Rider", null, "SMC member, helps with vendor coordination.", "yes", "yes", `contact-${c1}@badgerbudget`]
+        );
+        db.run("INSERT INTO contact_emails (id, contact_id, email, type, is_primary) VALUES (?, ?, ?, ?, ?)", [uuid(), c1, "jane.rider@example.com", "work", 1]);
+        db.run("INSERT INTO contact_addresses (id, contact_id, address_line1, city, state, postal_code, country, type, is_primary_mailing) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", [uuid(), c1, "123 Main St", "Madison", "WI", "53703", "US", "home", 1]);
+        db.run("INSERT INTO contact_tags (contact_id, tag_id) VALUES (?, ?)", [c1, tagClub]);
+
+        db.run(
+          "INSERT INTO contacts (id, type, status, display_name, first_name, last_name, organization_name, notes, ok_to_email, ok_to_mail, uid) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          [c2, "person", "active", "Bob Smith", "Bob", "Smith", "Smith Catering", "Food vendor for Badger South.", "yes", "yes", `contact-${c2}@badgerbudget`]
+        );
+        db.run("INSERT INTO contact_emails (id, contact_id, email, type, is_primary) VALUES (?, ?, ?, ?, ?)", [uuid(), c2, "bob@smithcatering.com", "work", 1]);
+        db.run("INSERT INTO contact_addresses (id, contact_id, address_line1, city, state, postal_code, country, type, is_primary_mailing) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", [uuid(), c2, "456 Vendor Ave", "Milwaukee", "WI", "53202", "US", "work", 1]);
+        db.run("INSERT INTO contact_tags (contact_id, tag_id) VALUES (?, ?)", [c2, tagVendor]);
+
+        db.run(
+          "INSERT INTO contacts (id, type, status, display_name, organization_name, notes, ok_to_email, ok_to_mail, uid) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          [c3, "organization", "active", "Lakeside Campground", "Lakeside Campground", "Venue for Badger South.", "yes", "yes", `contact-${c3}@badgerbudget`]
+        );
+        db.run("INSERT INTO contact_emails (id, contact_id, email, type, is_primary) VALUES (?, ?, ?, ?, ?)", [uuid(), c3, "info@lakesidecampground.com", "work", 1]);
+        db.run("INSERT INTO contact_addresses (id, contact_id, address_line1, city, state, postal_code, country, type, is_primary_mailing) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", [uuid(), c3, "789 Lake Rd", "Lake Geneva", "WI", "53147", "US", "work", 1]);
+        db.run("INSERT INTO contact_tags (contact_id, tag_id) VALUES (?, ?)", [c3, tagVendor]);
+
+        db.run(
+          "INSERT INTO contacts (id, type, status, display_name, first_name, last_name, club_name, notes, ok_to_email, ok_to_mail, uid) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          [c4, "person", "active", "Mike Thompson", "Mike", "Thompson", "Road Rebels MC", "VIP guest from partner club.", "yes", "yes", `contact-${c4}@badgerbudget`]
+        );
+        db.run("INSERT INTO contact_emails (id, contact_id, email, type, is_primary) VALUES (?, ?, ?, ?, ?)", [uuid(), c4, "mike@roadrebels.org", "work", 1]);
+        db.run("INSERT INTO contact_addresses (id, contact_id, address_line1, city, state, postal_code, country, type, is_primary_mailing) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", [uuid(), c4, "100 Clubhouse Dr", "Chicago", "IL", "60601", "US", "home", 1]);
+        db.run("INSERT INTO contact_tags (contact_id, tag_id) VALUES (?, ?)", [c4, tagClub]);
+        db.run("INSERT INTO contact_tags (contact_id, tag_id) VALUES (?, ?)", [c4, tagVIP]);
+
+        const listId = uuid();
+        db.run(
+          "INSERT INTO mailing_lists (id, name, description, list_type, event_id, template) VALUES (?, ?, ?, ?, ?, ?)",
+          [listId, "Badger South 2026 Invitations", "Physical invitation mailing list for Badger South 2026.", "static", eventId, "Physical Invitations"]
+        );
+        db.run("INSERT INTO mailing_list_members (id, list_id, contact_id, source) VALUES (?, ?, ?, ?)", [uuid(), listId, c1, "manual"]);
+        db.run("INSERT INTO mailing_list_members (id, list_id, contact_id, source) VALUES (?, ?, ?, ?)", [uuid(), listId, c4, "manual"]);
+
+        const batchId = uuid();
+        db.run(
+          "INSERT INTO mailing_batches (id, list_id, event_id, name, recipient_count) VALUES (?, ?, ?, ?, ?)",
+          [batchId, listId, eventId, "Badger South 2026 - Initial run", 2]
+        );
+        db.run(
+          "INSERT INTO mailing_batch_recipients (id, batch_id, contact_id, snapshot_name, snapshot_address_line1, snapshot_city, snapshot_state, snapshot_postal_code, snapshot_country, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          [uuid(), batchId, c1, "Jane Rider", "123 Main St", "Madison", "WI", "53703", "US", "queued"]
+        );
+        db.run(
+          "INSERT INTO mailing_batch_recipients (id, batch_id, contact_id, snapshot_name, snapshot_address_line1, snapshot_city, snapshot_state, snapshot_postal_code, snapshot_country, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          [uuid(), batchId, c4, "Mike Thompson", "100 Clubhouse Dr", "Chicago", "IL", "60601", "US", "queued"]
         );
       }
 

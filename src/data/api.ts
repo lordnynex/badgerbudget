@@ -12,6 +12,18 @@ import type {
   Scenario,
   ScenarioSummary,
 } from "@/types/budget";
+import type {
+  Contact,
+  ContactSearchParams,
+  ContactSearchResult,
+  MailingList,
+  MailingListMember,
+  MailingListCriteria,
+  MailingBatch,
+  MailingBatchRecipient,
+  ListPreview,
+  Tag,
+} from "@/types/contact";
 
 const BASE = "";
 
@@ -28,6 +40,31 @@ async function fetchJson<T>(path: string, options?: RequestInit): Promise<T> {
     throw new Error((err as { error?: string }).error ?? `Request failed: ${res.status}`);
   }
   return res.json() as Promise<T>;
+}
+
+function buildSearchParams(params: Record<string, string | number | boolean | undefined | string[]>) {
+  const sp = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) {
+    if (v === undefined || v === null) continue;
+    if (Array.isArray(v)) {
+      if (v.length) sp.set(k, v.join(","));
+    } else {
+      sp.set(k, String(v));
+    }
+  }
+  return sp.toString();
+}
+
+async function downloadBlob(path: string, filename: string) {
+  const res = await fetch(BASE + path);
+  if (!res.ok) throw new Error(`Download failed: ${res.statusText}`);
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 export const api = {
@@ -190,5 +227,88 @@ export const api = {
     ) =>
       fetchJson<Scenario>(`/api/scenarios/${id}`, { method: "PUT", body: JSON.stringify(body) }),
     delete: (id: string) => fetchJson<{ ok: boolean }>(`/api/scenarios/${id}`, { method: "DELETE" }),
+  },
+
+  contacts: {
+    list: (params?: ContactSearchParams) => {
+      const qs = params ? "?" + buildSearchParams(params as Record<string, string | number | boolean | undefined | string[]>) : "";
+      return fetchJson<ContactSearchResult>(`/api/contacts${qs}`);
+    },
+    get: (id: string) => fetchJson<Contact | null>(`/api/contacts/${id}`),
+    create: (body: Partial<Contact> & { display_name: string }) =>
+      fetchJson<Contact>("/api/contacts", { method: "POST", body: JSON.stringify(body) }),
+    update: (id: string, body: Partial<Contact>) =>
+      fetchJson<Contact>(`/api/contacts/${id}`, { method: "PUT", body: JSON.stringify(body) }),
+    delete: (id: string) => fetchJson<{ ok: boolean }>(`/api/contacts/${id}`, { method: "DELETE" }),
+    restore: (id: string) =>
+      fetchJson<Contact>(`/api/contacts/${id}/restore`, { method: "POST" }),
+    bulkUpdate: (ids: string[], updates: { tags?: (string | Tag)[]; status?: Contact["status"] }) =>
+      fetchJson<{ ok: boolean }>("/api/contacts/bulk-update", {
+        method: "POST",
+        body: JSON.stringify({ ids, ...updates }),
+      }),
+    merge: (sourceId: string, targetId: string, conflictResolution?: Record<string, "source" | "target">) =>
+      fetchJson<Contact>("/api/contacts/merge", {
+        method: "POST",
+        body: JSON.stringify({ sourceId, targetId, conflictResolution }),
+      }),
+    tags: {
+      list: () => fetchJson<Tag[]>("/api/contacts/tags"),
+      create: (name: string) =>
+        fetchJson<Tag>("/api/contacts/tags", { method: "POST", body: JSON.stringify({ name }) }),
+    },
+  },
+
+  mailingLists: {
+    list: () => fetchJson<MailingList[]>("/api/mailing-lists"),
+    get: (id: string) => fetchJson<MailingList | null>(`/api/mailing-lists/${id}`),
+    create: (body: {
+      name: string;
+      description?: string;
+      list_type?: MailingList["list_type"];
+      event_id?: string | null;
+      template?: string | null;
+      criteria?: MailingListCriteria | null;
+    }) =>
+      fetchJson<MailingList>("/api/mailing-lists", { method: "POST", body: JSON.stringify(body) }),
+    update: (id: string, body: Partial<MailingList>) =>
+      fetchJson<MailingList>(`/api/mailing-lists/${id}`, { method: "PUT", body: JSON.stringify(body) }),
+    delete: (id: string) => fetchJson<{ ok: boolean }>(`/api/mailing-lists/${id}`, { method: "DELETE" }),
+    preview: (id: string) => fetchJson<ListPreview>(`/api/mailing-lists/${id}/preview`),
+    getMembers: (id: string) => fetchJson<MailingListMember[]>(`/api/mailing-lists/${id}/members`),
+    addMember: (listId: string, contactId: string, source?: "manual" | "import" | "rule") =>
+      fetchJson<MailingList>("/api/mailing-lists/" + listId + "/members", {
+        method: "POST",
+        body: JSON.stringify({ contact_id: contactId, source: source ?? "manual" }),
+      }),
+    addMembersBulk: (listId: string, contactIds: string[], source?: "manual" | "import" | "rule") =>
+      fetchJson<{ ok: boolean }>("/api/mailing-lists/" + listId + "/members", {
+        method: "POST",
+        body: JSON.stringify({ contact_ids: contactIds, source: source ?? "manual" }),
+      }),
+    removeMember: (listId: string, contactId: string) =>
+      fetchJson<{ ok: boolean }>(`/api/mailing-lists/${listId}/members/${contactId}`, {
+        method: "DELETE",
+      }),
+  },
+
+  mailingBatches: {
+    list: () => fetchJson<MailingBatch[]>("/api/mailing-batches"),
+    get: (id: string) => fetchJson<MailingBatch | null>(`/api/mailing-batches/${id}`),
+    create: (listId: string, name: string) =>
+      fetchJson<MailingBatch>("/api/mailing-batches", {
+        method: "POST",
+        body: JSON.stringify({ list_id: listId, name }),
+      }),
+    updateRecipientStatus: (
+      batchId: string,
+      recipientId: string,
+      status: MailingBatchRecipient["status"],
+      reason?: string
+    ) =>
+      fetchJson<{ ok: boolean }>(`/api/mailing-batches/${batchId}/recipients/${recipientId}`, {
+        method: "PUT",
+        body: JSON.stringify({ status, reason }),
+      }),
   },
 };

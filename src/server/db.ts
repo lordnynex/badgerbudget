@@ -259,4 +259,152 @@ function initSchema(database: Database) {
   if (!allMembersExists) {
     database.run("INSERT INTO members (id, name) VALUES (?, ?)", [ALL_MEMBERS_ID, "All Members"]);
   }
+
+  // --- Contacts module ---
+  database.run(`
+    CREATE TABLE IF NOT EXISTS contacts (
+      id TEXT PRIMARY KEY,
+      type TEXT NOT NULL CHECK (type IN ('person', 'organization')) DEFAULT 'person',
+      status TEXT NOT NULL CHECK (status IN ('active', 'inactive', 'deleted')) DEFAULT 'active',
+      display_name TEXT NOT NULL,
+      first_name TEXT,
+      last_name TEXT,
+      organization_name TEXT,
+      notes TEXT,
+      how_we_know_them TEXT,
+      ok_to_email TEXT CHECK (ok_to_email IN ('yes', 'no', 'unknown')) DEFAULT 'unknown',
+      ok_to_mail TEXT CHECK (ok_to_mail IN ('yes', 'no', 'unknown')) DEFAULT 'unknown',
+      do_not_contact INTEGER DEFAULT 0,
+      club_name TEXT,
+      role TEXT,
+      uid TEXT UNIQUE,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now')),
+      deleted_at TEXT
+    )
+  `);
+  database.run(`
+    CREATE TABLE IF NOT EXISTS contact_emails (
+      id TEXT PRIMARY KEY,
+      contact_id TEXT NOT NULL,
+      email TEXT NOT NULL,
+      type TEXT CHECK (type IN ('work', 'home', 'other')) DEFAULT 'other',
+      is_primary INTEGER DEFAULT 0,
+      FOREIGN KEY (contact_id) REFERENCES contacts(id) ON DELETE CASCADE
+    )
+  `);
+  database.run(`
+    CREATE TABLE IF NOT EXISTS contact_phones (
+      id TEXT PRIMARY KEY,
+      contact_id TEXT NOT NULL,
+      phone TEXT NOT NULL,
+      type TEXT CHECK (type IN ('work', 'home', 'cell', 'other')) DEFAULT 'other',
+      is_primary INTEGER DEFAULT 0,
+      FOREIGN KEY (contact_id) REFERENCES contacts(id) ON DELETE CASCADE
+    )
+  `);
+  database.run(`
+    CREATE TABLE IF NOT EXISTS contact_addresses (
+      id TEXT PRIMARY KEY,
+      contact_id TEXT NOT NULL,
+      address_line1 TEXT,
+      address_line2 TEXT,
+      city TEXT,
+      state TEXT,
+      postal_code TEXT,
+      country TEXT DEFAULT 'US',
+      type TEXT CHECK (type IN ('home', 'work', 'postal', 'other')) DEFAULT 'home',
+      is_primary_mailing INTEGER DEFAULT 0,
+      FOREIGN KEY (contact_id) REFERENCES contacts(id) ON DELETE CASCADE
+    )
+  `);
+  database.run(`
+    CREATE TABLE IF NOT EXISTS tags (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL UNIQUE
+    )
+  `);
+  database.run(`
+    CREATE TABLE IF NOT EXISTS contact_tags (
+      contact_id TEXT NOT NULL,
+      tag_id TEXT NOT NULL,
+      PRIMARY KEY (contact_id, tag_id),
+      FOREIGN KEY (contact_id) REFERENCES contacts(id) ON DELETE CASCADE,
+      FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
+    )
+  `);
+  database.run(`
+    CREATE TABLE IF NOT EXISTS mailing_lists (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      description TEXT,
+      list_type TEXT NOT NULL CHECK (list_type IN ('static', 'dynamic', 'hybrid')) DEFAULT 'static',
+      event_id TEXT,
+      template TEXT,
+      criteria TEXT,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE SET NULL
+    )
+  `);
+  database.run(`
+    CREATE TABLE IF NOT EXISTS mailing_list_members (
+      id TEXT PRIMARY KEY,
+      list_id TEXT NOT NULL,
+      contact_id TEXT NOT NULL,
+      added_by TEXT,
+      added_at TEXT DEFAULT (datetime('now')),
+      source TEXT CHECK (source IN ('manual', 'import', 'rule')) DEFAULT 'manual',
+      suppressed INTEGER DEFAULT 0,
+      suppress_reason TEXT,
+      unsubscribed INTEGER DEFAULT 0,
+      FOREIGN KEY (list_id) REFERENCES mailing_lists(id) ON DELETE CASCADE,
+      FOREIGN KEY (contact_id) REFERENCES contacts(id) ON DELETE CASCADE,
+      UNIQUE(list_id, contact_id)
+    )
+  `);
+  database.run(`
+    CREATE TABLE IF NOT EXISTS mailing_batches (
+      id TEXT PRIMARY KEY,
+      list_id TEXT NOT NULL,
+      event_id TEXT,
+      name TEXT NOT NULL,
+      created_by TEXT,
+      created_at TEXT DEFAULT (datetime('now')),
+      recipient_count INTEGER DEFAULT 0,
+      FOREIGN KEY (list_id) REFERENCES mailing_lists(id) ON DELETE CASCADE,
+      FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE SET NULL
+    )
+  `);
+  database.run(`
+    CREATE TABLE IF NOT EXISTS mailing_batch_recipients (
+      id TEXT PRIMARY KEY,
+      batch_id TEXT NOT NULL,
+      contact_id TEXT NOT NULL,
+      snapshot_name TEXT NOT NULL,
+      snapshot_address_line1 TEXT,
+      snapshot_address_line2 TEXT,
+      snapshot_city TEXT,
+      snapshot_state TEXT,
+      snapshot_postal_code TEXT,
+      snapshot_country TEXT,
+      snapshot_organization TEXT,
+      status TEXT NOT NULL CHECK (status IN ('queued', 'printed', 'mailed', 'returned', 'invalid')) DEFAULT 'queued',
+      invalid_reason TEXT,
+      returned_reason TEXT,
+      FOREIGN KEY (batch_id) REFERENCES mailing_batches(id) ON DELETE CASCADE,
+      FOREIGN KEY (contact_id) REFERENCES contacts(id) ON DELETE CASCADE
+    )
+  `);
+  database.run(`
+    CREATE TABLE IF NOT EXISTS audit_log (
+      id TEXT PRIMARY KEY,
+      action TEXT NOT NULL,
+      entity_type TEXT NOT NULL,
+      entity_id TEXT,
+      user_id TEXT,
+      details TEXT,
+      created_at TEXT DEFAULT (datetime('now'))
+    )
+  `);
 }

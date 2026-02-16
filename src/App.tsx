@@ -7,6 +7,10 @@ import { Main } from "@/components/layout/Main";
 import { EventDetailPage } from "@/components/events/EventDetailPage";
 import { MembersPanel } from "@/components/members/MembersPanel";
 import { MemberDetailPage } from "@/components/members/MemberDetailPage";
+import { ContactsPanel } from "@/components/contacts/ContactsPanel";
+import { ContactDetailPage } from "@/components/contacts/ContactDetailPage";
+import { MailingListsPanel } from "@/components/contacts/MailingListsPanel";
+import { MailingBatchPage } from "@/components/contacts/MailingBatchPage";
 import { ProjectionsSubNav } from "@/components/layout/ProjectionsSubNav";
 import { EventDetailSubNav } from "@/components/layout/EventDetailSubNav";
 import { PrintView } from "@/components/export/PrintView";
@@ -98,6 +102,46 @@ function AppContent() {
             <Route
               path="/scenarios"
               element={<Main activeTab="scenarios" onPrint={onPrint} onEmail={onEmail} />}
+            />
+            <Route
+              path="/contacts"
+              element={
+                <main className="space-y-6 p-4 md:p-6">
+                  <ContactsPanel />
+                </main>
+              }
+            />
+            <Route
+              path="/contacts/lists"
+              element={
+                <main className="space-y-6 p-4 md:p-6">
+                  <MailingListsPanel />
+                </main>
+              }
+            />
+            <Route
+              path="/contacts/lists/:listId"
+              element={
+                <main className="space-y-6 p-4 md:p-6">
+                  <MailingListsPanel />
+                </main>
+              }
+            />
+            <Route
+              path="/contacts/batches/:batchId"
+              element={
+                <main className="space-y-6 p-4 md:p-6">
+                  <MailingBatchPage />
+                </main>
+              }
+            />
+            <Route
+              path="/contacts/:id"
+              element={
+                <main className="space-y-6 p-4 md:p-6">
+                  <ContactDetailPage />
+                </main>
+              }
             />
             <Route
               path="/members"

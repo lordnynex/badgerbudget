@@ -398,5 +398,201 @@ export async function handleApiRequest(req: Request): Promise<Response | null> {
     }
   }
 
+  // /api/contacts (list/search)
+  if (path === "/api/contacts" && method === "GET") {
+    const q = url.searchParams.get("q") ?? undefined;
+    const status = (url.searchParams.get("status") as "active" | "inactive" | "deleted" | "all") ?? undefined;
+    const hasPostalAddress = url.searchParams.get("hasPostalAddress") === "true" ? true : undefined;
+    const hasEmail = url.searchParams.get("hasEmail") === "true" ? true : undefined;
+    const tagIds = url.searchParams.get("tagIds")?.split(",").filter(Boolean);
+    const organization = url.searchParams.get("organization") ?? undefined;
+    const role = url.searchParams.get("role") ?? undefined;
+    const sort = (url.searchParams.get("sort") as "updated_at" | "name" | "last_contacted") ?? undefined;
+    const sortDir = (url.searchParams.get("sortDir") as "asc" | "desc") ?? undefined;
+    const page = url.searchParams.get("page") ? parseInt(url.searchParams.get("page")!, 10) : undefined;
+    const limit = url.searchParams.get("limit") ? parseInt(url.searchParams.get("limit")!, 10) : undefined;
+    const result = await api.contacts.list({
+      q,
+      status,
+      hasPostalAddress,
+      hasEmail,
+      tagIds,
+      organization,
+      role,
+      sort,
+      sortDir,
+      page,
+      limit,
+    });
+    return json(result);
+  }
+  if (path === "/api/contacts" && method === "POST") {
+    const body = await jsonBody<Record<string, unknown>>(req);
+    const created = await api.contacts.create(body as Parameters<typeof api.contacts.create>[0]);
+    return json(created);
+  }
+
+  // /api/contacts/bulk-update
+  if (path === "/api/contacts/bulk-update" && method === "POST") {
+    const body = await jsonBody<{ ids: string[]; tags?: unknown[]; status?: string }>(req);
+    await api.contacts.bulkUpdate(body.ids, {
+      tags: body.tags,
+      status: body.status as "active" | "inactive",
+    });
+    return json({ ok: true });
+  }
+
+  // /api/contacts/merge
+  if (path === "/api/contacts/merge" && method === "POST") {
+    const body = await jsonBody<{ sourceId: string; targetId: string; conflictResolution?: Record<string, string> }>(req);
+    const merged = await api.contacts.merge(body.sourceId, body.targetId, body.conflictResolution);
+    if (!merged) return notFound();
+    return json(merged);
+  }
+
+  // /api/contacts/tags
+  if (path === "/api/contacts/tags" && method === "GET") {
+    const tags = await api.contacts.tags.list();
+    return json(tags);
+  }
+  if (path === "/api/contacts/tags" && method === "POST") {
+    const body = await jsonBody<{ name: string }>(req);
+    const tag = await api.contacts.tags.create(body.name);
+    return json(tag);
+  }
+
+  // /api/contacts/:id
+  const contactIdMatch = path.match(/^\/api\/contacts\/([^/]+)$/);
+  if (contactIdMatch) {
+    const id = contactIdMatch[1]!;
+    if (method === "GET") {
+      const contact = await api.contacts.get(id);
+      if (!contact) return notFound();
+      return json(contact);
+    }
+    if (method === "PUT") {
+      const body = await jsonBody<Record<string, unknown>>(req);
+      const updated = await api.contacts.update(id, body as Parameters<typeof api.contacts.update>[1]);
+      if (!updated) return notFound();
+      return json(updated);
+    }
+    if (method === "DELETE") {
+      await api.contacts.delete(id);
+      return json({ ok: true });
+    }
+  }
+
+  // /api/contacts/:id/restore
+  const contactRestoreMatch = path.match(/^\/api\/contacts\/([^/]+)\/restore$/);
+  if (contactRestoreMatch && method === "POST") {
+    const id = contactRestoreMatch[1]!;
+    const restored = await api.contacts.restore(id);
+    if (!restored) return notFound();
+    return json(restored);
+  }
+
+  // /api/mailing-lists
+  if (path === "/api/mailing-lists" && method === "GET") {
+    const list = await api.mailingLists.list();
+    return json(list);
+  }
+  if (path === "/api/mailing-lists" && method === "POST") {
+    const body = await jsonBody<Record<string, unknown>>(req);
+    const created = await api.mailingLists.create(body as Parameters<typeof api.mailingLists.create>[0]);
+    return json(created);
+  }
+
+  // /api/mailing-lists/:id/preview
+  const listPreviewMatch = path.match(/^\/api\/mailing-lists\/([^/]+)\/preview$/);
+  if (listPreviewMatch && method === "GET") {
+    const id = listPreviewMatch[1]!;
+    const preview = await api.mailingLists.preview(id);
+    return json(preview);
+  }
+
+  // /api/mailing-lists/:id/members
+  const listMembersMatch = path.match(/^\/api\/mailing-lists\/([^/]+)\/members$/);
+  if (listMembersMatch) {
+    const listId = listMembersMatch[1]!;
+    if (method === "GET") {
+      const members = await api.mailingLists.getMembers(listId);
+      return json(members);
+    }
+    if (method === "POST") {
+      const body = await jsonBody<{ contact_id?: string; contact_ids?: string[]; source?: string }>(req);
+      if (body.contact_ids?.length) {
+        await api.mailingLists.addMembersBulk(listId, body.contact_ids, (body.source as "manual" | "import" | "rule") ?? "manual");
+      } else if (body.contact_id) {
+        const updated = await api.mailingLists.addMember(listId, body.contact_id, (body.source as "manual" | "import" | "rule") ?? "manual");
+        if (!updated) return notFound();
+        return json(updated);
+      }
+      return json({ ok: true });
+    }
+  }
+
+  // /api/mailing-lists/:id/members/:contactId
+  const listMemberDeleteMatch = path.match(/^\/api\/mailing-lists\/([^/]+)\/members\/([^/]+)$/);
+  if (listMemberDeleteMatch && method === "DELETE") {
+    const listId = listMemberDeleteMatch[1]!;
+    const contactId = listMemberDeleteMatch[2]!;
+    await api.mailingLists.removeMember(listId, contactId);
+    return json({ ok: true });
+  }
+
+  // /api/mailing-lists/:id
+  const listIdMatch = path.match(/^\/api\/mailing-lists\/([^/]+)$/);
+  if (listIdMatch) {
+    const id = listIdMatch[1]!;
+    if (method === "GET") {
+      const list = await api.mailingLists.get(id);
+      if (!list) return notFound();
+      return json(list);
+    }
+    if (method === "PUT") {
+      const body = await jsonBody<Record<string, unknown>>(req);
+      const updated = await api.mailingLists.update(id, body as Parameters<typeof api.mailingLists.update>[1]);
+      if (!updated) return notFound();
+      return json(updated);
+    }
+    if (method === "DELETE") {
+      await api.mailingLists.delete(id);
+      return json({ ok: true });
+    }
+  }
+
+  // /api/mailing-batches
+  if (path === "/api/mailing-batches" && method === "GET") {
+    const list = await api.mailingBatches.list();
+    return json(list);
+  }
+  if (path === "/api/mailing-batches" && method === "POST") {
+    const body = await jsonBody<{ list_id: string; name: string }>(req);
+    const created = await api.mailingBatches.create(body.list_id, body.name);
+    if (!created) return notFound();
+    return json(created);
+  }
+
+  // /api/mailing-batches/:id
+  const batchIdMatch = path.match(/^\/api\/mailing-batches\/([^/]+)$/);
+  if (batchIdMatch) {
+    const id = batchIdMatch[1]!;
+    if (method === "GET") {
+      const batch = await api.mailingBatches.get(id);
+      if (!batch) return notFound();
+      return json(batch);
+    }
+  }
+
+  // /api/mailing-batches/:id/recipients/:recipientId
+  const batchRecipientMatch = path.match(/^\/api\/mailing-batches\/([^/]+)\/recipients\/([^/]+)$/);
+  if (batchRecipientMatch && method === "PUT") {
+    const batchId = batchRecipientMatch[1]!;
+    const recipientId = batchRecipientMatch[2]!;
+    const body = await jsonBody<{ status: string; reason?: string }>(req);
+    await api.mailingBatches.updateRecipientStatus(batchId, recipientId, body.status as "queued" | "printed" | "mailed" | "returned" | "invalid", body.reason);
+    return json({ ok: true });
+  }
+
   return null;
 }
