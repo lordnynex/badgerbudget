@@ -80,7 +80,7 @@ export function EventsPanel() {
       {events.length === 0 && (
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground">
-            No events yet. Run the app with seed data to see events.
+            No events yet. Create an event to get started.
           </CardContent>
         </Card>
       )}

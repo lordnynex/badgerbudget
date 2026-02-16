@@ -6,11 +6,8 @@ import { scenariosController } from "./controllers/scenarios";
 import { contactsController } from "./controllers/contacts";
 import { mailingListsController } from "./controllers/mailingLists";
 import { mailingBatchesController } from "./controllers/mailingBatches";
-import { seedController } from "./controllers/seed";
 
 export const apiRoutes = new Elysia({ prefix: "/api" })
-  .post("/seed", () => seedController.run())
-
   .get("/events", () => eventsController.list())
   .post("/events", ({ body }) => eventsController.create(body))
   .get("/events/:id", ({ params: { id } }) => eventsController.get(id))

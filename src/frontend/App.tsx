@@ -178,44 +178,6 @@ function AppContent() {
 }
 
 function App() {
-  const [initialized, setInitialized] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    async function init() {
-      try {
-        await api.seed();
-        setError(null);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Failed to seed");
-      } finally {
-        setInitialized(true);
-      }
-    }
-    init();
-  }, []);
-
-  if (!initialized) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <p className="text-muted-foreground">Loading Badger Planning...</p>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-center">
-          <p className="text-destructive">{error}</p>
-          <p className="text-muted-foreground mt-2 text-sm">
-            Check that the server is running and the database is accessible.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <AppStateProvider>
       <AppLoader />

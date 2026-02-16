@@ -1,5 +1,5 @@
 import type { DataSource } from "typeorm";
-import { createConnection } from "typeorm";
+import { createConnection, getConnectionManager } from "typeorm";
 import type { DataSourceOptions } from "typeorm";
 import { join } from "path";
 import {
@@ -27,6 +27,7 @@ import {
   MailingBatchRecipient,
   AuditLog,
 } from "../entities";
+import { InitialSchema1700000000000 } from "./migrations/1700000000000-InitialSchema.ts";
 
 const projectRoot = join(import.meta.dir, "../../..");
 const dbPath = join(projectRoot, "data", "badger.db");
@@ -37,6 +38,8 @@ const dataSourceOptions: DataSourceOptions = {
   location: dbPath,
   autoSave: true,
   synchronize: false,
+  migrations: [InitialSchema1700000000000],
+  migrationsRun: true,
   entities: [
     Event,
     EventPlanningMilestone,
@@ -67,6 +70,10 @@ const dataSourceOptions: DataSourceOptions = {
 const globalForDataSource = globalThis as unknown as { __badgerDataSourcePromise?: Promise<DataSource> };
 
 export function getDataSourcePromise(): Promise<DataSource> {
+  const manager = getConnectionManager();
+  if (manager.has("default")) {
+    return Promise.resolve(manager.get("default"));
+  }
   if (!globalForDataSource.__badgerDataSourcePromise) {
     globalForDataSource.__badgerDataSourcePromise = createConnection(dataSourceOptions);
   }

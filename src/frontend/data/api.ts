@@ -43,8 +43,6 @@ function buildSearchParams(params: Record<string, string | number | boolean | un
 }
 
 export const api = {
-  seed: () => unwrap(client.api.seed.post()),
-
   events: {
     list: () => unwrap(client.api.events.get()),
     get: (id: string) => unwrap(client.api.events({ id }).get()),
