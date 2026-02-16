@@ -1,7 +1,6 @@
-export const MONTHS = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
-];
+import { MONTHS } from "@/lib/date-utils";
+
+export { MONTHS };
 
 export function formatDueDate(d: string) {
   const [y, mo, day] = d.split("-");

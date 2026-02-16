@@ -1,12 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Inputs, LineItem } from "@/types/budget";
-
-const FOOD_CATEGORIES = ["Food & Beverage", "Food", "Beverage"];
-const EVENT_DAYS = 4;
-
-function isFoodCategory(category: string): boolean {
-  return FOOD_CATEGORIES.includes(category);
-}
+import { isFoodCategory, EVENT_DAYS } from "@/lib/event-constants";
 
 interface FoodCostBreakdownProps {
   lineItems: LineItem[];

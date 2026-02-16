@@ -1,7 +1,6 @@
 import {
   useSuspenseQuery,
   useQuery,
-  useMutation,
   useQueryClient,
 } from "@tanstack/react-query";
 import { api } from "@/data/api";
@@ -51,23 +50,6 @@ export function useScenarioSuspense(id: string) {
   return useSuspenseQuery({
     queryKey: queryKeys.scenario(id),
     queryFn: () => api.scenarios.get(id),
-  });
-}
-
-// Optional (non-suspense) for when id might be null – used in layout to avoid suspending with null
-export function useBudget(id: string | null) {
-  return useQuery({
-    queryKey: queryKeys.budget(id ?? ""),
-    queryFn: () => api.budgets.get(id!),
-    enabled: !!id,
-  });
-}
-
-export function useScenario(id: string | null) {
-  return useQuery({
-    queryKey: queryKeys.scenario(id ?? ""),
-    queryFn: () => api.scenarios.get(id!),
-    enabled: !!id,
   });
 }
 
@@ -143,14 +125,6 @@ export function useMailingListPreview(id: string | null) {
   return useQuery({
     queryKey: queryKeys.mailingListPreview(id ?? ""),
     queryFn: () => api.mailingLists.preview(id!),
-    enabled: !!id,
-  });
-}
-
-export function useMailingListMembers(id: string | null) {
-  return useQuery({
-    queryKey: queryKeys.mailingListMembers(id ?? ""),
-    queryFn: () => api.mailingLists.getMembers(id!),
     enabled: !!id,
   });
 }

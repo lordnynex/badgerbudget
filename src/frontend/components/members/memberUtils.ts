@@ -1,9 +1,8 @@
 import type { Member } from "@/types/budget";
+import { MONTHS } from "@/lib/date-utils";
+import { escapeVCardValue } from "@/lib/vcard";
 
-export const MONTHS = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
-];
+export { MONTHS };
 
 export function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -111,10 +110,6 @@ export function getUpcomingAnniversaries(members: Member[], daysAhead = 90): { m
   }
   result.sort((a, b) => a.date.getTime() - b.date.getTime());
   return result;
-}
-
-function escapeVCardValue(s: string): string {
-  return s.replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\n/g, "\\n");
 }
 
 function memberToVCard(m: Member): string {

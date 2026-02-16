@@ -1,11 +1,5 @@
 import type { Inputs, LineItem, ScenarioMetrics } from "@/types/budget";
-
-const FOOD_CATEGORIES = ["Food & Beverage", "Food", "Beverage"];
-const EVENT_DAYS = 4;
-
-function isFoodCategory(category: string): boolean {
-  return FOOD_CATEGORIES.includes(category);
-}
+import { isFoodCategory, EVENT_DAYS } from "@/lib/event-constants";
 
 export interface ExportSummary {
   totalCosts: number;

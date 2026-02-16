@@ -28,11 +28,4 @@ export const api = {
   mailingBatches,
 };
 
-export { EventsApiClient } from "./EventsApiClient";
-export { BudgetsApiClient } from "./BudgetsApiClient";
-export { MembersApiClient } from "./MembersApiClient";
-export { ScenariosApiClient } from "./ScenariosApiClient";
-export { ContactsApiClient } from "./ContactsApiClient";
-export { MailingListsApiClient } from "./MailingListsApiClient";
-export { MailingBatchesApiClient } from "./MailingBatchesApiClient";
 export { client, unwrap, buildSearchParams } from "./client";

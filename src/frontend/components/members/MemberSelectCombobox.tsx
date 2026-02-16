@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ChevronDown, Users, User } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { ALL_MEMBERS_ID } from "@/lib/constants";
+import { ALL_MEMBERS_ID } from "@/shared/lib/constants";
 import type { Member } from "@/types/budget";
 
 export interface MemberSelectComboboxProps {

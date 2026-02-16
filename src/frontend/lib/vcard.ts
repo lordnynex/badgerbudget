@@ -1,6 +1,6 @@
 import type { Contact, ContactEmail, ContactAddress } from "@/types/contact";
 
-function escapeVCardValue(s: string): string {
+export function escapeVCardValue(s: string): string {
   return s.replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\n/g, "\\n");
 }
 
