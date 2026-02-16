@@ -20,7 +20,7 @@ import { api } from "@/data/api";
 import type { Contact, ContactSearchParams, Tag } from "@/types/contact";
 import { contactsToVCardFile } from "@/lib/vcard";
 import { Link } from "react-router-dom";
-import { Plus, Search, ChevronDown, Download, Upload, List } from "lucide-react";
+import { Plus, Search, Download, Upload, List, Trash2 } from "lucide-react";
 import { AddContactDialog } from "./AddContactDialog";
 import { ImportContactsDialog } from "./ImportContactsDialog";
 import { AddToMailingListDialog } from "./AddToMailingListDialog";
@@ -119,6 +119,16 @@ export function ContactsPanel() {
     refresh();
   };
 
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    if (!confirm(`Delete ${selectedIds.size} contact${selectedIds.size !== 1 ? "s" : ""}? This cannot be undone.`)) return;
+    for (const id of selectedIds) {
+      await api.contacts.delete(id);
+    }
+    setSelectedIds(new Set());
+    refresh();
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -211,6 +221,10 @@ export function ContactsPanel() {
               </Button>
               <Button variant="outline" size="sm" onClick={handleBulkMarkInactive}>
                 Mark inactive
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleBulkDelete} className="text-destructive hover:text-destructive">
+                <Trash2 className="size-4" />
+                Delete
               </Button>
               <Button variant="ghost" size="sm" onClick={() => setSelectedIds(new Set())}>
                 Clear
