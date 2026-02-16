@@ -1,0 +1,62 @@
+import { DataSource } from "typeorm";
+import { join } from "path";
+import {
+  Event,
+  EventPlanningMilestone,
+  EventMilestoneMember,
+  EventPackingCategory,
+  EventPackingItem,
+  EventVolunteer,
+  EventAssignment,
+  EventAssignmentMember,
+  Budget,
+  LineItem,
+  Scenario,
+  Member,
+  Contact,
+  ContactEmail,
+  ContactPhone,
+  ContactAddress,
+  Tag,
+  ContactTag,
+  MailingList,
+  MailingListMember,
+  MailingBatch,
+  MailingBatchRecipient,
+  AuditLog,
+} from "./entities";
+
+const projectRoot = join(import.meta.dir, "../..");
+const dbPath = join(projectRoot, "data", "badger.db");
+
+export const dataSource = new DataSource({
+  type: "sqljs",
+  location: dbPath,
+  autoSave: true,
+  synchronize: false,
+  entities: [
+    Event,
+    EventPlanningMilestone,
+    EventMilestoneMember,
+    EventPackingCategory,
+    EventPackingItem,
+    EventVolunteer,
+    EventAssignment,
+    EventAssignmentMember,
+    Budget,
+    LineItem,
+    Scenario,
+    Member,
+    Contact,
+    ContactEmail,
+    ContactPhone,
+    ContactAddress,
+    Tag,
+    ContactTag,
+    MailingList,
+    MailingListMember,
+    MailingBatch,
+    MailingBatchRecipient,
+    AuditLog,
+  ],
+});

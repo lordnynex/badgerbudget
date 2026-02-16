@@ -1,45 +1,32 @@
+import { treaty } from "@elysiajs/eden";
+import type { App } from "@/server/elysiaApp";
 import type {
-  Budget,
-  BudgetSummary,
-  Event,
-  EventAssignment,
-  EventPackingCategory,
-  EventPackingItem,
-  EventPlanningMilestone,
-  EventVolunteer,
-  LineItem,
-  Member,
-  Scenario,
-  ScenarioSummary,
-} from "@/types/budget";
-import type {
-  Contact,
   ContactSearchParams,
   ContactSearchResult,
-  MailingList,
-  MailingListMember,
-  MailingListCriteria,
-  MailingBatch,
-  MailingBatchRecipient,
-  ListPreview,
-  Tag,
 } from "@/types/contact";
 
-const BASE = "";
+const client = treaty<App>(
+  typeof window !== "undefined" ? window.location.origin : "http://localhost:3000",
+  { parseDate: false }
+);
 
-async function fetchJson<T>(path: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(BASE + path, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options?.headers,
-    },
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error((err as { error?: string }).error ?? `Request failed: ${res.status}`);
+function getErrorMessage(err: unknown, status: number): string {
+  if (!err || typeof err !== "object") return `Request failed (${status})`;
+  const e = err as { value?: unknown };
+  const v = e.value;
+  if (typeof v === "string") return v;
+  if (v && typeof v === "object" && "error" in v && typeof (v as { error: unknown }).error === "string") {
+    return (v as { error: string }).error;
   }
-  return res.json() as Promise<T>;
+  return `Request failed (${status})`;
+}
+
+async function unwrap<T>(promise: Promise<{ data?: T; error?: unknown; status: number }>): Promise<T> {
+  const res = await promise;
+  if (res.error) {
+    throw new Error(getErrorMessage(res.error, res.status));
+  }
+  return res.data as T;
 }
 
 function buildSearchParams(params: Record<string, string | number | boolean | undefined | string[]>) {
@@ -55,278 +42,163 @@ function buildSearchParams(params: Record<string, string | number | boolean | un
   return sp.toString();
 }
 
-async function downloadBlob(path: string, filename: string) {
-  const res = await fetch(BASE + path);
-  if (!res.ok) throw new Error(`Download failed: ${res.statusText}`);
-  const blob = await res.blob();
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
 export const api = {
-  seed: () => fetchJson<{ ok: boolean; budgetId?: string; scenarioId?: string }>("/api/seed", { method: "POST" }),
+  seed: () => unwrap(client.api.seed.post()),
 
   events: {
-    list: () => fetchJson<Event[]>("/api/events"),
-    get: (id: string) => fetchJson<Event | null>(`/api/events/${id}`),
-    create: (body: Partial<Event>) =>
-      fetchJson<Event>("/api/events", { method: "POST", body: JSON.stringify(body) }),
-    update: (id: string, body: Partial<Event>) =>
-      fetchJson<Event>(`/api/events/${id}`, { method: "PUT", body: JSON.stringify(body) }),
-    delete: (id: string) => fetchJson<{ ok: boolean }>(`/api/events/${id}`, { method: "DELETE" }),
+    list: () => unwrap(client.api.events.get()),
+    get: (id: string) => unwrap(client.api.events({ id }).get()),
+    create: (body: Parameters<typeof client.api.events.post>[0]) =>
+      unwrap(client.api.events.post(body)),
+    update: (id: string, body: Record<string, unknown>) =>
+      unwrap(client.api.events({ id }).put(body)),
+    delete: (id: string) => unwrap(client.api.events({ id }).delete()),
     milestones: {
       create: (eventId: string, body: { month: number; year: number; description: string; due_date?: string }) =>
-        fetchJson<EventPlanningMilestone>(`/api/events/${eventId}/milestones`, {
-          method: "POST",
-          body: JSON.stringify(body),
-        }),
+        unwrap(client.api.events({ id: eventId }).milestones.post(body)),
       update: (eventId: string, mid: string, body: { month?: number; year?: number; description?: string; completed?: boolean; due_date?: string }) =>
-        fetchJson<EventPlanningMilestone>(`/api/events/${eventId}/milestones/${mid}`, {
-          method: "PUT",
-          body: JSON.stringify(body),
-        }),
+        unwrap(client.api.events({ id: eventId }).milestones({ mid }).put(body)),
       delete: (eventId: string, mid: string) =>
-        fetchJson<{ ok: boolean }>(`/api/events/${eventId}/milestones/${mid}`, { method: "DELETE" }),
+        unwrap(client.api.events({ id: eventId }).milestones({ mid }).delete()),
       addMember: (eventId: string, mid: string, memberId: string) =>
-        fetchJson<Event>(`/api/events/${eventId}/milestones/${mid}/members`, {
-          method: "POST",
-          body: JSON.stringify({ member_id: memberId }),
-        }),
+        unwrap(client.api.events({ id: eventId }).milestones({ mid }).members.post({ member_id: memberId })),
       removeMember: (eventId: string, mid: string, memberId: string) =>
-        fetchJson<Event>(`/api/events/${eventId}/milestones/${mid}/members/${memberId}`, {
-          method: "DELETE",
-        }),
+        unwrap(client.api.events({ id: eventId }).milestones({ mid }).members({ memberId }).delete()),
     },
     packingCategories: {
       create: (eventId: string, body: { name: string }) =>
-        fetchJson<EventPackingCategory>(`/api/events/${eventId}/packing-categories`, {
-          method: "POST",
-          body: JSON.stringify(body),
-        }),
+        unwrap(client.api.events({ id: eventId }).packing_categories.post(body)),
       update: (eventId: string, cid: string, body: { name?: string }) =>
-        fetchJson<EventPackingCategory>(`/api/events/${eventId}/packing-categories/${cid}`, {
-          method: "PUT",
-          body: JSON.stringify(body),
-        }),
+        unwrap(client.api.events({ id: eventId }).packing_categories({ cid }).put(body)),
       delete: (eventId: string, cid: string) =>
-        fetchJson<{ ok: boolean }>(`/api/events/${eventId}/packing-categories/${cid}`, { method: "DELETE" }),
+        unwrap(client.api.events({ id: eventId }).packing_categories({ cid }).delete()),
     },
     packingItems: {
       create: (eventId: string, body: { category_id: string; name: string; quantity?: number; note?: string }) =>
-        fetchJson<EventPackingItem>(`/api/events/${eventId}/packing-items`, {
-          method: "POST",
-          body: JSON.stringify(body),
-        }),
+        unwrap(client.api.events({ id: eventId }).packing_items.post(body)),
       update: (eventId: string, pid: string, body: { category_id?: string; name?: string; quantity?: number; note?: string; loaded?: boolean }) =>
-        fetchJson<EventPackingItem>(`/api/events/${eventId}/packing-items/${pid}`, {
-          method: "PUT",
-          body: JSON.stringify(body),
-        }),
+        unwrap(client.api.events({ id: eventId }).packing_items({ pid }).put(body)),
       delete: (eventId: string, pid: string) =>
-        fetchJson<{ ok: boolean }>(`/api/events/${eventId}/packing-items/${pid}`, { method: "DELETE" }),
+        unwrap(client.api.events({ id: eventId }).packing_items({ pid }).delete()),
     },
     volunteers: {
       create: (eventId: string, body: { name: string; department: string }) =>
-        fetchJson<EventVolunteer>(`/api/events/${eventId}/volunteers`, {
-          method: "POST",
-          body: JSON.stringify(body),
-        }),
+        unwrap(client.api.events({ id: eventId }).volunteers.post(body)),
       update: (eventId: string, vid: string, body: { name?: string; department?: string }) =>
-        fetchJson<EventVolunteer>(`/api/events/${eventId}/volunteers/${vid}`, {
-          method: "PUT",
-          body: JSON.stringify(body),
-        }),
+        unwrap(client.api.events({ id: eventId }).volunteers({ vid }).put(body)),
       delete: (eventId: string, vid: string) =>
-        fetchJson<{ ok: boolean }>(`/api/events/${eventId}/volunteers/${vid}`, { method: "DELETE" }),
+        unwrap(client.api.events({ id: eventId }).volunteers({ vid }).delete()),
     },
     assignments: {
       create: (eventId: string, body: { name: string; category: "planning" | "during" }) =>
-        fetchJson<EventAssignment>(`/api/events/${eventId}/assignments`, {
-          method: "POST",
-          body: JSON.stringify(body),
-        }),
+        unwrap(client.api.events({ id: eventId }).assignments.post(body)),
       update: (eventId: string, aid: string, body: { name?: string; category?: "planning" | "during" }) =>
-        fetchJson<EventAssignment>(`/api/events/${eventId}/assignments/${aid}`, {
-          method: "PUT",
-          body: JSON.stringify(body),
-        }),
+        unwrap(client.api.events({ id: eventId }).assignments({ aid }).put(body)),
       delete: (eventId: string, aid: string) =>
-        fetchJson<{ ok: boolean }>(`/api/events/${eventId}/assignments/${aid}`, { method: "DELETE" }),
+        unwrap(client.api.events({ id: eventId }).assignments({ aid }).delete()),
       addMember: (eventId: string, aid: string, memberId: string) =>
-        fetchJson<Event>(`/api/events/${eventId}/assignments/${aid}/members`, {
-          method: "POST",
-          body: JSON.stringify({ member_id: memberId }),
-        }),
+        unwrap(client.api.events({ id: eventId }).assignments({ aid }).members.post({ member_id: memberId })),
       removeMember: (eventId: string, aid: string, memberId: string) =>
-        fetchJson<Event>(`/api/events/${eventId}/assignments/${aid}/members/${memberId}`, {
-          method: "DELETE",
-        }),
+        unwrap(client.api.events({ id: eventId }).assignments({ aid }).members({ memberId }).delete()),
     },
   },
 
   budgets: {
-    list: () => fetchJson<BudgetSummary[]>("/api/budgets"),
-    get: (id: string) => fetchJson<Budget | null>(`/api/budgets/${id}`),
+    list: () => unwrap(client.api.budgets.get()),
+    get: (id: string) => unwrap(client.api.budgets({ id }).get()),
     create: (body: { name: string; year: number; description?: string }) =>
-      fetchJson<BudgetSummary>("/api/budgets", { method: "POST", body: JSON.stringify(body) }),
+      unwrap(client.api.budgets.post(body)),
     update: (id: string, body: { name?: string; year?: number; description?: string }) =>
-      fetchJson<BudgetSummary>(`/api/budgets/${id}`, { method: "PUT", body: JSON.stringify(body) }),
-    delete: (id: string) => fetchJson<{ ok: boolean }>(`/api/budgets/${id}`, { method: "DELETE" }),
-    addLineItem: (
-      budgetId: string,
-      body: {
-        name: string;
-        category: string;
-        comments?: string;
-        unitCost: number;
-        quantity: number;
-        historicalCosts?: Record<string, number>;
-      }
-    ) =>
-      fetchJson<LineItem>(`/api/budgets/${budgetId}/line-items`, {
-        method: "POST",
-        body: JSON.stringify(body),
-      }),
-    updateLineItem: (
-      budgetId: string,
-      itemId: string,
-      body: Partial<Omit<LineItem, "id">>
-    ) =>
-      fetchJson<LineItem>(`/api/budgets/${budgetId}/line-items/${itemId}`, {
-        method: "PUT",
-        body: JSON.stringify(body),
-      }),
+      unwrap(client.api.budgets({ id }).put(body)),
+    delete: (id: string) => unwrap(client.api.budgets({ id }).delete()),
+    addLineItem: (budgetId: string, body: { name: string; category: string; comments?: string; unitCost: number; quantity: number; historicalCosts?: Record<string, number> }) =>
+      unwrap(client.api.budgets({ id: budgetId }).line_items.post(body)),
+    updateLineItem: (budgetId: string, itemId: string, body: Record<string, unknown>) =>
+      unwrap(client.api.budgets({ id: budgetId }).line_items({ itemId }).put(body)),
     deleteLineItem: (budgetId: string, itemId: string) =>
-      fetchJson<{ ok: boolean }>(`/api/budgets/${budgetId}/line-items/${itemId}`, {
-        method: "DELETE",
-      }),
+      unwrap(client.api.budgets({ id: budgetId }).line_items({ itemId }).delete()),
   },
 
   members: {
-    list: () => fetchJson<Member[]>("/api/members"),
-    get: (id: string) => fetchJson<Member | null>(`/api/members/${id}`),
-    create: (body: Partial<Member> & { name: string }) =>
-      fetchJson<Member>("/api/members", { method: "POST", body: JSON.stringify(body) }),
-    update: (id: string, body: Partial<Member>) =>
-      fetchJson<Member>(`/api/members/${id}`, { method: "PUT", body: JSON.stringify(body) }),
-    delete: (id: string) => fetchJson<{ ok: boolean }>(`/api/members/${id}`, { method: "DELETE" }),
+    list: () => unwrap(client.api.members.get()),
+    get: (id: string) => unwrap(client.api.members({ id }).get()),
+    create: (body: Record<string, unknown>) => unwrap(client.api.members.post(body)),
+    update: (id: string, body: Record<string, unknown>) =>
+      unwrap(client.api.members({ id }).put(body)),
+    delete: (id: string) => unwrap(client.api.members({ id }).delete()),
   },
 
   scenarios: {
-    list: () => fetchJson<ScenarioSummary[]>("/api/scenarios"),
-    get: (id: string) => fetchJson<Scenario | null>(`/api/scenarios/${id}`),
+    list: () => unwrap(client.api.scenarios.get()),
+    get: (id: string) => unwrap(client.api.scenarios({ id }).get()),
     create: (body: { name: string; description?: string; inputs?: Record<string, unknown> }) =>
-      fetchJson<Scenario>("/api/scenarios", { method: "POST", body: JSON.stringify(body) }),
-    update: (
-      id: string,
-      body: { name?: string; description?: string; inputs?: Record<string, unknown> }
-    ) =>
-      fetchJson<Scenario>(`/api/scenarios/${id}`, { method: "PUT", body: JSON.stringify(body) }),
-    delete: (id: string) => fetchJson<{ ok: boolean }>(`/api/scenarios/${id}`, { method: "DELETE" }),
+      unwrap(client.api.scenarios.post(body)),
+    update: (id: string, body: { name?: string; description?: string; inputs?: Record<string, unknown> }) =>
+      unwrap(client.api.scenarios({ id }).put(body)),
+    delete: (id: string) => unwrap(client.api.scenarios({ id }).delete()),
   },
 
   contacts: {
-    list: (params?: ContactSearchParams) => {
+    list: async (params?: ContactSearchParams): Promise<ContactSearchResult> => {
       const qs = params ? "?" + buildSearchParams(params as Record<string, string | number | boolean | undefined | string[]>) : "";
-      return fetchJson<ContactSearchResult>(`/api/contacts${qs}`);
+      const res = await fetch(`/api/contacts${qs}`);
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: res.statusText }));
+        throw new Error((err as { error?: string }).error ?? "Request failed");
+      }
+      return res.json();
     },
-    get: (id: string) => fetchJson<Contact | null>(`/api/contacts/${id}`),
-    create: (body: Partial<Contact> & { display_name: string }) =>
-      fetchJson<Contact>("/api/contacts", { method: "POST", body: JSON.stringify(body) }),
-    update: (id: string, body: Partial<Contact>) =>
-      fetchJson<Contact>(`/api/contacts/${id}`, { method: "PUT", body: JSON.stringify(body) }),
-    delete: (id: string) => fetchJson<{ ok: boolean }>(`/api/contacts/${id}`, { method: "DELETE" }),
-    restore: (id: string) =>
-      fetchJson<Contact>(`/api/contacts/${id}/restore`, { method: "POST" }),
-    bulkUpdate: (ids: string[], updates: { tags?: (string | Tag)[]; status?: Contact["status"] }) =>
-      fetchJson<{ ok: boolean }>("/api/contacts/bulk-update", {
-        method: "POST",
-        body: JSON.stringify({ ids, ...updates }),
-      }),
+    get: (id: string) => unwrap(client.api.contacts({ id }).get()),
+    create: (body: Record<string, unknown>) => unwrap(client.api.contacts.post(body)),
+    update: (id: string, body: Record<string, unknown>) =>
+      unwrap(client.api.contacts({ id }).put(body)),
+    delete: (id: string) => unwrap(client.api.contacts({ id }).delete()),
+    restore: (id: string) => unwrap(client.api.contacts({ id }).restore.post()),
+    bulkUpdate: (ids: string[], updates: { tags?: unknown[]; status?: string }) =>
+      unwrap(client.api.contacts.bulk_update.post({ ids, ...updates })),
     merge: (sourceId: string, targetId: string, conflictResolution?: Record<string, "source" | "target">) =>
-      fetchJson<Contact>("/api/contacts/merge", {
-        method: "POST",
-        body: JSON.stringify({ sourceId, targetId, conflictResolution }),
-      }),
+      unwrap(client.api.contacts.merge.post({ sourceId, targetId, conflictResolution })),
     importPstPreview: async (file: File) => {
       const form = new FormData();
       form.append("file", file);
-      const res = await fetch(BASE + "/api/contacts/import-pst", {
-        method: "POST",
-        body: form,
-      });
+      const res = await fetch("/api/contacts/import-pst", { method: "POST", body: form });
       if (!res.ok) {
         const err = await res.json().catch(() => ({ error: res.statusText }));
-        throw new Error((err as { error?: string }).error ?? `PST import failed: ${res.statusText}`);
+        throw new Error((err as { error?: string }).error ?? "PST import failed");
       }
-      return res.json() as Promise<{ contacts: Array<{ payload: Partial<Contact> & { display_name: string }; status: "new" | "duplicate"; existingContact?: { id: string; display_name: string } }> }>;
+      return res.json() as Promise<{ contacts: Array<{ payload: Record<string, unknown> & { display_name: string }; status: string; existingContact?: { id: string; display_name: string } }> }>;
     },
-    importPstExecute: (toCreate: Array<Partial<Contact> & { display_name: string }>) =>
-      fetchJson<{ created: string[]; count: number }>("/api/contacts/import-pst-execute", {
-        method: "POST",
-        body: JSON.stringify({ toCreate }),
-      }),
+    importPstExecute: (toCreate: Array<Record<string, unknown> & { display_name: string }>) =>
+      unwrap(client.api.contacts.import_pst_execute.post({ toCreate })),
     tags: {
-      list: () => fetchJson<Tag[]>("/api/contacts/tags"),
-      create: (name: string) =>
-        fetchJson<Tag>("/api/contacts/tags", { method: "POST", body: JSON.stringify({ name }) }),
+      list: () => unwrap(client.api.contacts.tags.get()),
+      create: (name: string) => unwrap(client.api.contacts.tags.post({ name })),
     },
   },
 
   mailingLists: {
-    list: () => fetchJson<MailingList[]>("/api/mailing-lists"),
-    get: (id: string) => fetchJson<MailingList | null>(`/api/mailing-lists/${id}`),
-    create: (body: {
-      name: string;
-      description?: string;
-      list_type?: MailingList["list_type"];
-      event_id?: string | null;
-      template?: string | null;
-      criteria?: MailingListCriteria | null;
-    }) =>
-      fetchJson<MailingList>("/api/mailing-lists", { method: "POST", body: JSON.stringify(body) }),
-    update: (id: string, body: Partial<MailingList>) =>
-      fetchJson<MailingList>(`/api/mailing-lists/${id}`, { method: "PUT", body: JSON.stringify(body) }),
-    delete: (id: string) => fetchJson<{ ok: boolean }>(`/api/mailing-lists/${id}`, { method: "DELETE" }),
-    preview: (id: string) => fetchJson<ListPreview>(`/api/mailing-lists/${id}/preview`),
-    getMembers: (id: string) => fetchJson<MailingListMember[]>(`/api/mailing-lists/${id}/members`),
+    list: () => unwrap(client.api.mailing_lists.get()),
+    get: (id: string) => unwrap(client.api.mailing_lists({ id }).get()),
+    create: (body: Record<string, unknown>) => unwrap(client.api.mailing_lists.post(body)),
+    update: (id: string, body: Record<string, unknown>) =>
+      unwrap(client.api.mailing_lists({ id }).put(body)),
+    delete: (id: string) => unwrap(client.api.mailing_lists({ id }).delete()),
+    preview: (id: string) => unwrap(client.api.mailing_lists({ id }).preview.get()),
+    getMembers: (id: string) => unwrap(client.api.mailing_lists({ id }).members.get()),
     addMember: (listId: string, contactId: string, source?: "manual" | "import" | "rule") =>
-      fetchJson<MailingList>("/api/mailing-lists/" + listId + "/members", {
-        method: "POST",
-        body: JSON.stringify({ contact_id: contactId, source: source ?? "manual" }),
-      }),
+      unwrap(client.api.mailing_lists({ id: listId }).members.post({ contact_id: contactId, source: source ?? "manual" })),
     addMembersBulk: (listId: string, contactIds: string[], source?: "manual" | "import" | "rule") =>
-      fetchJson<{ ok: boolean }>("/api/mailing-lists/" + listId + "/members", {
-        method: "POST",
-        body: JSON.stringify({ contact_ids: contactIds, source: source ?? "manual" }),
-      }),
+      unwrap(client.api.mailing_lists({ id: listId }).members.post({ contact_ids: contactIds, source: source ?? "manual" })),
     removeMember: (listId: string, contactId: string) =>
-      fetchJson<{ ok: boolean }>(`/api/mailing-lists/${listId}/members/${contactId}`, {
-        method: "DELETE",
-      }),
+      unwrap(client.api.mailing_lists({ id: listId }).members({ contactId }).delete()),
   },
 
   mailingBatches: {
-    list: () => fetchJson<MailingBatch[]>("/api/mailing-batches"),
-    get: (id: string) => fetchJson<MailingBatch | null>(`/api/mailing-batches/${id}`),
+    list: () => unwrap(client.api.mailing_batches.get()),
+    get: (id: string) => unwrap(client.api.mailing_batches({ id }).get()),
     create: (listId: string, name: string) =>
-      fetchJson<MailingBatch>("/api/mailing-batches", {
-        method: "POST",
-        body: JSON.stringify({ list_id: listId, name }),
-      }),
-    updateRecipientStatus: (
-      batchId: string,
-      recipientId: string,
-      status: MailingBatchRecipient["status"],
-      reason?: string
-    ) =>
-      fetchJson<{ ok: boolean }>(`/api/mailing-batches/${batchId}/recipients/${recipientId}`, {
-        method: "PUT",
-        body: JSON.stringify({ status, reason }),
-      }),
+      unwrap(client.api.mailing_batches.post({ list_id: listId, name })),
+    updateRecipientStatus: (batchId: string, recipientId: string, status: string, reason?: string) =>
+      unwrap(client.api.mailing_batches({ id: batchId }).recipients({ recipientId }).put({ status, reason })),
   },
 };

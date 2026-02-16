@@ -1,4 +1,4 @@
-import { getDb } from "./db";
+import { getDb } from "./dbAdapter";
 import { ALL_MEMBERS_ID } from "@/lib/constants";
 import { contactsApi, mailingListsApi, mailingBatchesApi } from "./contactsApi";
 
@@ -44,19 +44,11 @@ function parsePhotoToBlob(photo: string): Buffer | null {
   }
 }
 
-export function corsHeaders(): Record<string, string> {
-  return {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
-  };
-}
-
 export const api = {
   events: {
     list: async () => {
       const db = getDb();
-      const rows = db.query("SELECT * FROM events ORDER BY year DESC, name").all() as Array<Record<string, unknown>>;
+      const rows = (await await db.query("SELECT * FROM events ORDER BY year DESC, name").all()) as Array<Record<string, unknown>>;
       return rows.map((e) => ({
         id: e.id,
         name: e.name,
@@ -78,25 +70,25 @@ export const api = {
     },
     get: async (id: string) => {
       const db = getDb();
-      const row = db.query("SELECT * FROM events WHERE id = ?").get(id);
+      const row = await await db.query("SELECT * FROM events WHERE id = ?").get(id);
       if (!row) return null;
       const e = row as Record<string, unknown>;
-      const milestones = db
+      const milestones = (await db
         .query("SELECT * FROM event_planning_milestones WHERE event_id = ? ORDER BY year, month, sort_order")
-        .all(id) as Array<Record<string, unknown>>;
+        .all(id)) as Array<Record<string, unknown>>;
       const milestoneMembers = milestones.length
-        ? (db
+        ? ((await db
             .query(
               "SELECT emm.* FROM event_milestone_members emm WHERE emm.milestone_id IN (" +
                 milestones.map(() => "?").join(",") +
                 ") ORDER BY emm.milestone_id, emm.sort_order"
             )
-            .all(...(milestones.map((m) => m.id) as string[])) as Array<Record<string, unknown>>)
+            .all(...(milestones.map((m) => m.id) as string[]))) as Array<Record<string, unknown>>)
         : [];
       const milestoneMemberIds = [...new Set(milestoneMembers.map((mm) => mm.member_id as string))];
       const milestoneMembersMap = new Map<string, { id: string; name: string; photo: string | null }>();
       for (const mid of milestoneMemberIds) {
-        const m = db.query("SELECT id, name, photo FROM members WHERE id = ?").get(mid) as Record<string, unknown> | undefined;
+        const m = (await await db.query("SELECT id, name, photo FROM members WHERE id = ?").get(mid)) as Record<string, unknown> | undefined;
         if (m) {
           milestoneMembersMap.set(mid, {
             id: m.id as string,
@@ -111,31 +103,31 @@ export const api = {
         list.push(mm);
         membersByMilestone.set(mm.milestone_id as string, list);
       }
-      const packingCategories = db
+      const packingCategories = (await db
         .query("SELECT * FROM event_packing_categories WHERE event_id = ? ORDER BY sort_order, name")
-        .all(id) as Array<Record<string, unknown>>;
-      const packing = db
+        .all(id)) as Array<Record<string, unknown>>;
+      const packing = (await db
         .query("SELECT * FROM event_packing_items WHERE event_id = ? ORDER BY category_id, sort_order, name")
-        .all(id) as Array<Record<string, unknown>>;
-      const volunteers = db
+        .all(id)) as Array<Record<string, unknown>>;
+      const volunteers = (await db
         .query("SELECT * FROM event_volunteers WHERE event_id = ? ORDER BY department, sort_order, name")
-        .all(id) as Array<Record<string, unknown>>;
-      const assignments = db
+        .all(id)) as Array<Record<string, unknown>>;
+      const assignments = (await db
         .query("SELECT * FROM event_assignments WHERE event_id = ? ORDER BY category, sort_order, name")
-        .all(id) as Array<Record<string, unknown>>;
+        .all(id)) as Array<Record<string, unknown>>;
       const assignmentMembers = assignments.length
-        ? (db
+        ? ((await db
             .query(
               "SELECT eam.* FROM event_assignment_members eam WHERE eam.assignment_id IN (" +
                 assignments.map(() => "?").join(",") +
                 ") ORDER BY eam.assignment_id, eam.sort_order"
             )
-            .all(...(assignments.map((a) => a.id) as string[])) as Array<Record<string, unknown>>)
+            .all(...(assignments.map((a) => a.id) as string[]))) as Array<Record<string, unknown>>)
         : [];
       const memberIds = [...new Set(assignmentMembers.map((am) => am.member_id as string))];
       const membersMap = new Map<string, { id: string; name: string; photo: string | null }>();
       for (const mid of memberIds) {
-        const m = db.query("SELECT id, name, photo FROM members WHERE id = ?").get(mid) as Record<string, unknown> | undefined;
+        const m = (await await db.query("SELECT id, name, photo FROM members WHERE id = ?").get(mid)) as Record<string, unknown> | undefined;
         if (m) {
           membersMap.set(mid, {
             id: m.id as string,
@@ -247,7 +239,7 @@ export const api = {
     }) => {
       const db = getDb();
       const id = uuid();
-      db.run(
+      await db.run(
         `INSERT INTO events (id, name, description, year, event_date, event_url, event_location, event_location_embed, ga_ticket_cost, day_pass_cost, ga_tickets_sold, day_passes_sold, budget_id, scenario_id, planning_notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           id,
@@ -286,7 +278,7 @@ export const api = {
       planning_notes: string;
     }>) => {
       const db = getDb();
-      const existing = db.query("SELECT * FROM events WHERE id = ?").get(id);
+      const existing = await db.query("SELECT * FROM events WHERE id = ?").get(id);
       if (!existing) return null;
       const row = existing as Record<string, unknown>;
       const get = (k: string, def: unknown) => (body[k as keyof typeof body] !== undefined ? body[k as keyof typeof body] : row[k] ?? def);
@@ -304,7 +296,7 @@ export const api = {
       const budget_id = get("budget_id", null) as string | null;
       const scenario_id = get("scenario_id", null) as string | null;
       const planning_notes = get("planning_notes", null) as string | null;
-      db.run(
+      await db.run(
         `UPDATE events SET name = ?, description = ?, year = ?, event_date = ?, event_url = ?, event_location = ?, event_location_embed = ?, ga_ticket_cost = ?, day_pass_cost = ?, ga_tickets_sold = ?, day_passes_sold = ?, budget_id = ?, scenario_id = ?, planning_notes = ? WHERE id = ?`,
         [name, description, year, event_date, event_url, event_location, event_location_embed, ga_ticket_cost, day_pass_cost, ga_tickets_sold, day_passes_sold, budget_id, scenario_id, planning_notes, id]
       );
@@ -312,22 +304,22 @@ export const api = {
     },
     delete: async (id: string) => {
       const db = getDb();
-      db.run("DELETE FROM event_assignment_members WHERE assignment_id IN (SELECT id FROM event_assignments WHERE event_id = ?)", [id]);
-      db.run("DELETE FROM event_assignments WHERE event_id = ?", [id]);
-      db.run("DELETE FROM event_planning_milestones WHERE event_id = ?", [id]);
-      db.run("DELETE FROM event_packing_items WHERE event_id = ?", [id]);
-      db.run("DELETE FROM event_packing_categories WHERE event_id = ?", [id]);
-      db.run("DELETE FROM event_volunteers WHERE event_id = ?", [id]);
-      db.run("DELETE FROM events WHERE id = ?", [id]);
+      await db.run("DELETE FROM event_assignment_members WHERE assignment_id IN (SELECT id FROM event_assignments WHERE event_id = ?)", [id]);
+      await db.run("DELETE FROM event_assignments WHERE event_id = ?", [id]);
+      await db.run("DELETE FROM event_planning_milestones WHERE event_id = ?", [id]);
+      await db.run("DELETE FROM event_packing_items WHERE event_id = ?", [id]);
+      await db.run("DELETE FROM event_packing_categories WHERE event_id = ?", [id]);
+      await db.run("DELETE FROM event_volunteers WHERE event_id = ?", [id]);
+      await db.run("DELETE FROM events WHERE id = ?", [id]);
       return { ok: true };
     },
     assignments: {
       create: async (eventId: string, body: { name: string; category: "planning" | "during" }) => {
         const db = getDb();
         const id = uuid();
-        const maxOrder = db.query("SELECT COALESCE(MAX(sort_order), 0) as m FROM event_assignments WHERE event_id = ? AND category = ?").get(eventId, body.category) as { m: number } | undefined;
+        const maxOrder = await db.query("SELECT COALESCE(MAX(sort_order), 0) as m FROM event_assignments WHERE event_id = ? AND category = ?").get(eventId, body.category) as { m: number } | undefined;
         const sortOrder = (maxOrder?.m ?? 0) + 1;
-        db.run(
+        await db.run(
           "INSERT INTO event_assignments (id, event_id, name, category, sort_order) VALUES (?, ?, ?, ?, ?)",
           [id, eventId, body.name, body.category, sortOrder]
         );
@@ -335,39 +327,41 @@ export const api = {
       },
       update: async (eventId: string, aid: string, body: { name?: string; category?: "planning" | "during" }) => {
         const db = getDb();
-        const existing = db.query("SELECT * FROM event_assignments WHERE id = ? AND event_id = ?").get(aid, eventId);
+        const existing = await db.query("SELECT * FROM event_assignments WHERE id = ? AND event_id = ?").get(aid, eventId);
         if (!existing) return null;
         const row = existing as Record<string, unknown>;
         const name = (body.name ?? row.name) as string;
         const category = (body.category ?? row.category) as "planning" | "during";
-        db.run("UPDATE event_assignments SET name = ?, category = ? WHERE id = ? AND event_id = ?", [name, category, aid, eventId]);
-        const amList = db.query("SELECT * FROM event_assignment_members WHERE assignment_id = ? ORDER BY sort_order").all(aid) as Array<Record<string, unknown>>;
-        const members = amList.map((am) => {
-          const m = db.query("SELECT id, name, photo FROM members WHERE id = ?").get(am.member_id as string) as Record<string, unknown> | undefined;
-          return {
-            id: am.id,
-            assignment_id: am.assignment_id,
-            member_id: am.member_id,
-            sort_order: am.sort_order ?? 0,
-            member: m ? { id: m.id, name: m.name, photo: m.photo != null ? `data:image/jpeg;base64,${Buffer.from(m.photo as Uint8Array).toString("base64")}` : null } : undefined,
-          };
-        });
+        await db.run("UPDATE event_assignments SET name = ?, category = ? WHERE id = ? AND event_id = ?", [name, category, aid, eventId]);
+        const amList = (await db.query("SELECT * FROM event_assignment_members WHERE assignment_id = ? ORDER BY sort_order").all(aid)) as Array<Record<string, unknown>>;
+        const members = await Promise.all(
+          amList.map(async (am) => {
+            const m = (await db.query("SELECT id, name, photo FROM members WHERE id = ?").get(am.member_id as string)) as Record<string, unknown> | undefined;
+            return {
+              id: am.id,
+              assignment_id: am.assignment_id,
+              member_id: am.member_id,
+              sort_order: am.sort_order ?? 0,
+              member: m ? { id: m.id, name: m.name, photo: m.photo != null ? `data:image/jpeg;base64,${Buffer.from(m.photo as Uint8Array).toString("base64")}` : null } : undefined,
+            };
+          })
+        );
         return { id: aid, event_id: eventId, name, category, sort_order: row.sort_order, members };
       },
       delete: async (eventId: string, aid: string) => {
         const db = getDb();
-        db.run("DELETE FROM event_assignment_members WHERE assignment_id = ?", [aid]);
-        db.run("DELETE FROM event_assignments WHERE id = ? AND event_id = ?", [aid, eventId]);
+        await db.run("DELETE FROM event_assignment_members WHERE assignment_id = ?", [aid]);
+        await db.run("DELETE FROM event_assignments WHERE id = ? AND event_id = ?", [aid, eventId]);
         return { ok: true };
       },
       addMember: async (eventId: string, aid: string, memberId: string) => {
         const db = getDb();
-        const existing = db.query("SELECT * FROM event_assignments WHERE id = ? AND event_id = ?").get(aid, eventId);
+        const existing = await db.query("SELECT * FROM event_assignments WHERE id = ? AND event_id = ?").get(aid, eventId);
         if (!existing) return null;
-        const maxOrder = db.query("SELECT COALESCE(MAX(sort_order), 0) as m FROM event_assignment_members WHERE assignment_id = ?").get(aid) as { m: number };
+        const maxOrder = await db.query("SELECT COALESCE(MAX(sort_order), 0) as m FROM event_assignment_members WHERE assignment_id = ?").get(aid) as { m: number };
         const id = uuid();
         try {
-          db.run(
+          await db.run(
             "INSERT INTO event_assignment_members (id, assignment_id, member_id, sort_order) VALUES (?, ?, ?, ?)",
             [id, aid, memberId, (maxOrder?.m ?? 0) + 1]
           );
@@ -378,7 +372,7 @@ export const api = {
       },
       removeMember: async (eventId: string, aid: string, memberId: string) => {
         const db = getDb();
-        db.run("DELETE FROM event_assignment_members WHERE assignment_id = ? AND member_id = ?", [aid, memberId]);
+        await db.run("DELETE FROM event_assignment_members WHERE assignment_id = ? AND member_id = ?", [aid, memberId]);
         return api.events.get(eventId);
       },
     },
@@ -386,10 +380,10 @@ export const api = {
       create: async (eventId: string, body: { month: number; year: number; description: string; due_date?: string }) => {
         const db = getDb();
         const id = uuid();
-        const maxOrder = db.query("SELECT COALESCE(MAX(sort_order), 0) as m FROM event_planning_milestones WHERE event_id = ?").get(eventId) as { m: number };
+        const maxOrder = await db.query("SELECT COALESCE(MAX(sort_order), 0) as m FROM event_planning_milestones WHERE event_id = ?").get(eventId) as { m: number };
         const lastDay = new Date(body.year, body.month, 0);
         const dueDate = body.due_date ?? `${body.year}-${String(body.month).padStart(2, "0")}-${String(lastDay.getDate()).padStart(2, "0")}`;
-        db.run(
+        await db.run(
           "INSERT INTO event_planning_milestones (id, event_id, month, year, description, sort_order, completed, due_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
           [id, eventId, body.month, body.year, body.description, (maxOrder?.m ?? 0) + 1, 0, dueDate]
         );
@@ -397,7 +391,7 @@ export const api = {
       },
       update: async (eventId: string, mid: string, body: { month?: number; year?: number; description?: string; completed?: boolean; due_date?: string }) => {
         const db = getDb();
-        const existing = db.query("SELECT * FROM event_planning_milestones WHERE id = ? AND event_id = ?").get(mid, eventId);
+        const existing = await db.query("SELECT * FROM event_planning_milestones WHERE id = ? AND event_id = ?").get(mid, eventId);
         if (!existing) return null;
         const row = existing as Record<string, unknown>;
         const month = body.month ?? (row.month as number);
@@ -405,21 +399,21 @@ export const api = {
         const description = body.description ?? (row.description as string);
         const completed = body.completed !== undefined ? (body.completed ? 1 : 0) : (row.completed as number);
         const dueDate = body.due_date ?? (row.due_date as string | null);
-        db.run("UPDATE event_planning_milestones SET month = ?, year = ?, description = ?, completed = ?, due_date = ? WHERE id = ? AND event_id = ?", [month, year, description, completed, dueDate, mid, eventId]);
+        await db.run("UPDATE event_planning_milestones SET month = ?, year = ?, description = ?, completed = ?, due_date = ? WHERE id = ? AND event_id = ?", [month, year, description, completed, dueDate, mid, eventId]);
         return { id: mid, event_id: eventId, month, year, description, sort_order: row.sort_order, completed: completed === 1, due_date: dueDate };
       },
       delete: async (eventId: string, mid: string) => {
         const db = getDb();
-        db.run("DELETE FROM event_planning_milestones WHERE id = ? AND event_id = ?", [mid, eventId]);
+        await db.run("DELETE FROM event_planning_milestones WHERE id = ? AND event_id = ?", [mid, eventId]);
         return { ok: true };
       },
       addMember: async (eventId: string, mid: string, memberId: string) => {
         const db = getDb();
-        const existing = db.query("SELECT 1 FROM event_planning_milestones WHERE id = ? AND event_id = ?").get(mid, eventId);
+        const existing = await db.query("SELECT 1 FROM event_planning_milestones WHERE id = ? AND event_id = ?").get(mid, eventId);
         if (!existing) return null;
         const id = uuid();
-        const maxOrder = db.query("SELECT COALESCE(MAX(sort_order), 0) as m FROM event_milestone_members WHERE milestone_id = ?").get(mid) as { m: number };
-        db.run(
+        const maxOrder = await db.query("SELECT COALESCE(MAX(sort_order), 0) as m FROM event_milestone_members WHERE milestone_id = ?").get(mid) as { m: number };
+        await db.run(
           "INSERT INTO event_milestone_members (id, milestone_id, member_id, sort_order) VALUES (?, ?, ?, ?)",
           [id, mid, memberId, (maxOrder?.m ?? 0) + 1]
         );
@@ -427,7 +421,7 @@ export const api = {
       },
       removeMember: async (eventId: string, mid: string, memberId: string) => {
         const db = getDb();
-        db.run("DELETE FROM event_milestone_members WHERE milestone_id = ? AND member_id = ?", [mid, memberId]);
+        await db.run("DELETE FROM event_milestone_members WHERE milestone_id = ? AND member_id = ?", [mid, memberId]);
         return api.events.get(eventId);
       },
     },
@@ -435,8 +429,8 @@ export const api = {
       create: async (eventId: string, body: { name: string }) => {
         const db = getDb();
         const id = uuid();
-        const maxOrder = db.query("SELECT COALESCE(MAX(sort_order), 0) as m FROM event_packing_categories WHERE event_id = ?").get(eventId) as { m: number };
-        db.run(
+        const maxOrder = await db.query("SELECT COALESCE(MAX(sort_order), 0) as m FROM event_packing_categories WHERE event_id = ?").get(eventId) as { m: number };
+        await db.run(
           "INSERT INTO event_packing_categories (id, event_id, name, sort_order) VALUES (?, ?, ?, ?)",
           [id, eventId, body.name, (maxOrder?.m ?? 0) + 1]
         );
@@ -444,16 +438,16 @@ export const api = {
       },
       update: async (eventId: string, cid: string, body: { name?: string }) => {
         const db = getDb();
-        const existing = db.query("SELECT * FROM event_packing_categories WHERE id = ? AND event_id = ?").get(cid, eventId);
+        const existing = await db.query("SELECT * FROM event_packing_categories WHERE id = ? AND event_id = ?").get(cid, eventId);
         if (!existing) return null;
         const row = existing as Record<string, unknown>;
         const name = body.name ?? (row.name as string);
-        db.run("UPDATE event_packing_categories SET name = ? WHERE id = ? AND event_id = ?", [name, cid, eventId]);
+        await db.run("UPDATE event_packing_categories SET name = ? WHERE id = ? AND event_id = ?", [name, cid, eventId]);
         return { id: cid, event_id: eventId, name, sort_order: row.sort_order };
       },
       delete: async (eventId: string, cid: string) => {
         const db = getDb();
-        db.run("DELETE FROM event_packing_categories WHERE id = ? AND event_id = ?", [cid, eventId]);
+        await db.run("DELETE FROM event_packing_categories WHERE id = ? AND event_id = ?", [cid, eventId]);
         return { ok: true };
       },
     },
@@ -461,8 +455,8 @@ export const api = {
       create: async (eventId: string, body: { category_id: string; name: string; quantity?: number; note?: string }) => {
         const db = getDb();
         const id = uuid();
-        const maxOrder = db.query("SELECT COALESCE(MAX(sort_order), 0) as m FROM event_packing_items WHERE event_id = ? AND category_id = ?").get(eventId, body.category_id) as { m: number };
-        db.run(
+        const maxOrder = await db.query("SELECT COALESCE(MAX(sort_order), 0) as m FROM event_packing_items WHERE event_id = ? AND category_id = ?").get(eventId, body.category_id) as { m: number };
+        await db.run(
           "INSERT INTO event_packing_items (id, event_id, category_id, name, sort_order, quantity, note, loaded) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
           [id, eventId, body.category_id, body.name, (maxOrder?.m ?? 0) + 1, body.quantity ?? null, body.note ?? null, 0]
         );
@@ -470,7 +464,7 @@ export const api = {
       },
       update: async (eventId: string, pid: string, body: { category_id?: string; name?: string; quantity?: number; note?: string; loaded?: boolean }) => {
         const db = getDb();
-        const existing = db.query("SELECT * FROM event_packing_items WHERE id = ? AND event_id = ?").get(pid, eventId);
+        const existing = await db.query("SELECT * FROM event_packing_items WHERE id = ? AND event_id = ?").get(pid, eventId);
         if (!existing) return null;
         const row = existing as Record<string, unknown>;
         const category_id = body.category_id ?? (row.category_id as string);
@@ -478,12 +472,12 @@ export const api = {
         const quantity = body.quantity !== undefined ? body.quantity : (row.quantity != null ? Number(row.quantity) : null);
         const note = body.note !== undefined ? body.note : (row.note as string | null);
         const loaded = body.loaded !== undefined ? (body.loaded ? 1 : 0) : (row.loaded as number);
-        db.run("UPDATE event_packing_items SET category_id = ?, name = ?, quantity = ?, note = ?, loaded = ? WHERE id = ? AND event_id = ?", [category_id, name, quantity, note, loaded, pid, eventId]);
+        await db.run("UPDATE event_packing_items SET category_id = ?, name = ?, quantity = ?, note = ?, loaded = ? WHERE id = ? AND event_id = ?", [category_id, name, quantity, note, loaded, pid, eventId]);
         return { id: pid, event_id: eventId, category_id, name, sort_order: row.sort_order, quantity, note, loaded: loaded === 1 };
       },
       delete: async (eventId: string, pid: string) => {
         const db = getDb();
-        db.run("DELETE FROM event_packing_items WHERE id = ? AND event_id = ?", [pid, eventId]);
+        await db.run("DELETE FROM event_packing_items WHERE id = ? AND event_id = ?", [pid, eventId]);
         return { ok: true };
       },
     },
@@ -491,8 +485,8 @@ export const api = {
       create: async (eventId: string, body: { name: string; department: string }) => {
         const db = getDb();
         const id = uuid();
-        const maxOrder = db.query("SELECT COALESCE(MAX(sort_order), 0) as m FROM event_volunteers WHERE event_id = ?").get(eventId) as { m: number };
-        db.run(
+        const maxOrder = await db.query("SELECT COALESCE(MAX(sort_order), 0) as m FROM event_volunteers WHERE event_id = ?").get(eventId) as { m: number };
+        await db.run(
           "INSERT INTO event_volunteers (id, event_id, name, department, sort_order) VALUES (?, ?, ?, ?, ?)",
           [id, eventId, body.name, body.department, (maxOrder?.m ?? 0) + 1]
         );
@@ -500,17 +494,17 @@ export const api = {
       },
       update: async (eventId: string, vid: string, body: { name?: string; department?: string }) => {
         const db = getDb();
-        const existing = db.query("SELECT * FROM event_volunteers WHERE id = ? AND event_id = ?").get(vid, eventId);
+        const existing = await db.query("SELECT * FROM event_volunteers WHERE id = ? AND event_id = ?").get(vid, eventId);
         if (!existing) return null;
         const row = existing as Record<string, unknown>;
         const name = body.name ?? (row.name as string);
         const department = body.department ?? (row.department as string);
-        db.run("UPDATE event_volunteers SET name = ?, department = ? WHERE id = ? AND event_id = ?", [name, department, vid, eventId]);
+        await db.run("UPDATE event_volunteers SET name = ?, department = ? WHERE id = ? AND event_id = ?", [name, department, vid, eventId]);
         return { id: vid, event_id: eventId, name, department, sort_order: row.sort_order };
       },
       delete: async (eventId: string, vid: string) => {
         const db = getDb();
-        db.run("DELETE FROM event_volunteers WHERE id = ? AND event_id = ?", [vid, eventId]);
+        await db.run("DELETE FROM event_volunteers WHERE id = ? AND event_id = ?", [vid, eventId]);
         return { ok: true };
       },
     },
@@ -518,42 +512,34 @@ export const api = {
   budgets: {
     list: async () => {
       const db = getDb();
-      const rows = db.query("SELECT * FROM budgets ORDER BY year DESC, name").all();
+      const rows = await db.query("SELECT * FROM budgets ORDER BY year DESC, name").all();
       return rows as Array<{ id: string; name: string; year: number; description: string | null; created_at: string }>;
     },
     get: async (id: string) => {
       const db = getDb();
-      const budget = db.query("SELECT * FROM budgets WHERE id = ?").get(id);
+      const budget = await db.query("SELECT * FROM budgets WHERE id = ?").get(id);
       if (!budget) return null;
-      const items = db
+      const itemsRaw = await db
         .query("SELECT * FROM line_items WHERE budget_id = ? ORDER BY name")
-        .all(id) as Array<{
-        id: string;
-        budget_id: string;
-        name: string;
-        category: string;
-        comments: string | null;
-        unit_cost: number;
-        quantity: number;
-        historical_costs: string | null;
-      }>;
+        .all(id);
+      const items = Array.isArray(itemsRaw) ? itemsRaw : [];
       return {
         ...(budget as Record<string, unknown>),
-        lineItems: items.map((i) => ({
+        lineItems: items.map((i: Record<string, unknown>) => ({
           id: i.id,
           name: i.name,
           category: i.category,
           comments: i.comments ?? undefined,
           unitCost: i.unit_cost,
           quantity: i.quantity,
-          historicalCosts: i.historical_costs ? JSON.parse(i.historical_costs) : undefined,
+          historicalCosts: i.historical_costs ? JSON.parse(String(i.historical_costs)) : undefined,
         })),
       };
     },
     create: async (body: { name: string; year: number; description?: string }) => {
       const db = getDb();
       const id = uuid();
-      db.run(
+      await db.run(
         "INSERT INTO budgets (id, name, year, description) VALUES (?, ?, ?, ?)",
         [id, body.name, body.year, body.description ?? null]
       );
@@ -561,19 +547,19 @@ export const api = {
     },
     update: async (id: string, body: { name?: string; year?: number; description?: string }) => {
       const db = getDb();
-      const existing = db.query("SELECT * FROM budgets WHERE id = ?").get(id);
+      const existing = await db.query("SELECT * FROM budgets WHERE id = ?").get(id);
       if (!existing) return null;
       const budget = existing as Record<string, unknown>;
       const name = (body.name ?? budget.name) as string;
       const year = (body.year ?? budget.year) as number;
       const description = (body.description !== undefined ? body.description : budget.description) as string | null;
-      db.run("UPDATE budgets SET name = ?, year = ?, description = ? WHERE id = ?", [name, year, description, id]);
+      await db.run("UPDATE budgets SET name = ?, year = ?, description = ? WHERE id = ?", [name, year, description, id]);
       return { id, name, year, description };
     },
     delete: async (id: string) => {
       const db = getDb();
-      db.run("DELETE FROM line_items WHERE budget_id = ?", [id]);
-      db.run("DELETE FROM budgets WHERE id = ?", [id]);
+      await db.run("DELETE FROM line_items WHERE budget_id = ?", [id]);
+      await db.run("DELETE FROM budgets WHERE id = ?", [id]);
       return { ok: true };
     },
     addLineItem: async (
@@ -589,7 +575,7 @@ export const api = {
     ) => {
       const db = getDb();
       const itemId = uuid();
-      db.run(
+      await db.run(
         "INSERT INTO line_items (id, budget_id, name, category, comments, unit_cost, quantity, historical_costs) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
         [itemId, budgetId, body.name, body.category, body.comments ?? null, body.unitCost, body.quantity, body.historicalCosts ? JSON.stringify(body.historicalCosts) : null]
       );
@@ -611,7 +597,7 @@ export const api = {
       }>
     ) => {
       const db = getDb();
-      const existing = db.query("SELECT * FROM line_items WHERE id = ? AND budget_id = ?").get(itemId, budgetId);
+      const existing = await db.query("SELECT * FROM line_items WHERE id = ? AND budget_id = ?").get(itemId, budgetId);
       if (!existing) return null;
       const row = existing as Record<string, unknown>;
       const name = (body.name ?? row.name) as string;
@@ -624,7 +610,7 @@ export const api = {
           ? JSON.stringify(body.historicalCosts)
           : row.historical_costs
       ) as string | null;
-      db.run(
+      await db.run(
         "UPDATE line_items SET name = ?, category = ?, comments = ?, unit_cost = ?, quantity = ?, historical_costs = ? WHERE id = ? AND budget_id = ?",
         [name, category, comments, unitCost, quantity, historicalCosts, itemId, budgetId]
       );
@@ -632,16 +618,16 @@ export const api = {
     },
     deleteLineItem: async (budgetId: string, itemId: string) => {
       const db = getDb();
-      db.run("DELETE FROM line_items WHERE id = ? AND budget_id = ?", [itemId, budgetId]);
+      await db.run("DELETE FROM line_items WHERE id = ? AND budget_id = ?", [itemId, budgetId]);
       return { ok: true };
     },
   },
   members: {
     list: async () => {
       const db = getDb();
-      const rows = db
+      const rows = (await db
         .query("SELECT * FROM members WHERE id != ? ORDER BY name")
-        .all(ALL_MEMBERS_ID) as Array<Record<string, unknown>>;
+        .all(ALL_MEMBERS_ID)) as Array<Record<string, unknown>>;
       return rows.map((m) => ({
         id: m.id,
         name: m.name,
@@ -660,7 +646,7 @@ export const api = {
     },
     get: async (id: string) => {
       const db = getDb();
-      const row = db.query("SELECT * FROM members WHERE id = ?").get(id);
+      const row = await db.query("SELECT * FROM members WHERE id = ?").get(id);
       if (!row) return null;
       const m = row as Record<string, unknown>;
       return {
@@ -695,7 +681,7 @@ export const api = {
       const db = getDb();
       const id = uuid();
       const photoBlob = body.photo ? parsePhotoToBlob(body.photo) : null;
-      db.run(
+      await db.run(
         `INSERT INTO members (id, name, phone_number, email, address, birthday, member_since, is_baby, position, emergency_contact_name, emergency_contact_phone, photo) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           id,
@@ -728,7 +714,7 @@ export const api = {
       photo: string;
     }>) => {
       const db = getDb();
-      const existing = db.query("SELECT * FROM members WHERE id = ?").get(id);
+      const existing = await db.query("SELECT * FROM members WHERE id = ?").get(id);
       if (!existing) return null;
       const row = existing as Record<string, unknown>;
       const get = (k: string, def: unknown) => (body[k as keyof typeof body] !== undefined ? body[k as keyof typeof body] : row[k] ?? def);
@@ -747,7 +733,7 @@ export const api = {
         body.photo !== undefined
           ? (body.photo === null ? null : parsePhotoToBlob(body.photo) ?? null)
           : (row.photo as Uint8Array | null);
-      db.run(
+      await db.run(
         `UPDATE members SET name = ?, phone_number = ?, email = ?, address = ?, birthday = ?, member_since = ?, is_baby = ?, position = ?, emergency_contact_name = ?, emergency_contact_phone = ?, photo = ? WHERE id = ?`,
         [name, phone_number, email, address, birthday, member_since, is_baby, position, emergency_contact_name, emergency_contact_phone, photoBlob, id]
       );
@@ -755,19 +741,19 @@ export const api = {
     },
     delete: async (id: string) => {
       const db = getDb();
-      db.run("DELETE FROM members WHERE id = ?", [id]);
+      await db.run("DELETE FROM members WHERE id = ?", [id]);
       return { ok: true };
     },
   },
   scenarios: {
     list: async () => {
       const db = getDb();
-      const rows = db.query("SELECT * FROM scenarios ORDER BY name").all();
+      const rows = await db.query("SELECT * FROM scenarios ORDER BY name").all();
       return rows as Array<{ id: string; name: string; description: string | null; inputs: string; created_at: string }>;
     },
     get: async (id: string) => {
       const db = getDb();
-      const row = db.query("SELECT * FROM scenarios WHERE id = ?").get(id);
+      const row = await db.query("SELECT * FROM scenarios WHERE id = ?").get(id);
       if (!row) return null;
       const r = row as Record<string, unknown>;
       return {
@@ -779,7 +765,7 @@ export const api = {
       const db = getDb();
       const id = uuid();
       const inputs = body.inputs ?? DEFAULT_INPUTS;
-      db.run(
+      await db.run(
         "INSERT INTO scenarios (id, name, description, inputs) VALUES (?, ?, ?, ?)",
         [id, body.name, body.description ?? null, JSON.stringify(inputs)]
       );
@@ -790,18 +776,18 @@ export const api = {
       body: { name?: string; description?: string; inputs?: Record<string, unknown> }
     ) => {
       const db = getDb();
-      const existing = db.query("SELECT * FROM scenarios WHERE id = ?").get(id);
+      const existing = await db.query("SELECT * FROM scenarios WHERE id = ?").get(id);
       if (!existing) return null;
       const row = existing as Record<string, unknown>;
       const name = (body.name ?? row.name) as string;
       const description = (body.description !== undefined ? body.description : row.description) as string | null;
       const inputs = body.inputs ?? JSON.parse(row.inputs as string);
-      db.run("UPDATE scenarios SET name = ?, description = ?, inputs = ? WHERE id = ?", [name, description, JSON.stringify(inputs), id]);
+      await db.run("UPDATE scenarios SET name = ?, description = ?, inputs = ? WHERE id = ?", [name, description, JSON.stringify(inputs), id]);
       return { id, name, description, inputs };
     },
     delete: async (id: string) => {
       const db = getDb();
-      db.run("DELETE FROM scenarios WHERE id = ?", [id]);
+      await db.run("DELETE FROM scenarios WHERE id = ?", [id]);
       return { ok: true };
     },
   },
@@ -810,11 +796,11 @@ export const api = {
   mailingBatches: mailingBatchesApi,
   seed: async () => {
     const db = getDb();
-    const budgetCount = (db.query("SELECT COUNT(*) as c FROM budgets").get() as { c: number }).c;
-    const eventCount = (db.query("SELECT COUNT(*) as c FROM events").get() as { c: number }).c;
+    const budgetCount = (await db.query("SELECT COUNT(*) as c FROM budgets").get() as { c: number }).c;
+    const eventCount = (await db.query("SELECT COUNT(*) as c FROM events").get() as { c: number }).c;
     let contactCount = 0;
     try {
-      contactCount = (db.query("SELECT COUNT(*) as c FROM contacts").get() as { c: number }).c;
+      contactCount = (await db.query("SELECT COUNT(*) as c FROM contacts").get() as { c: number }).c;
     } catch {
       // contacts table may not exist in older DBs; initSchema creates it
     }
@@ -824,43 +810,43 @@ export const api = {
     if (budgetCount > 0 && eventCount > 0) {
       if (contactCount === 0) {
         try {
-          const badgerSouth2026 = db.query("SELECT id FROM events WHERE name = 'Badger South 2026'").get() as { id: string } | undefined;
+          const badgerSouth2026 = await db.query("SELECT id FROM events WHERE name = 'Badger South 2026'").get() as { id: string } | undefined;
           const eventId = badgerSouth2026?.id ?? null;
           const tagVendor = uuid();
           const tagClub = uuid();
           const tagVIP = uuid();
-          db.run("INSERT INTO tags (id, name) VALUES (?, ?)", [tagVendor, "Vendor"]);
-          db.run("INSERT INTO tags (id, name) VALUES (?, ?)", [tagClub, "Club"]);
-          db.run("INSERT INTO tags (id, name) VALUES (?, ?)", [tagVIP, "VIP"]);
+          await db.run("INSERT INTO tags (id, name) VALUES (?, ?)", [tagVendor, "Vendor"]);
+          await db.run("INSERT INTO tags (id, name) VALUES (?, ?)", [tagClub, "Club"]);
+          await db.run("INSERT INTO tags (id, name) VALUES (?, ?)", [tagVIP, "VIP"]);
           const c1 = uuid();
           const c2 = uuid();
           const c3 = uuid();
           const c4 = uuid();
-          db.run("INSERT INTO contacts (id, type, status, display_name, first_name, last_name, organization_name, notes, ok_to_email, ok_to_mail, uid) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [c1, "person", "active", "Jane Rider", "Jane", "Rider", null, "SMC member, helps with vendor coordination.", "yes", "yes", `contact-${c1}@badgerbudget`]);
-          db.run("INSERT INTO contact_emails (id, contact_id, email, type, is_primary) VALUES (?, ?, ?, ?, ?)", [uuid(), c1, "jane.rider@example.com", "work", 1]);
-          db.run("INSERT INTO contact_addresses (id, contact_id, address_line1, city, state, postal_code, country, type, is_primary_mailing) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", [uuid(), c1, "123 Main St", "Madison", "WI", "53703", "US", "home", 1]);
-          db.run("INSERT INTO contact_tags (contact_id, tag_id) VALUES (?, ?)", [c1, tagClub]);
-          db.run("INSERT INTO contacts (id, type, status, display_name, first_name, last_name, organization_name, notes, ok_to_email, ok_to_mail, uid) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [c2, "person", "active", "Bob Smith", "Bob", "Smith", "Smith Catering", "Food vendor for Badger South.", "yes", "yes", `contact-${c2}@badgerbudget`]);
-          db.run("INSERT INTO contact_emails (id, contact_id, email, type, is_primary) VALUES (?, ?, ?, ?, ?)", [uuid(), c2, "bob@smithcatering.com", "work", 1]);
-          db.run("INSERT INTO contact_addresses (id, contact_id, address_line1, city, state, postal_code, country, type, is_primary_mailing) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", [uuid(), c2, "456 Vendor Ave", "Milwaukee", "WI", "53202", "US", "work", 1]);
-          db.run("INSERT INTO contact_tags (contact_id, tag_id) VALUES (?, ?)", [c2, tagVendor]);
-          db.run("INSERT INTO contacts (id, type, status, display_name, organization_name, notes, ok_to_email, ok_to_mail, uid) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", [c3, "organization", "active", "Lakeside Campground", "Lakeside Campground", "Venue for Badger South.", "yes", "yes", `contact-${c3}@badgerbudget`]);
-          db.run("INSERT INTO contact_emails (id, contact_id, email, type, is_primary) VALUES (?, ?, ?, ?, ?)", [uuid(), c3, "info@lakesidecampground.com", "work", 1]);
-          db.run("INSERT INTO contact_addresses (id, contact_id, address_line1, city, state, postal_code, country, type, is_primary_mailing) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", [uuid(), c3, "789 Lake Rd", "Lake Geneva", "WI", "53147", "US", "work", 1]);
-          db.run("INSERT INTO contact_tags (contact_id, tag_id) VALUES (?, ?)", [c3, tagVendor]);
-          db.run("INSERT INTO contacts (id, type, status, display_name, first_name, last_name, club_name, notes, ok_to_email, ok_to_mail, uid) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [c4, "person", "active", "Mike Thompson", "Mike", "Thompson", "Road Rebels MC", "VIP guest from partner club.", "yes", "yes", `contact-${c4}@badgerbudget`]);
-          db.run("INSERT INTO contact_emails (id, contact_id, email, type, is_primary) VALUES (?, ?, ?, ?, ?)", [uuid(), c4, "mike@roadrebels.org", "work", 1]);
-          db.run("INSERT INTO contact_addresses (id, contact_id, address_line1, city, state, postal_code, country, type, is_primary_mailing) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", [uuid(), c4, "100 Clubhouse Dr", "Chicago", "IL", "60601", "US", "home", 1]);
-          db.run("INSERT INTO contact_tags (contact_id, tag_id) VALUES (?, ?)", [c4, tagClub]);
-          db.run("INSERT INTO contact_tags (contact_id, tag_id) VALUES (?, ?)", [c4, tagVIP]);
+          await db.run("INSERT INTO contacts (id, type, status, display_name, first_name, last_name, organization_name, notes, ok_to_email, ok_to_mail, uid) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [c1, "person", "active", "Jane Rider", "Jane", "Rider", null, "SMC member, helps with vendor coordination.", "yes", "yes", `contact-${c1}@badgerbudget`]);
+          await db.run("INSERT INTO contact_emails (id, contact_id, email, type, is_primary) VALUES (?, ?, ?, ?, ?)", [uuid(), c1, "jane.rider@example.com", "work", 1]);
+          await db.run("INSERT INTO contact_addresses (id, contact_id, address_line1, city, state, postal_code, country, type, is_primary_mailing) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", [uuid(), c1, "123 Main St", "Madison", "WI", "53703", "US", "home", 1]);
+          await db.run("INSERT INTO contact_tags (contact_id, tag_id) VALUES (?, ?)", [c1, tagClub]);
+          await db.run("INSERT INTO contacts (id, type, status, display_name, first_name, last_name, organization_name, notes, ok_to_email, ok_to_mail, uid) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [c2, "person", "active", "Bob Smith", "Bob", "Smith", "Smith Catering", "Food vendor for Badger South.", "yes", "yes", `contact-${c2}@badgerbudget`]);
+          await db.run("INSERT INTO contact_emails (id, contact_id, email, type, is_primary) VALUES (?, ?, ?, ?, ?)", [uuid(), c2, "bob@smithcatering.com", "work", 1]);
+          await db.run("INSERT INTO contact_addresses (id, contact_id, address_line1, city, state, postal_code, country, type, is_primary_mailing) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", [uuid(), c2, "456 Vendor Ave", "Milwaukee", "WI", "53202", "US", "work", 1]);
+          await db.run("INSERT INTO contact_tags (contact_id, tag_id) VALUES (?, ?)", [c2, tagVendor]);
+          await db.run("INSERT INTO contacts (id, type, status, display_name, organization_name, notes, ok_to_email, ok_to_mail, uid) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", [c3, "organization", "active", "Lakeside Campground", "Lakeside Campground", "Venue for Badger South.", "yes", "yes", `contact-${c3}@badgerbudget`]);
+          await db.run("INSERT INTO contact_emails (id, contact_id, email, type, is_primary) VALUES (?, ?, ?, ?, ?)", [uuid(), c3, "info@lakesidecampground.com", "work", 1]);
+          await db.run("INSERT INTO contact_addresses (id, contact_id, address_line1, city, state, postal_code, country, type, is_primary_mailing) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", [uuid(), c3, "789 Lake Rd", "Lake Geneva", "WI", "53147", "US", "work", 1]);
+          await db.run("INSERT INTO contact_tags (contact_id, tag_id) VALUES (?, ?)", [c3, tagVendor]);
+          await db.run("INSERT INTO contacts (id, type, status, display_name, first_name, last_name, club_name, notes, ok_to_email, ok_to_mail, uid) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [c4, "person", "active", "Mike Thompson", "Mike", "Thompson", "Road Rebels MC", "VIP guest from partner club.", "yes", "yes", `contact-${c4}@badgerbudget`]);
+          await db.run("INSERT INTO contact_emails (id, contact_id, email, type, is_primary) VALUES (?, ?, ?, ?, ?)", [uuid(), c4, "mike@roadrebels.org", "work", 1]);
+          await db.run("INSERT INTO contact_addresses (id, contact_id, address_line1, city, state, postal_code, country, type, is_primary_mailing) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", [uuid(), c4, "100 Clubhouse Dr", "Chicago", "IL", "60601", "US", "home", 1]);
+          await db.run("INSERT INTO contact_tags (contact_id, tag_id) VALUES (?, ?)", [c4, tagClub]);
+          await db.run("INSERT INTO contact_tags (contact_id, tag_id) VALUES (?, ?)", [c4, tagVIP]);
           const listId = uuid();
-          db.run("INSERT INTO mailing_lists (id, name, description, list_type, event_id, template) VALUES (?, ?, ?, ?, ?, ?)", [listId, "Badger South 2026 Invitations", "Physical invitation mailing list for Badger South 2026.", "static", eventId, "Physical Invitations"]);
-          db.run("INSERT INTO mailing_list_members (id, list_id, contact_id, source) VALUES (?, ?, ?, ?)", [uuid(), listId, c1, "manual"]);
-          db.run("INSERT INTO mailing_list_members (id, list_id, contact_id, source) VALUES (?, ?, ?, ?)", [uuid(), listId, c4, "manual"]);
+          await db.run("INSERT INTO mailing_lists (id, name, description, list_type, event_id, template) VALUES (?, ?, ?, ?, ?, ?)", [listId, "Badger South 2026 Invitations", "Physical invitation mailing list for Badger South 2026.", "static", eventId, "Physical Invitations"]);
+          await db.run("INSERT INTO mailing_list_members (id, list_id, contact_id, source) VALUES (?, ?, ?, ?)", [uuid(), listId, c1, "manual"]);
+          await db.run("INSERT INTO mailing_list_members (id, list_id, contact_id, source) VALUES (?, ?, ?, ?)", [uuid(), listId, c4, "manual"]);
           const batchId = uuid();
-          db.run("INSERT INTO mailing_batches (id, list_id, event_id, name, recipient_count) VALUES (?, ?, ?, ?, ?)", [batchId, listId, eventId, "Badger South 2026 - Initial run", 2]);
-          db.run("INSERT INTO mailing_batch_recipients (id, batch_id, contact_id, snapshot_name, snapshot_address_line1, snapshot_city, snapshot_state, snapshot_postal_code, snapshot_country, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [uuid(), batchId, c1, "Jane Rider", "123 Main St", "Madison", "WI", "53703", "US", "queued"]);
-          db.run("INSERT INTO mailing_batch_recipients (id, batch_id, contact_id, snapshot_name, snapshot_address_line1, snapshot_city, snapshot_state, snapshot_postal_code, snapshot_country, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [uuid(), batchId, c4, "Mike Thompson", "100 Clubhouse Dr", "Chicago", "IL", "60601", "US", "queued"]);
+          await db.run("INSERT INTO mailing_batches (id, list_id, event_id, name, recipient_count) VALUES (?, ?, ?, ?, ?)", [batchId, listId, eventId, "Badger South 2026 - Initial run", 2]);
+          await db.run("INSERT INTO mailing_batch_recipients (id, batch_id, contact_id, snapshot_name, snapshot_address_line1, snapshot_city, snapshot_state, snapshot_postal_code, snapshot_country, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [uuid(), batchId, c1, "Jane Rider", "123 Main St", "Madison", "WI", "53703", "US", "queued"]);
+          await db.run("INSERT INTO mailing_batch_recipients (id, batch_id, contact_id, snapshot_name, snapshot_address_line1, snapshot_city, snapshot_state, snapshot_postal_code, snapshot_country, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [uuid(), batchId, c4, "Mike Thompson", "100 Clubhouse Dr", "Chicago", "IL", "60601", "US", "queued"]);
         } catch {
           // Ignore contacts seed errors (e.g. table doesn't exist yet)
         }
@@ -883,7 +869,7 @@ export const api = {
           { id: uuid(), name: "Badger South 2026", description: "Badger South event 2026.", year: 2026 },
         ];
         for (const e of events) {
-          db.run("INSERT INTO events (id, name, description, year) VALUES (?, ?, ?, ?)", [
+          await db.run("INSERT INTO events (id, name, description, year) VALUES (?, ?, ?, ?)", [
             e.id,
             e.name,
             e.description,
@@ -922,7 +908,7 @@ export const api = {
       let budgetId: string | undefined;
       if (budgetCount === 0) {
         budgetId = uuid();
-        db.run(
+        await db.run(
           "INSERT INTO budgets (id, name, year, description) VALUES (?, ?, ?, ?)",
           [budgetId, "Badger South 2025", 2025, "Initial budget from Badger South event data."]
         );
@@ -939,7 +925,7 @@ export const api = {
         if (li.badger_60 != null) historicalCosts.badger_60 = li.badger_60;
         if (li.badger_south != null) historicalCosts.badger_south = li.badger_south;
 
-        db.run(
+        await db.run(
           "INSERT INTO line_items (id, budget_id, name, category, comments, unit_cost, quantity, historical_costs) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
           [uuid(), budgetId!, li.item, category, null, unitCost, 1, Object.keys(historicalCosts).length > 0 ? JSON.stringify(historicalCosts) : null]
         );
@@ -948,7 +934,7 @@ export const api = {
       let scenarioId: string | undefined;
       if (budgetCount === 0) {
         scenarioId = uuid();
-        db.run(
+        await db.run(
           "INSERT INTO scenarios (id, name, description, inputs) VALUES (?, ?, ?, ?)",
           [scenarioId, "Badger South Default", "Default scenario from original Badger South inputs.", JSON.stringify(DEFAULT_INPUTS)]
         );
@@ -956,71 +942,71 @@ export const api = {
 
       // Seed contacts if none exist
       if (contactCount === 0) {
-        const badgerSouth2026 = db.query("SELECT id FROM events WHERE name = 'Badger South 2026'").get() as { id: string } | undefined;
+        const badgerSouth2026 = await db.query("SELECT id FROM events WHERE name = 'Badger South 2026'").get() as { id: string } | undefined;
         const eventId = badgerSouth2026?.id ?? null;
 
         const tagVendor = uuid();
         const tagClub = uuid();
         const tagVIP = uuid();
-        db.run("INSERT INTO tags (id, name) VALUES (?, ?)", [tagVendor, "Vendor"]);
-        db.run("INSERT INTO tags (id, name) VALUES (?, ?)", [tagClub, "Club"]);
-        db.run("INSERT INTO tags (id, name) VALUES (?, ?)", [tagVIP, "VIP"]);
+        await db.run("INSERT INTO tags (id, name) VALUES (?, ?)", [tagVendor, "Vendor"]);
+        await db.run("INSERT INTO tags (id, name) VALUES (?, ?)", [tagClub, "Club"]);
+        await db.run("INSERT INTO tags (id, name) VALUES (?, ?)", [tagVIP, "VIP"]);
 
         const c1 = uuid();
         const c2 = uuid();
         const c3 = uuid();
         const c4 = uuid();
-        db.run(
+        await db.run(
           "INSERT INTO contacts (id, type, status, display_name, first_name, last_name, organization_name, notes, ok_to_email, ok_to_mail, uid) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
           [c1, "person", "active", "Jane Rider", "Jane", "Rider", null, "SMC member, helps with vendor coordination.", "yes", "yes", `contact-${c1}@badgerbudget`]
         );
-        db.run("INSERT INTO contact_emails (id, contact_id, email, type, is_primary) VALUES (?, ?, ?, ?, ?)", [uuid(), c1, "jane.rider@example.com", "work", 1]);
-        db.run("INSERT INTO contact_addresses (id, contact_id, address_line1, city, state, postal_code, country, type, is_primary_mailing) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", [uuid(), c1, "123 Main St", "Madison", "WI", "53703", "US", "home", 1]);
-        db.run("INSERT INTO contact_tags (contact_id, tag_id) VALUES (?, ?)", [c1, tagClub]);
+        await db.run("INSERT INTO contact_emails (id, contact_id, email, type, is_primary) VALUES (?, ?, ?, ?, ?)", [uuid(), c1, "jane.rider@example.com", "work", 1]);
+        await db.run("INSERT INTO contact_addresses (id, contact_id, address_line1, city, state, postal_code, country, type, is_primary_mailing) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", [uuid(), c1, "123 Main St", "Madison", "WI", "53703", "US", "home", 1]);
+        await db.run("INSERT INTO contact_tags (contact_id, tag_id) VALUES (?, ?)", [c1, tagClub]);
 
-        db.run(
+        await db.run(
           "INSERT INTO contacts (id, type, status, display_name, first_name, last_name, organization_name, notes, ok_to_email, ok_to_mail, uid) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
           [c2, "person", "active", "Bob Smith", "Bob", "Smith", "Smith Catering", "Food vendor for Badger South.", "yes", "yes", `contact-${c2}@badgerbudget`]
         );
-        db.run("INSERT INTO contact_emails (id, contact_id, email, type, is_primary) VALUES (?, ?, ?, ?, ?)", [uuid(), c2, "bob@smithcatering.com", "work", 1]);
-        db.run("INSERT INTO contact_addresses (id, contact_id, address_line1, city, state, postal_code, country, type, is_primary_mailing) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", [uuid(), c2, "456 Vendor Ave", "Milwaukee", "WI", "53202", "US", "work", 1]);
-        db.run("INSERT INTO contact_tags (contact_id, tag_id) VALUES (?, ?)", [c2, tagVendor]);
+        await db.run("INSERT INTO contact_emails (id, contact_id, email, type, is_primary) VALUES (?, ?, ?, ?, ?)", [uuid(), c2, "bob@smithcatering.com", "work", 1]);
+        await db.run("INSERT INTO contact_addresses (id, contact_id, address_line1, city, state, postal_code, country, type, is_primary_mailing) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", [uuid(), c2, "456 Vendor Ave", "Milwaukee", "WI", "53202", "US", "work", 1]);
+        await db.run("INSERT INTO contact_tags (contact_id, tag_id) VALUES (?, ?)", [c2, tagVendor]);
 
-        db.run(
+        await db.run(
           "INSERT INTO contacts (id, type, status, display_name, organization_name, notes, ok_to_email, ok_to_mail, uid) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
           [c3, "organization", "active", "Lakeside Campground", "Lakeside Campground", "Venue for Badger South.", "yes", "yes", `contact-${c3}@badgerbudget`]
         );
-        db.run("INSERT INTO contact_emails (id, contact_id, email, type, is_primary) VALUES (?, ?, ?, ?, ?)", [uuid(), c3, "info@lakesidecampground.com", "work", 1]);
-        db.run("INSERT INTO contact_addresses (id, contact_id, address_line1, city, state, postal_code, country, type, is_primary_mailing) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", [uuid(), c3, "789 Lake Rd", "Lake Geneva", "WI", "53147", "US", "work", 1]);
-        db.run("INSERT INTO contact_tags (contact_id, tag_id) VALUES (?, ?)", [c3, tagVendor]);
+        await db.run("INSERT INTO contact_emails (id, contact_id, email, type, is_primary) VALUES (?, ?, ?, ?, ?)", [uuid(), c3, "info@lakesidecampground.com", "work", 1]);
+        await db.run("INSERT INTO contact_addresses (id, contact_id, address_line1, city, state, postal_code, country, type, is_primary_mailing) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", [uuid(), c3, "789 Lake Rd", "Lake Geneva", "WI", "53147", "US", "work", 1]);
+        await db.run("INSERT INTO contact_tags (contact_id, tag_id) VALUES (?, ?)", [c3, tagVendor]);
 
-        db.run(
+        await db.run(
           "INSERT INTO contacts (id, type, status, display_name, first_name, last_name, club_name, notes, ok_to_email, ok_to_mail, uid) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
           [c4, "person", "active", "Mike Thompson", "Mike", "Thompson", "Road Rebels MC", "VIP guest from partner club.", "yes", "yes", `contact-${c4}@badgerbudget`]
         );
-        db.run("INSERT INTO contact_emails (id, contact_id, email, type, is_primary) VALUES (?, ?, ?, ?, ?)", [uuid(), c4, "mike@roadrebels.org", "work", 1]);
-        db.run("INSERT INTO contact_addresses (id, contact_id, address_line1, city, state, postal_code, country, type, is_primary_mailing) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", [uuid(), c4, "100 Clubhouse Dr", "Chicago", "IL", "60601", "US", "home", 1]);
-        db.run("INSERT INTO contact_tags (contact_id, tag_id) VALUES (?, ?)", [c4, tagClub]);
-        db.run("INSERT INTO contact_tags (contact_id, tag_id) VALUES (?, ?)", [c4, tagVIP]);
+        await db.run("INSERT INTO contact_emails (id, contact_id, email, type, is_primary) VALUES (?, ?, ?, ?, ?)", [uuid(), c4, "mike@roadrebels.org", "work", 1]);
+        await db.run("INSERT INTO contact_addresses (id, contact_id, address_line1, city, state, postal_code, country, type, is_primary_mailing) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", [uuid(), c4, "100 Clubhouse Dr", "Chicago", "IL", "60601", "US", "home", 1]);
+        await db.run("INSERT INTO contact_tags (contact_id, tag_id) VALUES (?, ?)", [c4, tagClub]);
+        await db.run("INSERT INTO contact_tags (contact_id, tag_id) VALUES (?, ?)", [c4, tagVIP]);
 
         const listId = uuid();
-        db.run(
+        await db.run(
           "INSERT INTO mailing_lists (id, name, description, list_type, event_id, template) VALUES (?, ?, ?, ?, ?, ?)",
           [listId, "Badger South 2026 Invitations", "Physical invitation mailing list for Badger South 2026.", "static", eventId, "Physical Invitations"]
         );
-        db.run("INSERT INTO mailing_list_members (id, list_id, contact_id, source) VALUES (?, ?, ?, ?)", [uuid(), listId, c1, "manual"]);
-        db.run("INSERT INTO mailing_list_members (id, list_id, contact_id, source) VALUES (?, ?, ?, ?)", [uuid(), listId, c4, "manual"]);
+        await db.run("INSERT INTO mailing_list_members (id, list_id, contact_id, source) VALUES (?, ?, ?, ?)", [uuid(), listId, c1, "manual"]);
+        await db.run("INSERT INTO mailing_list_members (id, list_id, contact_id, source) VALUES (?, ?, ?, ?)", [uuid(), listId, c4, "manual"]);
 
         const batchId = uuid();
-        db.run(
+        await db.run(
           "INSERT INTO mailing_batches (id, list_id, event_id, name, recipient_count) VALUES (?, ?, ?, ?, ?)",
           [batchId, listId, eventId, "Badger South 2026 - Initial run", 2]
         );
-        db.run(
+        await db.run(
           "INSERT INTO mailing_batch_recipients (id, batch_id, contact_id, snapshot_name, snapshot_address_line1, snapshot_city, snapshot_state, snapshot_postal_code, snapshot_country, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
           [uuid(), batchId, c1, "Jane Rider", "123 Main St", "Madison", "WI", "53703", "US", "queued"]
         );
-        db.run(
+        await db.run(
           "INSERT INTO mailing_batch_recipients (id, batch_id, contact_id, snapshot_name, snapshot_address_line1, snapshot_city, snapshot_state, snapshot_postal_code, snapshot_country, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
           [uuid(), batchId, c4, "Mike Thompson", "100 Clubhouse Dr", "Chicago", "IL", "60601", "US", "queued"]
         );

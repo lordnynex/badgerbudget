@@ -1,4 +1,4 @@
-import { getDb } from "./db";
+import { getDb } from "./dbAdapter";
 import type {
   Contact,
   ContactEmail,
@@ -19,14 +19,14 @@ function uuid(): string {
   return crypto.randomUUID();
 }
 
-function auditLog(
+async function auditLog(
   action: string,
   entityType: string,
   entityId: string | null,
   details: Record<string, unknown> = {}
 ) {
   const db = getDb();
-  db.run(
+  await db.run(
     "INSERT INTO audit_log (id, action, entity_type, entity_id, user_id, details) VALUES (?, ?, ?, ?, ?, ?)",
     [uuid(), action, entityType, entityId, null, JSON.stringify(details)]
   );
@@ -55,26 +55,26 @@ function rowToContact(row: Record<string, unknown>): Contact {
   };
 }
 
-function loadContactRelations(db: ReturnType<typeof getDb>, contactId: string): {
+async function loadContactRelations(db: ReturnType<typeof getDb>, contactId: string): Promise<{
   emails: ContactEmail[];
   phones: ContactPhone[];
   addresses: ContactAddress[];
   tags: Tag[];
-} {
-  const emails = db
+}> {
+  const emails = (await db
     .query("SELECT * FROM contact_emails WHERE contact_id = ? ORDER BY is_primary DESC, id")
-    .all(contactId) as Array<Record<string, unknown>>;
-  const phones = db
+    .all(contactId)) as Array<Record<string, unknown>>;
+  const phones = (await db
     .query("SELECT * FROM contact_phones WHERE contact_id = ? ORDER BY is_primary DESC, id")
-    .all(contactId) as Array<Record<string, unknown>>;
-  const addresses = db
+    .all(contactId)) as Array<Record<string, unknown>>;
+  const addresses = (await db
     .query("SELECT * FROM contact_addresses WHERE contact_id = ? ORDER BY is_primary_mailing DESC, id")
-    .all(contactId) as Array<Record<string, unknown>>;
-  const tagRows = db
+    .all(contactId)) as Array<Record<string, unknown>>;
+  const tagRows = (await db
     .query(
       "SELECT t.id, t.name FROM tags t JOIN contact_tags ct ON t.id = ct.tag_id WHERE ct.contact_id = ?"
     )
-    .all(contactId) as Array<Record<string, unknown>>;
+    .all(contactId)) as Array<Record<string, unknown>>;
 
   return {
     emails: emails.map((e) => ({
@@ -173,34 +173,36 @@ export const contactsApi = {
     const orderDir = sortDir.toUpperCase() === "ASC" ? "ASC" : "DESC";
 
     const allArgs = [...args, ...searchArgs];
-    const countRow = db
+    const countRow = (await db
       .query(
         `SELECT COUNT(*) as c FROM contacts WHERE ${whereClause}${searchCondition}`
       )
-      .get(...allArgs) as { c: number };
+      .get(...allArgs)) as { c: number };
     const total = countRow.c;
 
-    const rows = db
+    const rows = (await db
       .query(
         `SELECT * FROM contacts WHERE ${whereClause}${searchCondition} ORDER BY ${orderCol} ${orderDir} LIMIT ? OFFSET ?`
       )
-      .all(...allArgs, limit, offset) as Array<Record<string, unknown>>;
+      .all(...allArgs, limit, offset)) as Array<Record<string, unknown>>;
 
-    const contacts = rows.map((r) => {
-      const c = rowToContact(r);
-      const rel = loadContactRelations(db, c.id);
-      return { ...c, ...rel };
-    });
+    const contacts = await Promise.all(
+      rows.map(async (r) => {
+        const c = rowToContact(r);
+        const rel = await loadContactRelations(db, c.id);
+        return { ...c, ...rel };
+      })
+    );
 
     return { contacts, total, page, limit };
   },
 
   get: async (id: string): Promise<Contact | null> => {
     const db = getDb();
-    const row = db.query("SELECT * FROM contacts WHERE id = ?").get(id) as Record<string, unknown> | null;
+    const row = await db.query("SELECT * FROM contacts WHERE id = ?").get(id) as Record<string, unknown> | null;
     if (!row) return null;
     const contact = rowToContact(row);
-    const rel = loadContactRelations(db, id);
+    const rel = await loadContactRelations(db, id);
     return { ...contact, ...rel };
   },
 
@@ -209,11 +211,11 @@ export const contactsApi = {
     Array<{ id: string; display_name: string; emails: string[]; addressKey: string; nameKey: string }>
   > => {
     const db = getDb();
-    const rows = db
+    const rows = (await db
       .query(
         "SELECT id, display_name FROM contacts WHERE deleted_at IS NULL"
       )
-      .all() as Array<{ id: string; display_name: string }>;
+      .all()) as Array<{ id: string; display_name: string }>;
     const result: Array<{
       id: string;
       display_name: string;
@@ -222,16 +224,15 @@ export const contactsApi = {
       nameKey: string;
     }> = [];
     for (const row of rows) {
-      const emails = (db
+      const emailsRaw = (await db
         .query("SELECT email FROM contact_emails WHERE contact_id = ?")
-        .all(row.id) as Array<{ email: string }>).map((e) =>
-        e.email.toLowerCase().trim()
-      );
-      const addr = db
+        .all(row.id)) as Array<{ email: string }>;
+      const emails = emailsRaw.map((e) => e.email.toLowerCase().trim());
+      const addr = (await db
         .query(
           "SELECT address_line1, city, postal_code FROM contact_addresses WHERE contact_id = ? ORDER BY is_primary_mailing DESC LIMIT 1"
         )
-        .get(row.id) as { address_line1: string | null; city: string | null; postal_code: string | null } | undefined;
+        .get(row.id)) as { address_line1: string | null; city: string | null; postal_code: string | null } | undefined;
       const addressKey = addr
         ? [
             addr.address_line1 ?? "",
@@ -264,7 +265,7 @@ export const contactsApi = {
     const type = body.type ?? "person";
     const status = body.status ?? "active";
 
-    db.run(
+    await db.run(
       `INSERT INTO contacts (id, type, status, display_name, first_name, last_name, organization_name, notes, how_we_know_them, ok_to_email, ok_to_mail, do_not_contact, club_name, role, uid) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
@@ -288,7 +289,7 @@ export const contactsApi = {
     if (body.emails?.length) {
       for (const e of body.emails) {
         const eid = uuid();
-        db.run(
+        await db.run(
           "INSERT INTO contact_emails (id, contact_id, email, type, is_primary) VALUES (?, ?, ?, ?, ?)",
           [eid, id, e.email, e.type ?? "other", e.is_primary ? 1 : 0]
         );
@@ -297,7 +298,7 @@ export const contactsApi = {
     if (body.phones?.length) {
       for (const p of body.phones) {
         const pid = uuid();
-        db.run(
+        await db.run(
           "INSERT INTO contact_phones (id, contact_id, phone, type, is_primary) VALUES (?, ?, ?, ?, ?)",
           [pid, id, p.phone, p.type ?? "other", p.is_primary ? 1 : 0]
         );
@@ -306,7 +307,7 @@ export const contactsApi = {
     if (body.addresses?.length) {
       for (const a of body.addresses) {
         const aid = uuid();
-        db.run(
+        await db.run(
           "INSERT INTO contact_addresses (id, contact_id, address_line1, address_line2, city, state, postal_code, country, type, is_primary_mailing) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
           [
             aid,
@@ -327,16 +328,16 @@ export const contactsApi = {
       for (const t of body.tags) {
         let tagId = typeof t === "string" ? null : t.id;
         if (!tagId && (typeof t === "object" && "name" in t)) {
-          const existing = db.query("SELECT id FROM tags WHERE name = ?").get((t as Tag).name) as { id: string } | undefined;
+          const existing = await db.query("SELECT id FROM tags WHERE name = ?").get((t as Tag).name) as { id: string } | undefined;
           if (existing) tagId = existing.id;
           else {
             tagId = uuid();
-            db.run("INSERT INTO tags (id, name) VALUES (?, ?)", [tagId, (t as Tag).name]);
+            await db.run("INSERT INTO tags (id, name) VALUES (?, ?)", [tagId, (t as Tag).name]);
           }
         }
         if (tagId) {
           try {
-            db.run("INSERT INTO contact_tags (contact_id, tag_id) VALUES (?, ?)", [id, tagId]);
+            await db.run("INSERT INTO contact_tags (contact_id, tag_id) VALUES (?, ?)", [id, tagId]);
           } catch {
             // duplicate
           }
@@ -344,13 +345,13 @@ export const contactsApi = {
       }
     }
 
-    auditLog("contact_created", "contact", id, { display_name: displayName });
+    await auditLog("contact_created", "contact", id, { display_name: displayName });
     return contactsApi.get(id)!;
   },
 
   update: async (id: string, body: Partial<Contact>) => {
     const db = getDb();
-    const existing = db.query("SELECT * FROM contacts WHERE id = ?").get(id) as Record<string, unknown> | null;
+    const existing = await db.query("SELECT * FROM contacts WHERE id = ?").get(id) as Record<string, unknown> | null;
     if (!existing) return null;
 
     const get = (k: string, def: unknown) =>
@@ -370,36 +371,36 @@ export const contactsApi = {
     const club_name = get("club_name", existing.club_name) as string | null;
     const role = get("role", existing.role) as string | null;
 
-    db.run(
+    await db.run(
       `UPDATE contacts SET display_name=?, type=?, status=?, first_name=?, last_name=?, organization_name=?, notes=?, how_we_know_them=?, ok_to_email=?, ok_to_mail=?, do_not_contact=?, club_name=?, role=?, updated_at=datetime('now') WHERE id=?`,
       [display_name, type, status, first_name, last_name, organization_name, notes, how_we_know_them, ok_to_email, ok_to_mail, do_not_contact, club_name, role, id]
     );
 
     if (body.emails !== undefined) {
-      db.run("DELETE FROM contact_emails WHERE contact_id = ?", [id]);
+      await db.run("DELETE FROM contact_emails WHERE contact_id = ?", [id]);
       for (const e of body.emails) {
         const eid = uuid();
-        db.run(
+        await db.run(
           "INSERT INTO contact_emails (id, contact_id, email, type, is_primary) VALUES (?, ?, ?, ?, ?)",
           [eid, id, e.email, e.type ?? "other", e.is_primary ? 1 : 0]
         );
       }
     }
     if (body.phones !== undefined) {
-      db.run("DELETE FROM contact_phones WHERE contact_id = ?", [id]);
+      await db.run("DELETE FROM contact_phones WHERE contact_id = ?", [id]);
       for (const p of body.phones) {
         const pid = uuid();
-        db.run(
+        await db.run(
           "INSERT INTO contact_phones (id, contact_id, phone, type, is_primary) VALUES (?, ?, ?, ?, ?)",
           [pid, id, p.phone, p.type ?? "other", p.is_primary ? 1 : 0]
         );
       }
     }
     if (body.addresses !== undefined) {
-      db.run("DELETE FROM contact_addresses WHERE contact_id = ?", [id]);
+      await db.run("DELETE FROM contact_addresses WHERE contact_id = ?", [id]);
       for (const a of body.addresses) {
         const aid = uuid();
-        db.run(
+        await db.run(
           "INSERT INTO contact_addresses (id, contact_id, address_line1, address_line2, city, state, postal_code, country, type, is_primary_mailing) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
           [
             aid,
@@ -417,21 +418,21 @@ export const contactsApi = {
       }
     }
     if (body.tags !== undefined) {
-      db.run("DELETE FROM contact_tags WHERE contact_id = ?", [id]);
+      await db.run("DELETE FROM contact_tags WHERE contact_id = ?", [id]);
       for (const t of body.tags) {
         let tagId = typeof t === "string" ? null : (t as Tag).id;
         const tagName = typeof t === "object" ? (t as Tag).name : t;
         if (!tagId) {
-          const existingTag = db.query("SELECT id FROM tags WHERE name = ?").get(tagName) as { id: string } | undefined;
+          const existingTag = await db.query("SELECT id FROM tags WHERE name = ?").get(tagName) as { id: string } | undefined;
           if (existingTag) tagId = existingTag.id;
           else {
             tagId = uuid();
-            db.run("INSERT INTO tags (id, name) VALUES (?, ?)", [tagId, tagName]);
+            await db.run("INSERT INTO tags (id, name) VALUES (?, ?)", [tagId, tagName]);
           }
         }
         if (tagId) {
           try {
-            db.run("INSERT INTO contact_tags (contact_id, tag_id) VALUES (?, ?)", [id, tagId]);
+            await db.run("INSERT INTO contact_tags (contact_id, tag_id) VALUES (?, ?)", [id, tagId]);
           } catch {
             // duplicate
           }
@@ -439,21 +440,21 @@ export const contactsApi = {
       }
     }
 
-    auditLog("contact_updated", "contact", id, {});
+    await auditLog("contact_updated", "contact", id, {});
     return contactsApi.get(id)!;
   },
 
   delete: async (id: string) => {
     const db = getDb();
-    db.run("UPDATE contacts SET status = 'deleted', deleted_at = datetime('now'), updated_at = datetime('now') WHERE id = ?", [id]);
-    auditLog("contact_deleted", "contact", id, {});
+    await db.run("UPDATE contacts SET status = 'deleted', deleted_at = datetime('now'), updated_at = datetime('now') WHERE id = ?", [id]);
+    await auditLog("contact_deleted", "contact", id, {});
     return { ok: true };
   },
 
   restore: async (id: string) => {
     const db = getDb();
-    db.run("UPDATE contacts SET status = 'active', deleted_at = NULL, updated_at = datetime('now') WHERE id = ?", [id]);
-    auditLog("contact_restored", "contact", id, {});
+    await db.run("UPDATE contacts SET status = 'active', deleted_at = NULL, updated_at = datetime('now') WHERE id = ?", [id]);
+    await auditLog("contact_restored", "contact", id, {});
     return contactsApi.get(id)!;
   },
 
@@ -464,26 +465,26 @@ export const contactsApi = {
     const db = getDb();
     for (const id of ids) {
       if (updates.status) {
-        db.run("UPDATE contacts SET status = ?, updated_at = datetime('now') WHERE id = ?", [updates.status, id]);
+        await db.run("UPDATE contacts SET status = ?, updated_at = datetime('now') WHERE id = ?", [updates.status, id]);
       }
       if (updates.tags) {
-        db.run("DELETE FROM contact_tags WHERE contact_id = ?", [id]);
+        await db.run("DELETE FROM contact_tags WHERE contact_id = ?", [id]);
         for (const t of updates.tags) {
           const tagName = typeof t === "object" ? (t as Tag).name : t;
-          let tagId = (db.query("SELECT id FROM tags WHERE name = ?").get(tagName) as { id: string } | undefined)?.id;
+          let tagId = (await db.query("SELECT id FROM tags WHERE name = ?").get(tagName) as { id: string } | undefined)?.id;
           if (!tagId) {
             tagId = uuid();
-            db.run("INSERT INTO tags (id, name) VALUES (?, ?)", [tagId, tagName]);
+            await db.run("INSERT INTO tags (id, name) VALUES (?, ?)", [tagId, tagName]);
           }
           try {
-            db.run("INSERT INTO contact_tags (contact_id, tag_id) VALUES (?, ?)", [id, tagId]);
+            await db.run("INSERT INTO contact_tags (contact_id, tag_id) VALUES (?, ?)", [id, tagId]);
           } catch {
             // duplicate
           }
         }
       }
     }
-    auditLog("contacts_bulk_updated", "contact", null, { count: ids.length, updates });
+    await auditLog("contacts_bulk_updated", "contact", null, { count: ids.length, updates });
     return { ok: true };
   },
 
@@ -527,30 +528,30 @@ export const contactsApi = {
       tags: allTags,
     });
 
-    db.run("UPDATE mailing_list_members SET contact_id = ? WHERE contact_id = ?", [targetId, sourceId]);
-    db.run("UPDATE mailing_batch_recipients SET contact_id = ? WHERE contact_id = ?", [targetId, sourceId]);
+    await db.run("UPDATE mailing_list_members SET contact_id = ? WHERE contact_id = ?", [targetId, sourceId]);
+    await db.run("UPDATE mailing_batch_recipients SET contact_id = ? WHERE contact_id = ?", [targetId, sourceId]);
     await contactsApi.delete(sourceId);
 
-    auditLog("contact_merged", "contact", targetId, { source_id: sourceId });
+    await auditLog("contact_merged", "contact", targetId, { source_id: sourceId });
     return contactsApi.get(targetId)!;
   },
 
   tags: {
     list: async (): Promise<Tag[]> => {
       const db = getDb();
-      const rows = db.query("SELECT * FROM tags ORDER BY name").all() as Array<Record<string, unknown>>;
+      const rows = await db.query("SELECT * FROM tags ORDER BY name").all() as Array<Record<string, unknown>>;
       return rows.map((r) => ({ id: r.id as string, name: r.name as string }));
     },
     create: async (name: string): Promise<Tag> => {
       const db = getDb();
       const id = uuid();
-      db.run("INSERT INTO tags (id, name) VALUES (?, ?)", [id, name]);
+      await db.run("INSERT INTO tags (id, name) VALUES (?, ?)", [id, name]);
       return { id, name };
     },
   },
 };
 
-function evaluateDynamicCriteria(db: ReturnType<typeof getDb>, criteria: MailingListCriteria | null): string[] {
+async function evaluateDynamicCriteria(db: ReturnType<typeof getDb>, criteria: MailingListCriteria | null): Promise<string[]> {
   if (!criteria) return [];
 
   let sql = "SELECT id FROM contacts WHERE deleted_at IS NULL AND status = 'active'";
@@ -588,20 +589,20 @@ function evaluateDynamicCriteria(db: ReturnType<typeof getDb>, criteria: Mailing
     args.push(...criteria.tagNotIn);
   }
 
-  const rows = db.query(sql).all(...args) as Array<{ id: string }>;
+  const rows = (await db.query(sql).all(...args)) as Array<{ id: string }>;
   return rows.map((r) => r.id);
 }
 
 export const mailingListsApi = {
   list: async (): Promise<MailingList[]> => {
     const db = getDb();
-    const rows = db
+    const rows = (await db
       .query(
         `SELECT ml.*, e.name as event_name,
          (SELECT COUNT(*) FROM mailing_list_members mlm WHERE mlm.list_id = ml.id AND mlm.suppressed = 0 AND mlm.unsubscribed = 0) as manual_count
          FROM mailing_lists ml LEFT JOIN events e ON e.id = ml.event_id ORDER BY ml.name`
       )
-      .all() as Array<Record<string, unknown>>;
+      .all()) as Array<Record<string, unknown>>;
 
     return rows.map((r) => ({
       id: r.id as string,
@@ -620,14 +621,14 @@ export const mailingListsApi = {
 
   get: async (id: string): Promise<MailingList | null> => {
     const db = getDb();
-    const row = db
+    const row = (await db
       .query(
         `SELECT ml.*, e.name as event_name FROM mailing_lists ml LEFT JOIN events e ON e.id = ml.event_id WHERE ml.id = ?`
       )
-      .get(id) as Record<string, unknown> | null;
+      .get(id)) as Record<string, unknown> | null;
     if (!row) return null;
 
-    const memberCount = (db.query("SELECT COUNT(*) as c FROM mailing_list_members WHERE list_id = ?").get(id) as { c: number }).c;
+    const memberCount = (await db.query("SELECT COUNT(*) as c FROM mailing_list_members WHERE list_id = ?").get(id) as { c: number }).c;
     return {
       id: row.id as string,
       name: row.name as string,
@@ -653,7 +654,7 @@ export const mailingListsApi = {
   }) => {
     const db = getDb();
     const id = uuid();
-    db.run(
+    await db.run(
       "INSERT INTO mailing_lists (id, name, description, list_type, event_id, template, criteria) VALUES (?, ?, ?, ?, ?, ?, ?)",
       [
         id,
@@ -665,7 +666,7 @@ export const mailingListsApi = {
         body.criteria ? JSON.stringify(body.criteria) : null,
       ]
     );
-    auditLog("mailing_list_created", "mailing_list", id, { name: body.name });
+    await auditLog("mailing_list_created", "mailing_list", id, { name: body.name });
     return mailingListsApi.get(id)!;
   },
 
@@ -681,7 +682,7 @@ export const mailingListsApi = {
     }>
   ) => {
     const db = getDb();
-    const existing = db.query("SELECT * FROM mailing_lists WHERE id = ?").get(id) as Record<string, unknown> | null;
+    const existing = await db.query("SELECT * FROM mailing_lists WHERE id = ?").get(id) as Record<string, unknown> | null;
     if (!existing) return null;
 
     const name = (body.name ?? existing.name) as string;
@@ -691,19 +692,19 @@ export const mailingListsApi = {
     const template = body.template !== undefined ? body.template : (existing.template as string | null);
     const criteria = body.criteria !== undefined ? body.criteria : (existing.criteria ? JSON.parse(existing.criteria as string) : null);
 
-    db.run(
+    await db.run(
       "UPDATE mailing_lists SET name = ?, description = ?, list_type = ?, event_id = ?, template = ?, criteria = ?, updated_at = datetime('now') WHERE id = ?",
       [name, description, list_type, event_id, template, criteria ? JSON.stringify(criteria) : null, id]
     );
-    auditLog("mailing_list_updated", "mailing_list", id, {});
+    await auditLog("mailing_list_updated", "mailing_list", id, {});
     return mailingListsApi.get(id)!;
   },
 
   delete: async (id: string) => {
     const db = getDb();
-    db.run("DELETE FROM mailing_list_members WHERE list_id = ?", [id]);
-    db.run("DELETE FROM mailing_lists WHERE id = ?", [id]);
-    auditLog("mailing_list_deleted", "mailing_list", id, {});
+    await db.run("DELETE FROM mailing_list_members WHERE list_id = ?", [id]);
+    await db.run("DELETE FROM mailing_lists WHERE id = ?", [id]);
+    await auditLog("mailing_list_deleted", "mailing_list", id, {});
     return { ok: true };
   },
 
@@ -711,21 +712,21 @@ export const mailingListsApi = {
     const db = getDb();
     const id = uuid();
     try {
-      db.run(
+      await db.run(
         "INSERT INTO mailing_list_members (id, list_id, contact_id, source) VALUES (?, ?, ?, ?)",
         [id, listId, contactId, source]
       );
     } catch {
       return null;
     }
-    auditLog("mailing_list_member_added", "mailing_list", listId, { contact_id: contactId });
+    await auditLog("mailing_list_member_added", "mailing_list", listId, { contact_id: contactId });
     return mailingListsApi.get(listId)!;
   },
 
   removeMember: async (listId: string, contactId: string) => {
     const db = getDb();
-    db.run("DELETE FROM mailing_list_members WHERE list_id = ? AND contact_id = ?", [listId, contactId]);
-    auditLog("mailing_list_member_removed", "mailing_list", listId, { contact_id: contactId });
+    await db.run("DELETE FROM mailing_list_members WHERE list_id = ? AND contact_id = ?", [listId, contactId]);
+    await auditLog("mailing_list_member_removed", "mailing_list", listId, { contact_id: contactId });
     return { ok: true };
   },
 
@@ -733,7 +734,7 @@ export const mailingListsApi = {
     const db = getDb();
     for (const contactId of contactIds) {
       try {
-        db.run(
+        await db.run(
           "INSERT INTO mailing_list_members (id, list_id, contact_id, source) VALUES (?, ?, ?, ?)",
           [uuid(), listId, contactId, source]
         );
@@ -741,7 +742,7 @@ export const mailingListsApi = {
         // duplicate, skip
       }
     }
-    auditLog("mailing_list_members_bulk_added", "mailing_list", listId, { count: contactIds.length });
+    await auditLog("mailing_list_members_bulk_added", "mailing_list", listId, { count: contactIds.length });
     return { ok: true };
   },
 
@@ -753,18 +754,18 @@ export const mailingListsApi = {
     let contactIds: string[] = [];
 
     if (list.list_type === "static") {
-      const rows = db
+      const rows = (await db
         .query("SELECT contact_id FROM mailing_list_members WHERE list_id = ? AND suppressed = 0 AND unsubscribed = 0")
-        .all(id) as Array<{ contact_id: string }>;
+        .all(id)) as Array<{ contact_id: string }>;
       contactIds = rows.map((r) => r.contact_id);
     } else if (list.list_type === "dynamic") {
-      contactIds = evaluateDynamicCriteria(db, list.criteria);
+      contactIds = await evaluateDynamicCriteria(db, list.criteria);
     } else {
-      const manualRows = db
+      const manualRows = (await db
         .query("SELECT contact_id FROM mailing_list_members WHERE list_id = ? AND suppressed = 0 AND unsubscribed = 0")
-        .all(id) as Array<{ contact_id: string }>;
+        .all(id)) as Array<{ contact_id: string }>;
       const manualIds = new Set(manualRows.map((r) => r.contact_id));
-      const dynamicIds = evaluateDynamicCriteria(db, list.criteria);
+      const dynamicIds = await evaluateDynamicCriteria(db, list.criteria);
       contactIds = [...new Set([...manualIds, ...dynamicIds])];
     }
 
@@ -784,9 +785,9 @@ export const mailingListsApi = {
         continue;
       }
 
-      const memberRow = db
+      const memberRow = (await db
         .query("SELECT suppressed, suppress_reason, unsubscribed FROM mailing_list_members WHERE list_id = ? AND contact_id = ?")
-        .get(id, cid) as { suppressed: number; suppress_reason: string | null; unsubscribed: number } | undefined;
+        .get(id, cid)) as { suppressed: number; suppress_reason: string | null; unsubscribed: number } | undefined;
 
       if (memberRow?.suppressed) {
         excluded.push({ contact, reason: memberRow.suppress_reason ?? "Suppressed" });
@@ -810,9 +811,9 @@ export const mailingListsApi = {
 
   getMembers: async (listId: string): Promise<MailingListMember[]> => {
     const db = getDb();
-    const rows = db
+    const rows = (await db
       .query("SELECT * FROM mailing_list_members WHERE list_id = ? ORDER BY added_at DESC")
-      .all(listId) as Array<Record<string, unknown>>;
+      .all(listId)) as Array<Record<string, unknown>>;
 
     const result: MailingListMember[] = [];
     for (const r of rows) {
@@ -846,7 +847,7 @@ export const mailingBatchesApi = {
     const id = uuid();
     const eventId = list.event_id;
 
-    db.run(
+    await db.run(
       "INSERT INTO mailing_batches (id, list_id, event_id, name, recipient_count) VALUES (?, ?, ?, ?, ?)",
       [id, listId, eventId, name, preview.totalIncluded]
     );
@@ -860,7 +861,7 @@ export const mailingBatchesApi = {
     for (const { contact } of preview.included) {
       const addr = primaryAddress(contact);
       const rid = uuid();
-      db.run(
+      await db.run(
         `INSERT INTO mailing_batch_recipients (id, batch_id, contact_id, snapshot_name, snapshot_address_line1, snapshot_address_line2, snapshot_city, snapshot_state, snapshot_postal_code, snapshot_country, snapshot_organization, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'queued')`,
         [
           rid,
@@ -878,23 +879,23 @@ export const mailingBatchesApi = {
       );
     }
 
-    auditLog("mailing_batch_created", "mailing_batch", id, { list_id: listId, count: preview.totalIncluded });
+    await auditLog("mailing_batch_created", "mailing_batch", id, { list_id: listId, count: preview.totalIncluded });
     return mailingBatchesApi.get(id)!;
   },
 
   get: async (id: string): Promise<MailingBatch | null> => {
     const db = getDb();
-    const row = db
+    const row = (await db
       .query(
         `SELECT mb.*, ml.name as list_name, e.name as event_name FROM mailing_batches mb
          LEFT JOIN mailing_lists ml ON ml.id = mb.list_id LEFT JOIN events e ON e.id = mb.event_id WHERE mb.id = ?`
       )
-      .get(id) as Record<string, unknown> | null;
+      .get(id)) as Record<string, unknown> | null;
     if (!row) return null;
 
-    const recipients = db
+    const recipients = (await db
       .query("SELECT * FROM mailing_batch_recipients WHERE batch_id = ? ORDER BY snapshot_name")
-      .all(id) as Array<Record<string, unknown>>;
+      .all(id)) as Array<Record<string, unknown>>;
 
     return {
       id: row.id as string,
@@ -927,12 +928,12 @@ export const mailingBatchesApi = {
 
   list: async (): Promise<MailingBatch[]> => {
     const db = getDb();
-    const rows = db
+    const rows = (await db
       .query(
         `SELECT mb.*, ml.name as list_name, e.name as event_name FROM mailing_batches mb
          LEFT JOIN mailing_lists ml ON ml.id = mb.list_id LEFT JOIN events e ON e.id = mb.event_id ORDER BY mb.created_at DESC`
       )
-      .all() as Array<Record<string, unknown>>;
+      .all()) as Array<Record<string, unknown>>;
 
     return rows.map((r) => ({
       id: r.id as string,
@@ -955,22 +956,22 @@ export const mailingBatchesApi = {
   ) => {
     const db = getDb();
     if (status === "returned") {
-      db.run(
+      await db.run(
         "UPDATE mailing_batch_recipients SET status = ?, returned_reason = ? WHERE id = ? AND batch_id = ?",
         [status, reason ?? null, recipientId, batchId]
       );
     } else if (status === "invalid") {
-      db.run(
+      await db.run(
         "UPDATE mailing_batch_recipients SET status = ?, invalid_reason = ? WHERE id = ? AND batch_id = ?",
         [status, reason ?? null, recipientId, batchId]
       );
     } else {
-      db.run(
+      await db.run(
         "UPDATE mailing_batch_recipients SET status = ? WHERE id = ? AND batch_id = ?",
         [status, recipientId, batchId]
       );
     }
-    auditLog("mailing_batch_recipient_status_updated", "mailing_batch", batchId, {
+    await auditLog("mailing_batch_recipient_status_updated", "mailing_batch", batchId, {
       recipient_id: recipientId,
       status,
     });
