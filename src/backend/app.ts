@@ -5,6 +5,8 @@ import { join } from "path";
 import type { DbLike } from "./db/dbAdapter";
 import { createApi } from "./services/api";
 import { createApiRoutes } from "./routes";
+import { logger } from "./logger";
+import { accessLog } from "./middleware/accessLog";
 
 const projectRoot = join(import.meta.dir, "../..");
 const distDir = join(projectRoot, "dist");
@@ -15,6 +17,8 @@ export function createApp(db: DbLike) {
 
   return new Elysia()
     .use(cors())
+    .decorate("log", logger)
+    .use(accessLog(logger))
     .use(apiRoutes)
     .get("/data/export.json", () => {
       const file = Bun.file(join(projectRoot, "data", "export.json"));

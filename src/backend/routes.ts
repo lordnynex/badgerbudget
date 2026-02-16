@@ -7,6 +7,8 @@ import { createScenariosController } from "./controllers/scenarios";
 import { createContactsController } from "./controllers/contacts";
 import { createMailingListsController } from "./controllers/mailingLists";
 import { createMailingBatchesController } from "./controllers/mailingBatches";
+import { logger } from "./logger";
+import { accessLog } from "./middleware/accessLog";
 
 export function createApiRoutes(api: Api) {
   const eventsController = createEventsController(api);
@@ -18,6 +20,7 @@ export function createApiRoutes(api: Api) {
   const mailingBatchesController = createMailingBatchesController(api);
 
   return new Elysia({ prefix: "/api" })
+    .use(accessLog(logger))
     .get("/events", () => eventsController.list())
     .post("/events", ({ body }) => eventsController.create(body as Parameters<Api["events"]["create"]>[0]))
     .get("/events/:id", ({ params: { id } }) => eventsController.get(id as string))
