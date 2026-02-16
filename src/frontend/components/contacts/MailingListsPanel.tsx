@@ -30,7 +30,8 @@ export function MailingListsPanel() {
   const { listId } = useParams<{ listId?: string }>();
   const navigate = useNavigate();
   const invalidate = useInvalidateQueries();
-  const { data: lists } = useMailingListsSuspense();
+  const { data: listsData } = useMailingListsSuspense();
+  const lists = Array.isArray(listsData) ? listsData : [];
   const { data: events } = useEventsSuspense();
   const [createOpen, setCreateOpen] = useState(false);
   const [newName, setNewName] = useState("");
@@ -46,7 +47,7 @@ export function MailingListsPanel() {
       name: newName.trim(),
       description: newDescription.trim() || undefined,
       list_type: newListType,
-      event_id: newEventId || null,
+      event_id: (newEventId && newEventId !== "__none__") ? newEventId : null,
     });
     setNewName("");
     setNewDescription("");
@@ -146,12 +147,12 @@ export function MailingListsPanel() {
             </div>
             <div>
               <Label>Event (optional)</Label>
-              <Select value={newEventId} onValueChange={setNewEventId}>
+              <Select value={newEventId || "__none__"} onValueChange={(v) => setNewEventId(v === "__none__" ? "" : v)}>
                 <SelectTrigger>
                   <SelectValue placeholder="None" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">None</SelectItem>
+                  <SelectItem value="__none__">None</SelectItem>
                   {events.map((e) => (
                     <SelectItem key={e.id} value={e.id}>
                       {e.name}
