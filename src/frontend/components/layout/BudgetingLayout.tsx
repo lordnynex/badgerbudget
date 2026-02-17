@@ -29,7 +29,7 @@ export function BudgetingLayout({ onPrint, onEmail }: BudgetingLayoutProps) {
     <div className="flex min-h-0 flex-1 gap-6 p-4 md:p-6">
       <aside
         className={cn(
-          "shrink-0 border-r pr-4 transition-[width] duration-200 ease-in-out",
+          "sticky top-16 self-start shrink-0 border-r pr-4 transition-[width] duration-200 ease-in-out",
           collapsed ? "w-14" : "w-56"
         )}
       >
