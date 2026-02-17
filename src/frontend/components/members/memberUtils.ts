@@ -1,4 +1,5 @@
 import type { Member } from "@/types/budget";
+import { jsPDF } from "jspdf";
 import { MONTHS } from "@/lib/date-utils";
 import { escapeVCardValue } from "@/lib/vcard";
 
@@ -28,7 +29,7 @@ export function formatMemberSinceDisplay(memberSince: string | null): string {
   if (!memberSince || !/^\d{4}-\d{2}$/.test(memberSince)) return "";
   const [y, mo] = memberSince.split("-");
   const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  const month = months[parseInt(mo, 10) - 1] ?? mo;
+  const month = months[parseInt(mo ?? "1", 10) - 1] ?? mo;
   const years = getYearsAsMember(memberSince);
   if (years !== null) {
     return `${month} ${y} (${years} year${years === 1 ? "" : "s"})`;
@@ -79,7 +80,9 @@ export function getUpcomingBirthdays(members: Member[], daysAhead = 90): { membe
   const result: { member: Member; date: Date }[] = [];
   for (const m of members) {
     if (!m.birthday || !/^\d{4}-\d{2}-\d{2}$/.test(m.birthday)) continue;
-    const [, month, day] = m.birthday.split("-").map(Number);
+    const parts = m.birthday.split("-").map(Number);
+    const month = parts[1] ?? 1;
+    const day = parts[2] ?? 1;
     const thisYear = new Date(today.getFullYear(), month - 1, day);
     const nextYear = new Date(today.getFullYear() + 1, month - 1, day);
     const bdayDate = thisYear >= today ? thisYear : nextYear;
@@ -100,7 +103,7 @@ export function getUpcomingAnniversaries(members: Member[], daysAhead = 90): { m
   const result: { member: Member; date: Date }[] = [];
   for (const m of members) {
     if (!m.member_since || !/^\d{4}-\d{2}$/.test(m.member_since)) continue;
-    const [, month] = m.member_since.split("-").map(Number);
+    const month = Number(m.member_since.split("-")[1] ?? 1);
     const thisYear = new Date(today.getFullYear(), month - 1, 1);
     const nextYear = new Date(today.getFullYear() + 1, month - 1, 1);
     const annivDate = thisYear >= today ? thisYear : nextYear;
@@ -190,6 +193,136 @@ export function downloadBirthdaysIcal(members: Member[]) {
   const a = document.createElement("a");
   a.href = url;
   a.download = "member-birthdays.ics";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+async function fetchPhotoAsDataUrl(url: string): Promise<string | null> {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const blob = await res.blob();
+    return await new Promise<string | null>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
+}
+
+/** Export members as a 2-column PDF roster with photo, birthday, join date, address, phone, emergency contact */
+export async function downloadMembersRosterPdf(members: Member[]): Promise<void> {
+  const doc = new jsPDF({ unit: "pt", format: "letter" });
+  const pageWidth = 612;
+  const pageHeight = 792;
+  const margin = 36;
+  const gapX = 18;
+  const colWidth = (pageWidth - margin * 2 - gapX) / 2;
+  const photoSize = 48;
+  const lineHeight = 12;
+  const cardPadding = 8;
+  const cardGapY = 12;
+  const fontSizeName = 11;
+  const fontSizeDetail = 9;
+
+  let col = 0;
+  let rowY = margin;
+  let maxY = margin;
+
+  const sortedMembers = [...members].sort((a, b) => a.name.localeCompare(b.name));
+
+  for (const m of sortedMembers) {
+    if (col === 0 && rowY + 80 > pageHeight - margin) {
+      doc.addPage();
+      rowY = margin;
+      maxY = margin;
+    }
+
+    const x = margin + col * (colWidth + gapX);
+    const y = rowY;
+    const contentWidth = colWidth - cardPadding * 2;
+    const textStartX = x + cardPadding;
+
+    let lineY = y + cardPadding;
+
+    let photoDrawn = false;
+    if (m.photo_url || m.photo_thumbnail_url) {
+      const photoUrl = m.photo_thumbnail_url ?? m.photo_url ?? "";
+      const dataUrl = await fetchPhotoAsDataUrl(photoUrl);
+      if (dataUrl) {
+        try {
+          doc.addImage(dataUrl, "JPEG", textStartX, lineY, photoSize, photoSize);
+          photoDrawn = true;
+        } catch {
+          try {
+            doc.addImage(dataUrl, "PNG", textStartX, lineY, photoSize, photoSize);
+            photoDrawn = true;
+          } catch {
+            // Fall through to placeholder
+          }
+        }
+      }
+    }
+    if (!photoDrawn) {
+      doc.setFillColor(235, 235, 235);
+      doc.setDrawColor(200, 200, 200);
+      doc.circle(textStartX + photoSize / 2, lineY + photoSize / 2, photoSize / 2 - 2, "FD");
+      doc.setTextColor(160, 160, 160);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(14);
+      doc.text("?", textStartX + photoSize / 2, lineY + photoSize / 2 + 2, { align: "center" });
+      doc.setTextColor(0, 0, 0);
+    }
+
+    const textAreaWidth = contentWidth - photoSize - 8;
+    const textX = textStartX + photoSize + 8;
+    let textY = lineY + fontSizeName;
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(fontSizeName);
+    const nameLines = doc.splitTextToSize(m.name, textAreaWidth);
+    doc.text(nameLines, textX, textY);
+    textY += nameLines.length * lineHeight;
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(fontSizeDetail);
+
+    const details: string[] = [];
+    if (m.birthday) details.push(`Birthday: ${formatBirthday(m.birthday)}`);
+    if (m.member_since) details.push(`Joined: ${formatMemberSince(m.member_since)}`);
+    if (m.address) details.push(`Address: ${m.address}`);
+    if (m.phone_number) details.push(`Phone: ${m.phone_number}`);
+    if (m.emergency_contact_name || m.emergency_contact_phone) {
+      const ec = [m.emergency_contact_name, m.emergency_contact_phone].filter(Boolean).join(" ");
+      details.push(`Emergency: ${ec}`);
+    }
+
+    for (const line of details) {
+      const wrapped = doc.splitTextToSize(line, textAreaWidth);
+      for (const w of wrapped) {
+        doc.text(w, textX, textY);
+        textY += lineHeight;
+      }
+    }
+
+    const cardBottom = textY + cardPadding;
+    maxY = Math.max(maxY, cardBottom);
+
+    col++;
+    if (col >= 2) {
+      col = 0;
+      rowY = maxY + cardGapY;
+    }
+  }
+
+  const blob = doc.output("blob");
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "member-roster.pdf";
   a.click();
   URL.revokeObjectURL(url);
 }

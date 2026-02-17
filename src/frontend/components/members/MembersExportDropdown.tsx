@@ -5,9 +5,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Calendar, ChevronDown, Download, FileJson } from "lucide-react";
+import { Calendar, ChevronDown, Download, FileJson, Users } from "lucide-react";
 import type { Member } from "@/types/budget";
-import { downloadBirthdaysIcal, downloadMembersJson, downloadMembersVCard } from "./memberUtils";
+import {
+  downloadBirthdaysIcal,
+  downloadMembersJson,
+  downloadMembersRosterPdf,
+  downloadMembersVCard,
+} from "./memberUtils";
 
 interface MembersExportDropdownProps {
   members: Member[];
@@ -23,6 +28,10 @@ export function MembersExportDropdown({ members }: MembersExportDropdownProps) {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
+        <DropdownMenuItem onClick={() => downloadMembersRosterPdf(members)}>
+          <Users className="size-4" />
+          Roster
+        </DropdownMenuItem>
         <DropdownMenuItem onClick={() => downloadMembersJson(members)}>
           <FileJson className="size-4" />
           Download JSON
