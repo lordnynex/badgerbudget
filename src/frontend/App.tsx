@@ -16,6 +16,7 @@ import { ContactsPanel } from "@/components/contacts/ContactsPanel";
 import { ContactDetailPage } from "@/components/contacts/ContactDetailPage";
 import { MailingListsPanel } from "@/components/contacts/MailingListsPanel";
 import { MailingBatchPage } from "@/components/contacts/MailingBatchPage";
+import { ContactsLayout } from "@/components/layout/ContactsLayout";
 import { ProjectionsSubNav } from "@/components/layout/ProjectionsSubNav";
 import { EventDetailSubNav } from "@/components/layout/EventDetailSubNav";
 import { PrintView } from "@/components/export/PrintView";
@@ -140,58 +141,57 @@ function AppContent() {
               path="/contacts"
               element={
                 <main className="space-y-6 p-4 md:p-6">
+                  <ContactsLayout />
+                </main>
+              }
+            >
+              <Route
+                index
+                element={
                   <Suspense fallback={<PageLoading />}>
                     <ContactsPanel />
                   </Suspense>
-                </main>
-              }
-            />
-            <Route
-              path="/contacts/lists"
-              element={
-                <main className="space-y-6 p-4 md:p-6">
+                }
+              />
+              <Route
+                path="lists"
+                element={
                   <Suspense fallback={<PageLoading />}>
                     <MailingListsPanel />
                   </Suspense>
-                </main>
-              }
-            />
-            <Route
-              path="/contacts/lists/:listId"
-              element={
-                <main className="space-y-6 p-4 md:p-6">
+                }
+              />
+              <Route
+                path="lists/:listId"
+                element={
                   <IdParamGuard param="listId">
                     <Suspense fallback={<PageLoading />}>
                       <MailingListsPanel />
                     </Suspense>
                   </IdParamGuard>
-                </main>
-              }
-            />
-            <Route
-              path="/contacts/batches/:batchId"
-              element={
-                <main className="space-y-6 p-4 md:p-6">
+                }
+              />
+              <Route
+                path="batches/:batchId"
+                element={
                   <IdParamGuard param="batchId">
                     <Suspense fallback={<PageLoading />}>
                       <MailingBatchPage />
                     </Suspense>
                   </IdParamGuard>
-                </main>
-              }
-            />
-            <Route
-              path="/contacts/:id"
-              element={
-                <main className="space-y-6 p-4 md:p-6">
+                }
+              />
+              <Route
+                path=":id"
+                element={
                   <IdParamGuard>
                     <Suspense fallback={<PageLoading />}>
                       <ContactDetailPage />
                     </Suspense>
                   </IdParamGuard>
-                </main>
-              }
-            />
+                }
+              />
+            </Route>
             <Route
               path="/members"
               element={
