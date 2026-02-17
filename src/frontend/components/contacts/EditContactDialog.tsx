@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { api } from "@/data/api";
+import { isValidPhoneNumber, normalizePhoneForStorage } from "@/lib/phone";
 import type { Contact } from "@/types/contact";
 
 interface EditContactDialogProps {
@@ -57,8 +58,10 @@ export function EditContactDialog({ open, onOpenChange, contact, onSuccess }: Ed
   >([]);
   const [tagNames, setTagNames] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
+  const [phoneError, setPhoneError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (open) setPhoneError(null);
     if (contact && open) {
       setDisplayName(contact.display_name ?? "");
       setFirstName(contact.first_name ?? "");
@@ -108,6 +111,13 @@ export function EditContactDialog({ open, onOpenChange, contact, onSuccess }: Ed
   const handleSubmit = async () => {
     if (!contact) return;
     const name = displayName.trim() || [firstName, lastName].filter(Boolean).join(" ") || "Unknown";
+    const phonesWithDigits = phones.filter((p) => normalizePhoneForStorage(p.phone).length > 0);
+    const invalidPhone = phonesWithDigits.find((p) => !isValidPhoneNumber(p.phone));
+    if (invalidPhone) {
+      setPhoneError("Please enter a valid phone number (at least 10 digits)");
+      return;
+    }
+    setPhoneError(null);
     setSaving(true);
     try {
       await api.contacts.update(contact.id, {
@@ -131,10 +141,10 @@ export function EditContactDialog({ open, onOpenChange, contact, onSuccess }: Ed
           type: (e.type as Contact["emails"] extends (infer E)[] ? E extends { type: infer T } ? T : never : never) ?? "other",
           is_primary: e.is_primary,
         })),
-        phones: phones.filter((p) => p.phone.trim()).map((p) => ({
+        phones: phonesWithDigits.map((p) => ({
           id: "",
           contact_id: contact.id,
-          phone: p.phone.trim(),
+          phone: normalizePhoneForStorage(p.phone),
           type: (p.type as "work" | "home" | "cell" | "other") ?? "other",
           is_primary: p.is_primary,
         })),
@@ -207,15 +217,18 @@ export function EditContactDialog({ open, onOpenChange, contact, onSuccess }: Ed
             <Label>Primary phone</Label>
             <Input
               value={phones[0]?.phone ?? ""}
-              onChange={(e) =>
+              onChange={(e) => {
+                setPhoneError(null);
                 setPhones((prev) => {
                   const next = [...prev];
                   if (!next[0]) next[0] = { phone: "", type: "other", is_primary: true };
                   next[0].phone = e.target.value;
                   return next;
-                })
-              }
+                });
+              }}
+              placeholder="(555) 123-4567"
             />
+            {phoneError && <p className="text-sm text-destructive mt-1">{phoneError}</p>}
           </div>
           {addresses[0] && (
             <div className="space-y-2">

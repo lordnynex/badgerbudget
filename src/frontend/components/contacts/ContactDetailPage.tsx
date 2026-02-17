@@ -11,6 +11,7 @@ import type {
   ContactEmergencyContact,
 } from "@/types/contact";
 import { contactsToVCardFileAsync } from "@/lib/vcard";
+import { formatPhoneNumber, isValidPhoneNumber, normalizePhoneForStorage } from "@/lib/phone";
 import { ArrowLeft, Pencil, Download, Trash2, RotateCcw, Plus, Trash2Icon, User, X, AlertCircle } from "lucide-react";
 import { EditContactDialog } from "./EditContactDialog";
 import { ContactPhotoCarousel } from "./ContactPhotoCarousel";
@@ -198,7 +199,7 @@ function ContactDetailContent({ id }: { id: string }) {
     is_primary: !!(e as { is_primary?: boolean }).is_primary,
   });
   const toPhonePayload = (p: ContactPhone | { phone?: string | null; type?: string; is_primary?: boolean }) => ({
-    phone: String((p as { phone?: string }).phone ?? "").trim(),
+    phone: normalizePhoneForStorage((p as { phone?: string }).phone ?? ""),
     type: ((p as { type?: string }).type ?? "other") as "work" | "home" | "cell" | "other",
     is_primary: !!(p as { is_primary?: boolean }).is_primary,
   });
@@ -216,7 +217,7 @@ function ContactDetailContent({ id }: { id: string }) {
     ec: ContactEmergencyContact | { name?: string; phone?: string; email?: string; relationship?: string }
   ) => ({
     name: String(ec.name ?? "").trim(),
-    phone: String(ec.phone ?? "").trim(),
+    phone: normalizePhoneForStorage(ec.phone ?? ""),
     email: (ec.email ?? "").trim() || null,
     relationship: (ec.relationship ?? "").trim() || null,
   });
@@ -244,7 +245,7 @@ function ContactDetailContent({ id }: { id: string }) {
     setSavingContactField(true);
     setContactFieldError(null);
     try {
-      const valid = phones.filter((p) => (p.phone ?? "").trim() !== "");
+      const valid = phones.filter((p) => normalizePhoneForStorage(p.phone).length > 0);
       const updated = await api.contacts.update(id, {
         phones: valid.map((p) => ({ ...toPhonePayload(p), id: "", contact_id: id })),
       });
@@ -300,6 +301,11 @@ function ContactDetailContent({ id }: { id: string }) {
   };
 
   const handleSavePhone = () => {
+    if (!isValidPhoneNumber(editingPhoneDraft.phone)) {
+      setContactFieldError("Please enter a valid phone number (at least 10 digits)");
+      return;
+    }
+    setContactFieldError(null);
     const current = contact.phones ?? [];
     const idx = current.findIndex((p) => p.id === editingPhoneId);
     if (idx < 0) return;
@@ -310,6 +316,11 @@ function ContactDetailContent({ id }: { id: string }) {
 
   const handleAddPhone = () => {
     if (!newPhoneDraft.phone.trim()) return;
+    if (!isValidPhoneNumber(newPhoneDraft.phone)) {
+      setContactFieldError("Please enter a valid phone number (at least 10 digits)");
+      return;
+    }
+    setContactFieldError(null);
     const current = (contact.phones ?? []).map(toPhonePayload);
     savePhones([...current, newPhoneDraft]);
   };
@@ -348,7 +359,9 @@ function ContactDetailContent({ id }: { id: string }) {
     setSavingContactField(true);
     setContactFieldError(null);
     try {
-      const valid = emergencyContacts.filter((ec) => (ec.name ?? "").trim() && (ec.phone ?? "").trim());
+      const valid = emergencyContacts.filter(
+        (ec) => (ec.name ?? "").trim() && normalizePhoneForStorage(ec.phone).length > 0
+      );
       const updated = await api.contacts.update(id, {
         emergency_contacts: valid.map(toEmergencyContactPayload),
       });
@@ -364,6 +377,11 @@ function ContactDetailContent({ id }: { id: string }) {
   };
 
   const handleSaveEmergencyContact = () => {
+    if (!isValidPhoneNumber(editingEmergencyContactDraft.phone)) {
+      setContactFieldError("Please enter a valid phone number (at least 10 digits)");
+      return;
+    }
+    setContactFieldError(null);
     const current = contact.emergency_contacts ?? [];
     const idx = current.findIndex((ec) => ec.id === editingEmergencyContactId);
     if (idx < 0) return;
@@ -375,6 +393,11 @@ function ContactDetailContent({ id }: { id: string }) {
   const handleAddEmergencyContact = () => {
     const d = newEmergencyContactDraft;
     if (!d.name.trim() || !d.phone.trim()) return;
+    if (!isValidPhoneNumber(d.phone)) {
+      setContactFieldError("Please enter a valid phone number (at least 10 digits)");
+      return;
+    }
+    setContactFieldError(null);
     const current = (contact.emergency_contacts ?? []).map(toEmergencyContactPayload);
     saveEmergencyContacts([...current, toEmergencyContactPayload(d)]);
   };
@@ -885,7 +908,7 @@ function ContactDetailContent({ id }: { id: string }) {
                         ) : (
                           <>
                             <div className="min-w-0 flex-1">
-                              <span className="text-sm">{p.phone}</span>
+                              <span className="text-sm">{formatPhoneNumber(p.phone)}</span>
                               {p.is_primary && <span className="text-muted-foreground text-xs ml-1">(primary)</span>}
                               {p.type !== "other" && <span className="text-muted-foreground text-xs ml-1">({p.type})</span>}
                             </div>
@@ -1024,10 +1047,10 @@ function ContactDetailContent({ id }: { id: string }) {
                             <p className="text-sm text-muted-foreground">{ec.relationship}</p>
                           )}
                           <a
-                            href={`tel:${ec.phone}`}
+                            href={`tel:${(ec.phone ?? "").replace(/\D/g, "")}`}
                             className="text-primary hover:underline text-sm flex items-center gap-1 mt-1"
                           >
-                            {ec.phone}
+                            {formatPhoneNumber(ec.phone)}
                           </a>
                           {ec.email && (
                             <a

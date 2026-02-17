@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { api } from "@/data/api";
+import { isValidPhoneNumber, normalizePhoneForStorage } from "@/lib/phone";
 import type { Contact } from "@/types/contact";
 
 interface AddContactDialogProps {
@@ -46,6 +47,7 @@ export function AddContactDialog({ open, onOpenChange, onSuccess, defaultHelleni
   const [deceased, setDeceased] = useState(false);
   const [deceasedYear, setDeceasedYear] = useState("");
   const [saving, setSaving] = useState(false);
+  const [phoneError, setPhoneError] = useState<string | null>(null);
 
   useEffect(() => {
     if (open) {
@@ -76,6 +78,11 @@ export function AddContactDialog({ open, onOpenChange, onSuccess, defaultHelleni
   const handleSubmit = async () => {
     const name = displayName.trim() || (type === "person" ? [firstName, lastName].filter(Boolean).join(" ") : orgName) || "Unknown";
     if (!name) return;
+    if (primaryPhone.trim() && !isValidPhoneNumber(primaryPhone)) {
+      setPhoneError("Please enter a valid phone number (at least 10 digits)");
+      return;
+    }
+    setPhoneError(null);
     setSaving(true);
     try {
       await api.contacts.create({
@@ -90,7 +97,7 @@ export function AddContactDialog({ open, onOpenChange, onSuccess, defaultHelleni
         deceased,
         deceased_year: deceased && deceasedYear.trim() ? parseInt(deceasedYear, 10) : null,
         emails: primaryEmail.trim() ? [{ id: "", contact_id: "", email: primaryEmail.trim(), type: "other" as const, is_primary: true }] : [],
-        phones: primaryPhone.trim() ? [{ id: "", contact_id: "", phone: primaryPhone.trim(), type: "other" as const, is_primary: true }] : [],
+        phones: normalizePhoneForStorage(primaryPhone) ? [{ id: "", contact_id: "", phone: normalizePhoneForStorage(primaryPhone), type: "other" as const, is_primary: true }] : [],
         addresses:
           addressLine1.trim() || city.trim() || postalCode.trim()
             ? [
@@ -174,7 +181,15 @@ export function AddContactDialog({ open, onOpenChange, onSuccess, defaultHelleni
           </div>
           <div>
             <Label>Primary phone</Label>
-            <Input value={primaryPhone} onChange={(e) => setPrimaryPhone(e.target.value)} />
+            <Input
+              value={primaryPhone}
+              onChange={(e) => {
+                setPrimaryPhone(e.target.value);
+                setPhoneError(null);
+              }}
+              placeholder="(555) 123-4567"
+            />
+            {phoneError && <p className="text-sm text-destructive mt-1">{phoneError}</p>}
           </div>
 
           <div className="space-y-2">

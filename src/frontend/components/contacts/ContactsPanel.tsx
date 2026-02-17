@@ -18,6 +18,8 @@ import { Plus, Search, Download, Upload, List, Trash2 } from "lucide-react";
 import { AddContactDialog } from "./AddContactDialog";
 import { ImportContactsDialog } from "./ImportContactsDialog";
 import { AddToMailingListDialog } from "./AddToMailingListDialog";
+import { ContactsExportDropdown } from "./ContactsExportDropdown";
+import { downloadContactsCsv, downloadContactsPdf } from "./contactUtils";
 import { useContactsSuspense, useContactTags, useInvalidateQueries } from "@/queries/hooks";
 
 function useDebounce<T>(value: T, delay: number): T {
@@ -111,6 +113,38 @@ export function ContactsPanel() {
     refresh();
   };
 
+  const fetchAllContacts = async (): Promise<typeof contacts> => {
+    const baseParams: ContactSearchParams = {
+      q: params.q,
+      status: params.status,
+      hasPostalAddress: params.hasPostalAddress,
+      hasEmail: params.hasEmail,
+      sort: params.sort,
+      sortDir: params.sortDir,
+      limit: 100,
+    };
+    const all: typeof contacts = [];
+    let page = 1;
+    let hasMore = true;
+    while (hasMore) {
+      const result = await api.contacts.list({ ...baseParams, page });
+      all.push(...result.contacts);
+      hasMore = result.contacts.length === 100 && all.length < result.total;
+      page++;
+    }
+    return all;
+  };
+
+  const handleExportCsv = async () => {
+    const allContacts = await fetchAllContacts();
+    downloadContactsCsv(allContacts);
+  };
+
+  const handleExportPdf = async () => {
+    const allContacts = await fetchAllContacts();
+    downloadContactsPdf(allContacts);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -121,6 +155,10 @@ export function ContactsPanel() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <ContactsExportDropdown
+            onExportCsv={handleExportCsv}
+            onExportPdf={handleExportPdf}
+          />
           <Button variant="outline" onClick={() => setImportOpen(true)}>
             <Upload className="size-4" />
             Import
