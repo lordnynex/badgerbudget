@@ -8,7 +8,7 @@ import { MemberProfileCard } from "./MemberProfileCard";
 import { MemberEmergencyContactCard } from "./MemberEmergencyContactCard";
 import { MemberPhotoLightbox } from "./MemberPhotoLightbox";
 import { EditMemberDialog } from "./EditMemberDialog";
-import { ArrowLeft, Pencil } from "lucide-react";
+import { ArrowLeft, Pencil, Trash2 } from "lucide-react";
 
 export function MemberDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -36,6 +36,7 @@ function MemberDetailContent({ id }: { id: string }) {
   const [editEmergencyPhone, setEditEmergencyPhone] = useState("");
   const [editPhoto, setEditPhoto] = useState<string | null>(null);
   const [editSaving, setEditSaving] = useState(false);
+  const [deleteDeleting, setDeleteDeleting] = useState(false);
 
   useEffect(() => {
     setEditName(member.name);
@@ -90,6 +91,19 @@ function MemberDetailContent({ id }: { id: string }) {
     }
   };
 
+  const handleDelete = async () => {
+    if (!confirm(`Delete ${member.name}? This cannot be undone.`)) return;
+    setDeleteDeleting(true);
+    try {
+      await api.members.delete(id);
+      invalidate.invalidateMembers();
+      invalidate.invalidateMember(id);
+      navigate("/members");
+    } finally {
+      setDeleteDeleting(false);
+    }
+  };
+
   const hasDetails =
     member.phone_number ||
     member.email ||
@@ -107,6 +121,14 @@ function MemberDetailContent({ id }: { id: string }) {
           <ArrowLeft className="size-4" />
         </Button>
         <div className="flex-1" />
+        <Button
+          variant="destructive"
+          onClick={handleDelete}
+          disabled={deleteDeleting}
+        >
+          <Trash2 className="size-4" />
+          Delete
+        </Button>
         <Button onClick={() => setEditOpen(true)}>
           <Pencil className="size-4" />
           Edit Member
