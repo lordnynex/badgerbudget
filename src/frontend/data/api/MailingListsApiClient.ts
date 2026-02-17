@@ -1,4 +1,4 @@
-import { client, unwrap } from "./client";
+import { client, unwrap, buildSearchParams } from "./client";
 
 export class MailingListsApiClient {
   async list() {
@@ -24,6 +24,27 @@ export class MailingListsApiClient {
 
   preview(id: string) {
     return unwrap(client.api["mailing-lists"]({ id }).preview.get());
+  }
+
+  getStats(id: string) {
+    return unwrap(client.api["mailing-lists"]({ id }).stats.get());
+  }
+
+  async getIncluded(id: string, params?: { page?: number; limit?: number; q?: string }) {
+    const qs = params
+      ? "?" +
+        buildSearchParams({
+          page: params.page ?? 1,
+          limit: params.limit ?? 25,
+          ...(params.q?.trim() && { q: params.q.trim() }),
+        })
+      : "?page=1&limit=25";
+    const res = await fetch(`/api/mailing-lists/${id}/included${qs}`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: res.statusText }));
+      throw new Error((err as { error?: string }).error ?? "Request failed");
+    }
+    return res.json();
   }
 
   getMembers(id: string) {

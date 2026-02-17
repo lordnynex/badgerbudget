@@ -21,10 +21,10 @@ import {
 import { api } from "@/data/api";
 import type { MailingList, ListPreview } from "@/types/contact";
 import { contactsToVCardFile } from "@/lib/vcard";
-import { ArrowLeft, Plus, Pencil, Trash2, Download, Printer, Users } from "lucide-react";
+import { ArrowLeft, Plus, Pencil, Trash2, Download, Printer, Users, MapPin, Copy, ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { AddContactToMailingListDialog } from "./AddContactToMailingListDialog";
 import { CreateMailLabelsDialog } from "./CreateMailLabelsDialog";
-import { useMailingListsSuspense, useEventsSuspense, useMailingListSuspense, useMailingListPreview, useInvalidateQueries } from "@/queries/hooks";
+import { useMailingListsSuspense, useEventsSuspense, useMailingListSuspense, useMailingListPreview, useMailingListStats, useMailingListIncluded, useInvalidateQueries } from "@/queries/hooks";
 import { PageLoading } from "@/components/layout/PageLoading";
 
 export function MailingListsPanel() {
@@ -229,6 +229,27 @@ function MailingListDetail({
   const [editDeliveryType, setEditDeliveryType] = useState(selectedList.delivery_type ?? "both");
   const [addMemberOpen, setAddMemberOpen] = useState(false);
   const [labelsDialogOpen, setLabelsDialogOpen] = useState(false);
+  const [membersPage, setMembersPage] = useState(1);
+  const [membersSearch, setMembersSearch] = useState("");
+  const [membersSearchDebounced, setMembersSearchDebounced] = useState("");
+  const membersLimit = 25;
+
+  useEffect(() => {
+    const t = setTimeout(() => setMembersSearchDebounced(membersSearch), 200);
+    return () => clearTimeout(t);
+  }, [membersSearch]);
+
+  useEffect(() => {
+    setMembersPage(1);
+  }, [membersSearchDebounced]);
+
+  const { data: stats } = useMailingListStats(listId);
+  const { data: includedPage } = useMailingListIncluded(
+    listId,
+    membersPage,
+    membersLimit,
+    membersSearchDebounced || undefined,
+  );
 
   const refreshList = () => {
     invalidate.invalidateMailingList(listId);
@@ -368,6 +389,197 @@ function MailingListDetail({
               </div>
             )}
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Stats</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Geographic distribution and duplicate address analysis
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {stats && (
+            <>
+              {((selectedList.delivery_type ?? "both") === "physical" || (selectedList.delivery_type ?? "both") === "both") &&
+                stats.geographic &&
+                (stats.geographic.byState.length > 0 || stats.geographic.byCountry.length > 0) && (
+                  <div>
+                    <h4 className="font-medium flex items-center gap-2 mb-2">
+                      <MapPin className="size-4" />
+                      Geographic distribution
+                    </h4>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      {stats.geographic.byState.length > 0 && (
+                        <div className="rounded-lg border p-3">
+                          <p className="text-sm font-medium text-muted-foreground mb-2">By state</p>
+                          <ul className="space-y-1 text-sm max-h-40 overflow-y-auto">
+                            {stats.geographic.byState.map(({ state, count }) => (
+                              <li key={state} className="flex justify-between">
+                                <span>{state}</span>
+                                <span className="text-muted-foreground">{count}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      {stats.geographic.byCountry.length > 0 && (
+                        <div className="rounded-lg border p-3">
+                          <p className="text-sm font-medium text-muted-foreground mb-2">By country</p>
+                          <ul className="space-y-1 text-sm max-h-40 overflow-y-auto">
+                            {stats.geographic.byCountry.map(({ country, count }) => (
+                              <li key={country} className="flex justify-between">
+                                <span>{country}</span>
+                                <span className="text-muted-foreground">{count}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              <div>
+                <h4 className="font-medium flex items-center gap-2 mb-2">
+                  <Copy className="size-4" />
+                  Duplicate addresses
+                </h4>
+                <p className="text-sm text-muted-foreground mb-2">
+                  {stats.duplicateAddresses.totalDuplicateContacts} contacts share an address with others across{" "}
+                  {stats.duplicateAddresses.uniqueAddressesWithDuplicates} unique addresses.
+                </p>
+                {stats.duplicateAddresses.groups.length > 0 && (
+                  <div className="rounded-lg border p-3 max-h-48 overflow-y-auto space-y-3">
+                    {stats.duplicateAddresses.groups.map((group, i) => (
+                      <div key={i} className="text-sm">
+                        <p className="font-medium text-muted-foreground truncate" title={group.address}>
+                          {group.address}
+                        </p>
+                        <ul className="mt-1 space-y-0.5 pl-2">
+                          {group.contacts.map((c) => (
+                            <li key={c.id}>
+                              <button
+                                type="button"
+                                className="text-primary hover:underline"
+                                onClick={() => navigate(`/contacts/${c.id}`)}
+                              >
+                                {c.display_name}
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {stats.duplicateAddresses.groups.length === 0 && (
+                  <p className="text-sm text-muted-foreground">No duplicate addresses in this list.</p>
+                )}
+              </div>
+            </>
+          )}
+          {!stats && (
+            <p className="text-sm text-muted-foreground">Loading stats…</p>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Members</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            People in this mailing list. Remove members with the delete icon when allowed.
+          </p>
+          <div className="relative mt-3">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+            <Input
+              placeholder="Search by name, organization, or email…"
+              value={membersSearch}
+              onChange={(e) => setMembersSearch(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+        </CardHeader>
+        <CardContent>
+          {includedPage ? (
+            <>
+              {includedPage.contacts.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-4">
+                  {membersSearchDebounced
+                    ? "No members match your search."
+                    : "No members in this list."}
+                </p>
+              ) : (
+                <>
+                  <ul className="divide-y">
+                    {includedPage.contacts.map(({ contact, canRemoveFromList }) => (
+                      <li
+                        key={contact.id}
+                        className="flex items-center justify-between py-3 first:pt-0 last:pb-0"
+                      >
+                        <button
+                          type="button"
+                          className="text-left hover:underline text-primary"
+                          onClick={() => navigate(`/contacts/${contact.id}`)}
+                        >
+                          {contact.display_name}
+                        </button>
+                        {canRemoveFromList && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive hover:text-destructive shrink-0"
+                            onClick={async () => {
+                              if (!confirm(`Remove ${contact.display_name} from this list?`)) return;
+                              try {
+                                await api.mailingLists.removeMember(selectedList.id, contact.id);
+                                refreshList();
+                              } catch (err) {
+                                console.error(err);
+                              }
+                            }}
+                          >
+                            <Trash2 className="size-4" />
+                          </Button>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                  {includedPage.total > membersLimit && (
+                    <div className="flex items-center justify-between pt-4 mt-4 border-t">
+                      <p className="text-sm text-muted-foreground">
+                        Showing {(membersPage - 1) * membersLimit + 1}–
+                        {Math.min(membersPage * membersLimit, includedPage.total)} of {includedPage.total}
+                      </p>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={membersPage <= 1}
+                          onClick={() => setMembersPage((p) => p - 1)}
+                        >
+                          <ChevronLeft className="size-4" />
+                          Previous
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={membersPage * membersLimit >= includedPage.total}
+                          onClick={() => setMembersPage((p) => p + 1)}
+                        >
+                          Next
+                          <ChevronRight className="size-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </>
+          ) : (
+            <p className="text-sm text-muted-foreground py-4">Loading members…</p>
+          )}
         </CardContent>
       </Card>
 

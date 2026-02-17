@@ -129,6 +129,22 @@ export function useMailingListPreview(id: string | null) {
   });
 }
 
+export function useMailingListStats(id: string | null) {
+  return useQuery({
+    queryKey: queryKeys.mailingListStats(id ?? ""),
+    queryFn: () => api.mailingLists.getStats(id!),
+    enabled: !!id,
+  });
+}
+
+export function useMailingListIncluded(id: string | null, page: number, limit: number, q?: string) {
+  return useQuery({
+    queryKey: queryKeys.mailingListIncluded(id ?? "", page, limit, q),
+    queryFn: () => api.mailingLists.getIncluded(id!, { page, limit, q }),
+    enabled: !!id,
+  });
+}
+
 // —— Mailing batches
 export function useMailingBatchSuspense(id: string) {
   return useSuspenseQuery({
@@ -164,6 +180,8 @@ export function useInvalidateQueries() {
     invalidateMailingList: (id: string) => {
       qc.invalidateQueries({ queryKey: queryKeys.mailingList(id) });
       qc.invalidateQueries({ queryKey: queryKeys.mailingListPreview(id) });
+      qc.invalidateQueries({ queryKey: queryKeys.mailingListStats(id) });
+      qc.invalidateQueries({ queryKey: ["mailingList", id, "included"] });
     },
     invalidateMailingBatches: () =>
       qc.invalidateQueries({ queryKey: queryKeys.mailingBatches }),

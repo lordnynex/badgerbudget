@@ -13,6 +13,9 @@ export const queryKeys = {
   mailingLists: ["mailingLists"] as const,
   mailingList: (id: string) => ["mailingList", id] as const,
   mailingListPreview: (id: string) => ["mailingList", id, "preview"] as const,
+  mailingListStats: (id: string) => ["mailingList", id, "stats"] as const,
+  mailingListIncluded: (id: string, page: number, limit: number, q?: string) =>
+    ["mailingList", id, "included", page, limit, q ?? ""] as const,
   mailingListMembers: (id: string) => ["mailingList", id, "members"] as const,
   mailingBatches: ["mailingBatches"] as const,
   mailingBatch: (id: string) => ["mailingBatch", id] as const,

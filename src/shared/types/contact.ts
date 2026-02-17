@@ -152,6 +152,29 @@ export interface ListPreview {
   totalExcluded: number;
 }
 
+export interface MailingListStats {
+  geographic?: {
+    byState: Array<{ state: string; count: number }>;
+    byCountry: Array<{ country: string; count: number }>;
+  };
+  duplicateAddresses: {
+    totalDuplicateContacts: number;
+    uniqueAddressesWithDuplicates: number;
+    groups: Array<{
+      address: string;
+      contactIds: string[];
+      contacts: Array<{ id: string; display_name: string }>;
+    }>;
+  };
+}
+
+export interface MailingListIncludedPage {
+  contacts: Array<{ contact: Contact; canRemoveFromList: boolean }>;
+  total: number;
+  page: number;
+  limit: number;
+}
+
 export interface ContactSearchParams {
   q?: string;
   status?: ContactStatus | "all";

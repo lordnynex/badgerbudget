@@ -5,10 +5,12 @@ import type {
   MailingListMember,
   MailingListCriteria,
   ListPreview,
+  MailingListStats,
+  MailingListIncludedPage,
 } from "@/shared/types/contact";
 import type { ContactsService } from "./ContactsService";
 import { IsNull } from "typeorm";
-import { Contact as ContactEntity, MailingList as MailingListEntity, MailingListMember as MailingListMemberEntity } from "../entities";
+import { Contact as ContactEntity, MailingList as MailingListEntity, MailingListMember as MailingListMemberEntity, ContactAddress as ContactAddressEntity } from "../entities";
 import { uuid } from "./utils";
 
 export class MailingListsService {
@@ -364,5 +366,196 @@ export class MailingListsService {
       }
     }
     return result;
+  }
+
+  /** Returns included contact IDs and whether each has manual membership (can be removed). */
+  private async getIncludedContactIds(listId: string): Promise<{ contactIds: string[]; membershipMap: Map<string, boolean> }> {
+    const list = await this.get(listId);
+    if (!list) return { contactIds: [], membershipMap: new Map() };
+
+    let contactIds: string[] = [];
+    if (list.list_type === "static") {
+      const rows = await this.ds.getRepository(MailingListMemberEntity).find({
+        where: { listId, suppressed: 0, unsubscribed: 0 },
+        select: ["contactId"],
+      });
+      contactIds = rows.map((r) => r.contactId);
+    } else if (list.list_type === "dynamic") {
+      contactIds = await this.evaluateDynamicCriteria(list.criteria);
+    } else {
+      const manualRows = await this.ds.getRepository(MailingListMemberEntity).find({
+        where: { listId, suppressed: 0, unsubscribed: 0 },
+        select: ["contactId"],
+      });
+      const manualIds = new Set(manualRows.map((r) => r.contactId));
+      const dynamicIds = await this.evaluateDynamicCriteria(list.criteria);
+      contactIds = [...new Set([...manualIds, ...dynamicIds])];
+    }
+
+    const membershipMap = new Map<string, boolean>();
+    const memberRows = await this.ds.getRepository(MailingListMemberEntity).find({
+      where: { listId },
+      select: ["contactId"],
+    });
+    for (const r of memberRows) {
+      membershipMap.set(r.contactId, true);
+    }
+
+    const included: string[] = [];
+    for (const cid of contactIds) {
+      const contact = await this.contactsService.get(cid);
+      if (!contact) continue;
+      const memberRow = await this.ds.getRepository(MailingListMemberEntity).findOne({
+        where: { listId, contactId: cid },
+        select: ["suppressed", "suppressReason", "unsubscribed"],
+      });
+      const hasMembership = !!memberRow;
+
+      if (contact.do_not_contact) continue;
+      if (contact.status === "inactive" || contact.status === "deleted") continue;
+      const dt = list.delivery_type ?? "both";
+      if (dt === "physical" || dt === "both") {
+        if (contact.ok_to_mail === "no") continue;
+      }
+      if (dt === "email" || dt === "both") {
+        if (contact.ok_to_email === "no") continue;
+      }
+      if (memberRow?.suppressed || memberRow?.unsubscribed) continue;
+
+      included.push(cid);
+    }
+
+    return { contactIds: included, membershipMap };
+  }
+
+  async getStats(listId: string): Promise<MailingListStats> {
+    const list = await this.get(listId);
+    const stats: MailingListStats = {
+      duplicateAddresses: { totalDuplicateContacts: 0, uniqueAddressesWithDuplicates: 0, groups: [] },
+    };
+
+    if (!list) return stats;
+
+    const { contactIds } = await this.getIncludedContactIds(listId);
+    if (contactIds.length === 0) return stats;
+
+    const dt = list.delivery_type ?? "both";
+    const isPhysical = dt === "physical" || dt === "both";
+
+    const addrRepo = this.ds.getRepository(ContactAddressEntity);
+    const addresses = await addrRepo
+      .createQueryBuilder("ca")
+      .select(["ca.contactId", "ca.addressLine1", "ca.addressLine2", "ca.city", "ca.state", "ca.postalCode", "ca.country"])
+      .where("ca.contactId IN (:...ids)", { ids: contactIds })
+      .orderBy("ca.isPrimaryMailing", "DESC")
+      .addOrderBy("ca.id", "ASC")
+      .getMany();
+
+    const contactToAddr = new Map<string, { line1: string; line2: string; city: string; state: string; postal: string; country: string }>();
+    for (const a of addresses) {
+      if (!contactToAddr.has(a.contactId)) {
+        contactToAddr.set(a.contactId, {
+          line1: (a.addressLine1 ?? "").trim(),
+          line2: (a.addressLine2 ?? "").trim(),
+          city: (a.city ?? "").trim(),
+          state: (a.state ?? "").trim(),
+          postal: (a.postalCode ?? "").trim(),
+          country: (a.country ?? "US").trim(),
+        });
+      }
+    }
+
+    const normalizeAddr = (addr: { line1: string; line2: string; city: string; state: string; postal: string; country: string }) =>
+      [addr.line1, addr.line2, addr.city, addr.state, addr.postal, addr.country]
+        .map((s) => (s ?? "").toLowerCase().replace(/\s+/g, " "))
+        .join("|");
+
+    if (isPhysical) {
+      const byState = new Map<string, number>();
+      const byCountry = new Map<string, number>();
+      for (const cid of contactIds) {
+        const addr = contactToAddr.get(cid);
+        if (!addr || (!addr.line1 && !addr.city)) continue;
+        const state = addr.state || "(unknown)";
+        const country = addr.country || "US";
+        byState.set(state, (byState.get(state) ?? 0) + 1);
+        byCountry.set(country, (byCountry.get(country) ?? 0) + 1);
+      }
+      stats.geographic = {
+        byState: Array.from(byState.entries())
+          .map(([state, count]) => ({ state, count }))
+          .sort((a, b) => b.count - a.count),
+        byCountry: Array.from(byCountry.entries())
+          .map(([country, count]) => ({ country, count }))
+          .sort((a, b) => b.count - a.count),
+      };
+    }
+
+    const addrToContacts = new Map<string, string[]>();
+    for (const cid of contactIds) {
+      const addr = contactToAddr.get(cid);
+      if (!addr || (!addr.line1 && !addr.city)) continue;
+      const key = normalizeAddr(addr);
+      if (!addrToContacts.has(key)) addrToContacts.set(key, []);
+      addrToContacts.get(key)!.push(cid);
+    }
+
+    const duplicateGroups = Array.from(addrToContacts.entries()).filter(([, ids]) => ids.length > 1);
+    let totalDuplicateContacts = 0;
+    const groups: MailingListStats["duplicateAddresses"]["groups"] = [];
+    for (const [, ids] of duplicateGroups) {
+      totalDuplicateContacts += ids.length;
+      const addr = contactToAddr.get(ids[0]!);
+      const addressStr = addr
+        ? [addr.line1, addr.line2, addr.city, addr.state, addr.postal, addr.country].filter(Boolean).join(", ")
+        : "";
+      const contacts: Array<{ id: string; display_name: string }> = [];
+      for (const id of ids) {
+        const c = await this.contactsService.get(id);
+        if (c) contacts.push({ id: c.id, display_name: c.display_name });
+      }
+      groups.push({ address: addressStr, contactIds: ids, contacts });
+    }
+    stats.duplicateAddresses = {
+      totalDuplicateContacts,
+      uniqueAddressesWithDuplicates: duplicateGroups.length,
+      groups,
+    };
+
+    return stats;
+  }
+
+  async getIncludedPaginated(listId: string, page: number, limit: number, search?: string): Promise<MailingListIncludedPage> {
+    const { contactIds, membershipMap } = await this.getIncludedContactIds(listId);
+
+    let filteredIds = contactIds;
+    if (search && search.trim() && contactIds.length > 0) {
+      const q = `%${search.trim()}%`;
+      const qb = this.ds
+        .getRepository(ContactEntity)
+        .createQueryBuilder("c")
+        .select("c.id")
+        .where("c.id IN (:...ids)", { ids: contactIds })
+        .andWhere(
+          "(c.displayName LIKE :q OR c.organizationName LIKE :q OR c.firstName LIKE :q OR c.lastName LIKE :q OR EXISTS (SELECT 1 FROM contact_emails ce WHERE ce.contact_id = c.id AND ce.email LIKE :q))",
+          { q },
+        );
+      const rows = await qb.getMany();
+      filteredIds = rows.map((r) => r.id);
+    }
+
+    const total = filteredIds.length;
+    const offset = (page - 1) * limit;
+    const pageIds = filteredIds.slice(offset, offset + limit);
+
+    const contacts: MailingListIncludedPage["contacts"] = [];
+    for (const cid of pageIds) {
+      const contact = await this.contactsService.get(cid);
+      if (contact) {
+        contacts.push({ contact, canRemoveFromList: membershipMap.get(cid) ?? false });
+      }
+    }
+
+    return { contacts, total, page, limit };
   }
 }

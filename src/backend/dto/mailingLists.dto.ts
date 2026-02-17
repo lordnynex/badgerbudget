@@ -17,9 +17,16 @@ const criteriaSchema = t.Object({
   clubName: t.Optional(t.String()),
 });
 
+const paginationQuery = t.Object({
+  page: t.Optional(t.Numeric({ default: 1 })),
+  limit: t.Optional(t.Numeric({ default: 25 })),
+  q: t.Optional(t.String()),
+});
+
 export const MailingListsDto = {
   params: CommonParams.id,
   contactParams: CommonParams.idContactId,
+  paginationQuery,
 
   createBody: t.Object({
     name: t.String(),

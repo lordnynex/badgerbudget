@@ -8,6 +8,11 @@ export class MailingListsController extends BaseController {
       .get("/", () => this.list())
       .post("/", ({ body }) => this.create(body), { body: MailingListsDto.createBody })
       .get("/:id/preview", ({ params }) => this.preview(params.id), { params: MailingListsDto.params })
+      .get("/:id/stats", ({ params }) => this.getStats(params.id), { params: MailingListsDto.params })
+      .get("/:id/included", ({ params, query }) => this.getIncluded(params.id, query), {
+        params: MailingListsDto.params,
+        query: MailingListsDto.paginationQuery,
+      })
       .get("/:id/members", ({ params }) => this.getMembers(params.id), { params: MailingListsDto.params })
       .post("/:id/members", ({ params, body }) => this.addMember(params.id, body), {
         params: MailingListsDto.params,
@@ -52,6 +57,17 @@ export class MailingListsController extends BaseController {
 
   private preview(id: string) {
     return this.api.mailingLists.preview(id).then(this.json);
+  }
+
+  private getStats(id: string) {
+    return this.api.mailingLists.getStats(id).then(this.json);
+  }
+
+  private getIncluded(id: string, query: { page?: number; limit?: number; q?: string }) {
+    const page = Number(query.page) || 1;
+    const limit = Math.min(Math.max(Number(query.limit) || 25, 1), 100);
+    const search = typeof query.q === "string" ? query.q : undefined;
+    return this.api.mailingLists.getIncludedPaginated(id, page, limit, search).then(this.json);
   }
 
   private getMembers(id: string) {
