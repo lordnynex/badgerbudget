@@ -32,13 +32,9 @@ async function main() {
     try {
       const buffer = Buffer.from(photoBlob);
 
-      const [optimizedPhoto, thumbnail] = await Promise.all([
-        ImageService.optimize(buffer),
-        ImageService.createThumbnail(buffer),
-      ]);
-
+      const optimizedPhoto = await ImageService.optimize(buffer);
       const finalPhoto = optimizedPhoto ?? buffer;
-      const finalThumbnail = thumbnail;
+      const finalThumbnail = await ImageService.createThumbnail(finalPhoto);
 
       await db.run(
         "UPDATE members SET photo = ?, photo_thumbnail = ? WHERE id = ?",
