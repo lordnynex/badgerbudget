@@ -1,12 +1,11 @@
+import type { DataSource } from "typeorm";
 import type { DbLike } from "../db/dbAdapter";
+import { Member } from "../entities";
 import { ALL_MEMBERS_ID } from "@/shared/lib/constants";
 import { uuid, VALID_POSITIONS, parsePhotoToBlob, memberRowToApi } from "./utils";
 import { ImageService } from "./ImageService";
 
 export type PhotoSize = "thumbnail" | "medium" | "full";
-
-const MEMBER_COLUMNS =
-  "id, name, phone_number, email, address, birthday, member_since, is_baby, position, emergency_contact_name, emergency_contact_phone, created_at, (photo IS NOT NULL) as has_photo";
 
 function rowToMember(m: Record<string, unknown>) {
   const { photo_url, photo_thumbnail_url } = memberRowToApi(m);
@@ -29,30 +28,71 @@ function rowToMember(m: Record<string, unknown>) {
 }
 
 export class MembersService {
-  constructor(private db: DbLike) {}
+  constructor(
+    private db: DbLike,
+    private ds: DataSource
+  ) {}
 
   async list() {
-    const rows = (await this.db
-      .query(`SELECT ${MEMBER_COLUMNS} FROM members WHERE id != ? ORDER BY name`)
-      .all(ALL_MEMBERS_ID)) as Array<Record<string, unknown>>;
+    /* Original: SELECT id, name, phone_number, email, address, birthday, member_since, is_baby, position, emergency_contact_name, emergency_contact_phone, created_at, (photo IS NOT NULL) as has_photo FROM members WHERE id != ? ORDER BY name */
+    const rows = (await this.ds
+      .getRepository(Member)
+      .createQueryBuilder("m")
+      .select("m.id", "id")
+      .addSelect("m.name", "name")
+      .addSelect("m.phoneNumber", "phone_number")
+      .addSelect("m.email", "email")
+      .addSelect("m.address", "address")
+      .addSelect("m.birthday", "birthday")
+      .addSelect("m.memberSince", "member_since")
+      .addSelect("m.isBaby", "is_baby")
+      .addSelect("m.position", "position")
+      .addSelect("m.emergencyContactName", "emergency_contact_name")
+      .addSelect("m.emergencyContactPhone", "emergency_contact_phone")
+      .addSelect("m.createdAt", "created_at")
+      .addSelect("(m.photo IS NOT NULL)", "has_photo")
+      .where("m.id != :excludeId", { excludeId: ALL_MEMBERS_ID })
+      .orderBy("m.name")
+      .getRawMany()) as Array<Record<string, unknown>>;
     return rows.map(rowToMember);
   }
 
   async get(id: string) {
-    const row = await this.db.query(`SELECT ${MEMBER_COLUMNS} FROM members WHERE id = ?`).get(id);
+    /* Original: SELECT id, name, phone_number, email, address, birthday, member_since, is_baby, position, emergency_contact_name, emergency_contact_phone, created_at, (photo IS NOT NULL) as has_photo FROM members WHERE id = ? */
+    const row = (await this.ds
+      .getRepository(Member)
+      .createQueryBuilder("m")
+      .select("m.id", "id")
+      .addSelect("m.name", "name")
+      .addSelect("m.phoneNumber", "phone_number")
+      .addSelect("m.email", "email")
+      .addSelect("m.address", "address")
+      .addSelect("m.birthday", "birthday")
+      .addSelect("m.memberSince", "member_since")
+      .addSelect("m.isBaby", "is_baby")
+      .addSelect("m.position", "position")
+      .addSelect("m.emergencyContactName", "emergency_contact_name")
+      .addSelect("m.emergencyContactPhone", "emergency_contact_phone")
+      .addSelect("m.createdAt", "created_at")
+      .addSelect("(m.photo IS NOT NULL)", "has_photo")
+      .where("m.id = :id", { id })
+      .getRawOne()) as Record<string, unknown> | undefined;
     if (!row) return null;
-    return rowToMember(row as Record<string, unknown>);
+    return rowToMember(row);
   }
 
   /**
    * Get member photo as buffer for the given size. Returns null if member has no photo.
    */
   async getPhoto(id: string, size: PhotoSize): Promise<Buffer | null> {
-    const row = await this.db.query("SELECT photo, photo_thumbnail FROM members WHERE id = ?").get(id);
-    if (!row) return null;
-    const m = row as Record<string, unknown>;
-    const photoBlob = m.photo as Uint8Array | Buffer | null;
-    const thumbnailBlob = m.photo_thumbnail as Uint8Array | Buffer | null;
+    /* Original: SELECT photo, photo_thumbnail FROM members WHERE id = ? */
+    const member = await this.ds.getRepository(Member).findOne({
+      where: { id },
+      select: ["photo", "photoThumbnail"],
+    });
+    if (!member) return null;
+    const photoBlob = member.photo;
+    const thumbnailBlob = member.photoThumbnail;
 
     if (!photoBlob) return null;
 
@@ -125,25 +165,24 @@ export class MembersService {
     emergency_contact_phone: string | null;
     photo: string | null;
   }>) {
-    const existing = await this.db.query("SELECT * FROM members WHERE id = ?").get(id);
+    /* Original: SELECT * FROM members WHERE id = ? */
+    const existing = await this.ds.getRepository(Member).findOne({ where: { id } });
     if (!existing) return null;
-    const row = existing as Record<string, unknown>;
-    const get = (k: string, def: unknown) => (body[k as keyof typeof body] !== undefined ? body[k as keyof typeof body] : row[k] ?? def);
-    const name = get("name", row.name) as string;
-    const phone_number = get("phone_number", null) as string | null;
-    const email = get("email", null) as string | null;
-    const address = get("address", null) as string | null;
-    const birthday = get("birthday", null) as string | null;
-    const member_since = get("member_since", null) as string | null;
-    const is_baby = body.is_baby !== undefined ? (body.is_baby ? 1 : 0) : ((row.is_baby as number) === 1 ? 1 : 0);
-    const positionRaw = get("position", null) as string | null;
+    const name = body.name ?? existing.name;
+    const phone_number = body.phone_number !== undefined ? body.phone_number : existing.phoneNumber;
+    const email = body.email !== undefined ? body.email : existing.email;
+    const address = body.address !== undefined ? body.address : existing.address;
+    const birthday = body.birthday !== undefined ? body.birthday : existing.birthday;
+    const member_since = body.member_since !== undefined ? body.member_since : existing.memberSince;
+    const is_baby = body.is_baby !== undefined ? (body.is_baby ? 1 : 0) : (existing.isBaby === 1 ? 1 : 0);
+    const positionRaw = body.position !== undefined ? body.position : existing.position;
     const position = positionRaw && VALID_POSITIONS.has(positionRaw) ? positionRaw : null;
-    const emergency_contact_name = get("emergency_contact_name", null) as string | null;
-    const emergency_contact_phone = get("emergency_contact_phone", null) as string | null;
+    const emergency_contact_name = body.emergency_contact_name !== undefined ? body.emergency_contact_name : existing.emergencyContactName;
+    const emergency_contact_phone = body.emergency_contact_phone !== undefined ? body.emergency_contact_phone : existing.emergencyContactPhone;
     const rawPhoto =
       body.photo !== undefined
         ? (body.photo === null ? null : parsePhotoToBlob(body.photo) ?? null)
-        : (row.photo as Uint8Array | null);
+        : existing.photo;
     const photoBlob =
       body.photo !== undefined && rawPhoto !== null
         ? (await ImageService.optimize(Buffer.from(rawPhoto))) ?? rawPhoto
@@ -151,7 +190,7 @@ export class MembersService {
     const photoThumbnailBlob =
       body.photo !== undefined
         ? (photoBlob ? await ImageService.createThumbnail(Buffer.from(photoBlob)) : null)
-        : (row.photo_thumbnail as Uint8Array | null) ?? null;
+        : existing.photoThumbnail ?? null;
     await this.db.run(
       `UPDATE members SET name = ?, phone_number = ?, email = ?, address = ?, birthday = ?, member_since = ?, is_baby = ?, position = ?, emergency_contact_name = ?, emergency_contact_phone = ?, photo = ?, photo_thumbnail = ? WHERE id = ?`,
       [name, phone_number, email, address, birthday, member_since, is_baby, position, emergency_contact_name, emergency_contact_phone, photoBlob, photoThumbnailBlob, id]

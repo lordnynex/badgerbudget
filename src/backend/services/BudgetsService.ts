@@ -1,31 +1,51 @@
+import type { DataSource } from "typeorm";
 import type { DbLike } from "../db/dbAdapter";
+import { Budget, LineItem } from "../entities";
 import { uuid } from "./utils";
 
 export class BudgetsService {
-  constructor(private db: DbLike) {}
+  constructor(
+    private db: DbLike,
+    private ds: DataSource
+  ) {}
 
   async list() {
-    const rows = await this.db.query("SELECT * FROM budgets ORDER BY year DESC, name").all();
-    return rows as Array<{ id: string; name: string; year: number; description: string | null; created_at: string }>;
+    /* Original: SELECT * FROM budgets ORDER BY year DESC, name */
+    const entities = await this.ds.getRepository(Budget).find({
+      order: { year: "DESC", name: "ASC" },
+    });
+    return entities.map((e) => ({
+      id: e.id,
+      name: e.name,
+      year: e.year,
+      description: e.description,
+      created_at: e.createdAt ?? "",
+    }));
   }
 
   async get(id: string) {
-    const budget = await this.db.query("SELECT * FROM budgets WHERE id = ?").get(id);
+    /* Original: SELECT * FROM budgets WHERE id = ? */
+    const budget = await this.ds.getRepository(Budget).findOne({ where: { id } });
     if (!budget) return null;
-    const itemsRaw = await this.db
-      .query("SELECT * FROM line_items WHERE budget_id = ? ORDER BY name")
-      .all(id);
-    const items = Array.isArray(itemsRaw) ? itemsRaw : [];
+    /* Original: SELECT * FROM line_items WHERE budget_id = ? ORDER BY name */
+    const items = await this.ds.getRepository(LineItem).find({
+      where: { budgetId: id },
+      order: { name: "ASC" },
+    });
     return {
-      ...(budget as Record<string, unknown>),
-      lineItems: items.map((i: Record<string, unknown>) => ({
+      id: budget.id,
+      name: budget.name,
+      year: budget.year,
+      description: budget.description,
+      created_at: budget.createdAt ?? "",
+      lineItems: items.map((i) => ({
         id: i.id,
         name: i.name,
         category: i.category,
         comments: i.comments ?? undefined,
-        unitCost: i.unit_cost,
+        unitCost: i.unitCost,
         quantity: i.quantity,
-        historicalCosts: i.historical_costs ? JSON.parse(String(i.historical_costs)) : undefined,
+        historicalCosts: i.historicalCosts ? JSON.parse(i.historicalCosts) : undefined,
       })),
     };
   }
@@ -40,12 +60,12 @@ export class BudgetsService {
   }
 
   async update(id: string, body: { name?: string; year?: number; description?: string }) {
-    const existing = await this.db.query("SELECT * FROM budgets WHERE id = ?").get(id);
+    /* Original: SELECT * FROM budgets WHERE id = ? */
+    const existing = await this.ds.getRepository(Budget).findOne({ where: { id } });
     if (!existing) return null;
-    const budget = existing as Record<string, unknown>;
-    const name = (body.name ?? budget.name) as string;
-    const year = (body.year ?? budget.year) as number;
-    const description = (body.description !== undefined ? body.description : budget.description) as string | null;
+    const name = body.name ?? existing.name;
+    const year = body.year ?? existing.year;
+    const description = body.description !== undefined ? body.description : existing.description;
     await this.db.run("UPDATE budgets SET name = ?, year = ?, description = ? WHERE id = ?", [name, year, description, id]);
     return { id, name, year, description };
   }
@@ -90,19 +110,20 @@ export class BudgetsService {
       historicalCosts: Record<string, number>;
     }>
   ) {
-    const existing = await this.db.query("SELECT * FROM line_items WHERE id = ? AND budget_id = ?").get(itemId, budgetId);
+    /* Original: SELECT * FROM line_items WHERE id = ? AND budget_id = ? */
+    const existing = await this.ds.getRepository(LineItem).findOne({
+      where: { id: itemId, budgetId },
+    });
     if (!existing) return null;
-    const row = existing as Record<string, unknown>;
-    const name = (body.name ?? row.name) as string;
-    const category = (body.category ?? row.category) as string;
-    const comments = (body.comments !== undefined ? body.comments : row.comments) as string | null;
-    const unitCost = (body.unitCost ?? row.unit_cost) as number;
-    const quantity = (body.quantity ?? row.quantity) as number;
-    const historicalCosts = (
+    const name = body.name ?? existing.name;
+    const category = body.category ?? existing.category;
+    const comments = body.comments !== undefined ? body.comments : existing.comments;
+    const unitCost = body.unitCost ?? existing.unitCost;
+    const quantity = body.quantity ?? existing.quantity;
+    const historicalCosts =
       body.historicalCosts !== undefined
         ? JSON.stringify(body.historicalCosts)
-        : row.historical_costs
-    ) as string | null;
+        : existing.historicalCosts;
     await this.db.run(
       "UPDATE line_items SET name = ?, category = ?, comments = ?, unit_cost = ?, quantity = ?, historical_costs = ? WHERE id = ? AND budget_id = ?",
       [name, category, comments, unitCost, quantity, historicalCosts, itemId, budgetId]

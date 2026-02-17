@@ -1,3 +1,5 @@
+import { In, IsNull } from "typeorm";
+import type { DataSource } from "typeorm";
 import type { DbLike } from "../db/dbAdapter";
 import type {
   Contact,
@@ -8,7 +10,31 @@ import type {
   ContactSearchParams,
   ContactSearchResult,
 } from "@/shared/types/contact";
+import { Contact as ContactEntity, ContactEmail as ContactEmailEntity, ContactPhone as ContactPhoneEntity, ContactAddress as ContactAddressEntity, Tag as TagEntity, ContactTag } from "../entities";
 import { uuid, auditLog } from "./utils";
+
+function entityToContact(e: ContactEntity): Contact {
+  return {
+    id: e.id,
+    type: (e.type as Contact["type"]) ?? "person",
+    status: (e.status as Contact["status"]) ?? "active",
+    display_name: e.displayName ?? "",
+    first_name: e.firstName,
+    last_name: e.lastName,
+    organization_name: e.organizationName,
+    notes: e.notes,
+    how_we_know_them: e.howWeKnowThem,
+    ok_to_email: (e.okToEmail as Contact["ok_to_email"]) ?? "unknown",
+    ok_to_mail: (e.okToMail as Contact["ok_to_mail"]) ?? "unknown",
+    do_not_contact: e.doNotContact === 1,
+    club_name: e.clubName,
+    role: e.role,
+    uid: e.uid,
+    created_at: e.createdAt ?? undefined,
+    updated_at: e.updatedAt ?? undefined,
+    deleted_at: e.deletedAt,
+  };
+}
 
 function rowToContact(row: Record<string, unknown>): Contact {
   return {
@@ -34,7 +60,10 @@ function rowToContact(row: Record<string, unknown>): Contact {
 }
 
 export class ContactsService {
-  constructor(private db: DbLike) {}
+  constructor(
+    private db: DbLike,
+    private ds: DataSource
+  ) {}
 
   private async loadContactRelations(contactId: string): Promise<{
     emails: ContactEmail[];
@@ -42,49 +71,59 @@ export class ContactsService {
     addresses: ContactAddress[];
     tags: Tag[];
   }> {
-    const emails = (await this.db
-      .query("SELECT * FROM contact_emails WHERE contact_id = ? ORDER BY is_primary DESC, id")
-      .all(contactId)) as Array<Record<string, unknown>>;
-    const phones = (await this.db
-      .query("SELECT * FROM contact_phones WHERE contact_id = ? ORDER BY is_primary DESC, id")
-      .all(contactId)) as Array<Record<string, unknown>>;
-    const addresses = (await this.db
-      .query("SELECT * FROM contact_addresses WHERE contact_id = ? ORDER BY is_primary_mailing DESC, id")
-      .all(contactId)) as Array<Record<string, unknown>>;
-    const tagRows = (await this.db
-      .query(
-        "SELECT t.id, t.name FROM tags t JOIN contact_tags ct ON t.id = ct.tag_id WHERE ct.contact_id = ?"
-      )
-      .all(contactId)) as Array<Record<string, unknown>>;
+    /* Original: SELECT * FROM contact_emails WHERE contact_id = ? ORDER BY is_primary DESC, id */
+    const emails = await this.ds.getRepository(ContactEmailEntity).find({
+      where: { contactId },
+      order: { isPrimary: "DESC", id: "ASC" },
+    });
+    /* Original: SELECT * FROM contact_phones WHERE contact_id = ? ORDER BY is_primary DESC, id */
+    const phones = await this.ds.getRepository(ContactPhoneEntity).find({
+      where: { contactId },
+      order: { isPrimary: "DESC", id: "ASC" },
+    });
+    /* Original: SELECT * FROM contact_addresses WHERE contact_id = ? ORDER BY is_primary_mailing DESC, id */
+    const addresses = await this.ds.getRepository(ContactAddressEntity).find({
+      where: { contactId },
+      order: { isPrimaryMailing: "DESC", id: "ASC" },
+    });
+    /* Original: SELECT t.id, t.name FROM tags t JOIN contact_tags ct ON t.id = ct.tag_id WHERE ct.contact_id = ? */
+    const contactTags = await this.ds.getRepository(ContactTag).find({ where: { contactId } });
+    const tagRows =
+      contactTags.length > 0
+        ? await this.ds.getRepository(TagEntity).find({
+            where: { id: In(contactTags.map((ct) => ct.tagId)) },
+            order: { name: "ASC" },
+          })
+        : [];
 
     return {
       emails: emails.map((e) => ({
-        id: e.id as string,
-        contact_id: e.contact_id as string,
-        email: e.email as string,
+        id: e.id,
+        contact_id: e.contactId,
+        email: e.email,
         type: (e.type as ContactEmail["type"]) ?? "other",
-        is_primary: (e.is_primary as number) === 1,
+        is_primary: e.isPrimary === 1,
       })),
       phones: phones.map((p) => ({
-        id: p.id as string,
-        contact_id: p.contact_id as string,
-        phone: p.phone as string,
+        id: p.id,
+        contact_id: p.contactId,
+        phone: p.phone,
         type: (p.type as ContactPhone["type"]) ?? "other",
-        is_primary: (p.is_primary as number) === 1,
+        is_primary: p.isPrimary === 1,
       })),
       addresses: addresses.map((a) => ({
-        id: a.id as string,
-        contact_id: a.contact_id as string,
-        address_line1: (a.address_line1 as string) ?? null,
-        address_line2: (a.address_line2 as string) ?? null,
-        city: (a.city as string) ?? null,
-        state: (a.state as string) ?? null,
-        postal_code: (a.postal_code as string) ?? null,
-        country: (a.country as string) ?? null,
+        id: a.id,
+        contact_id: a.contactId,
+        address_line1: a.addressLine1,
+        address_line2: a.addressLine2,
+        city: a.city,
+        state: a.state,
+        postal_code: a.postalCode,
+        country: a.country,
         type: (a.type as ContactAddress["type"]) ?? "home",
-        is_primary_mailing: (a.is_primary_mailing as number) === 1,
+        is_primary_mailing: a.isPrimaryMailing === 1,
       })),
-      tags: tagRows.map((t) => ({ id: t.id as string, name: t.name as string })),
+      tags: tagRows.map((t) => ({ id: t.id, name: t.name })),
     };
   }
 
@@ -95,79 +134,55 @@ export class ContactsService {
     const sort = params.sort ?? "updated_at";
     const sortDir = params.sortDir ?? "desc";
 
-    const conditions: string[] = ["deleted_at IS NULL"];
-    const args: (string | number)[] = [];
+    const orderCol = sort === "name" ? "displayName" : "updatedAt";
+    const orderDir = sortDir.toUpperCase() === "ASC" ? "ASC" : "DESC";
+
+    const qb = this.ds
+      .getRepository(ContactEntity)
+      .createQueryBuilder("c")
+      .where("c.deletedAt IS NULL");
 
     if (params.status && params.status !== "all") {
-      conditions.push("status = ?");
-      args.push(params.status);
+      qb.andWhere("c.status = :status", { status: params.status });
     }
     if (params.hasPostalAddress === true) {
-      conditions.push(
-        "EXISTS (SELECT 1 FROM contact_addresses ca WHERE ca.contact_id = contacts.id AND ca.address_line1 IS NOT NULL AND ca.address_line1 != '')"
+      qb.andWhere(
+        "EXISTS (SELECT 1 FROM contact_addresses ca WHERE ca.contact_id = c.id AND ca.address_line1 IS NOT NULL AND ca.address_line1 != '')"
       );
     }
     if (params.hasEmail === true) {
-      conditions.push(
-        "EXISTS (SELECT 1 FROM contact_emails ce WHERE ce.contact_id = contacts.id)"
-      );
+      qb.andWhere("EXISTS (SELECT 1 FROM contact_emails ce WHERE ce.contact_id = c.id)");
     }
     if (params.tagIds && params.tagIds.length > 0) {
-      conditions.push(
-        `id IN (SELECT contact_id FROM contact_tags WHERE tag_id IN (${params.tagIds.map(() => "?").join(",")}))`
-      );
-      args.push(...params.tagIds);
+      qb.andWhere("c.id IN (SELECT contact_id FROM contact_tags WHERE tag_id IN (:...tagIds))", { tagIds: params.tagIds });
     }
     if (params.organization) {
-      conditions.push("organization_name LIKE ?");
-      args.push(`%${params.organization}%`);
+      qb.andWhere("c.organizationName LIKE :org", { org: `%${params.organization}%` });
     }
     if (params.role) {
-      conditions.push("role LIKE ?");
-      args.push(`%${params.role}%`);
+      qb.andWhere("c.role LIKE :role", { role: `%${params.role}%` });
     }
-
-    let searchCondition = "";
-    const searchArgs: (string | number)[] = [];
     if (params.q && params.q.trim()) {
       const q = `%${params.q.trim()}%`;
-      searchCondition = ` AND (
-        display_name LIKE ? OR first_name LIKE ? OR last_name LIKE ? OR
-        organization_name LIKE ? OR notes LIKE ? OR club_name LIKE ? OR role LIKE ? OR
-        EXISTS (SELECT 1 FROM contact_emails ce WHERE ce.contact_id = contacts.id AND ce.email LIKE ?) OR
-        EXISTS (SELECT 1 FROM contact_phones cp WHERE cp.contact_id = contacts.id AND cp.phone LIKE ?) OR
-        EXISTS (SELECT 1 FROM contact_addresses ca WHERE ca.contact_id = contacts.id AND (ca.city LIKE ? OR ca.state LIKE ?)) OR
-        EXISTS (SELECT 1 FROM contact_tags ct JOIN tags t ON t.id = ct.tag_id WHERE ct.contact_id = contacts.id AND t.name LIKE ?)
-      )`;
-      for (let i = 0; i < 12; i++) searchArgs.push(q);
+      qb.andWhere(
+        `(c.displayName LIKE :q OR c.firstName LIKE :q OR c.lastName LIKE :q OR c.organizationName LIKE :q OR c.notes LIKE :q OR c.clubName LIKE :q OR c.role LIKE :q OR EXISTS (SELECT 1 FROM contact_emails ce WHERE ce.contact_id = c.id AND ce.email LIKE :q) OR EXISTS (SELECT 1 FROM contact_phones cp WHERE cp.contact_id = c.id AND cp.phone LIKE :q) OR EXISTS (SELECT 1 FROM contact_addresses ca WHERE ca.contact_id = c.id AND (ca.city LIKE :q OR ca.state LIKE :q)) OR EXISTS (SELECT 1 FROM contact_tags ct JOIN tags t ON t.id = ct.tag_id WHERE ct.contact_id = c.id AND t.name LIKE :q))`,
+        { q }
+      );
     }
 
-    const whereClause = conditions.join(" AND ");
-    const orderCol =
-      sort === "name"
-        ? "display_name"
-        : sort === "last_contacted"
-          ? "updated_at"
-          : "updated_at";
-    const orderDir = sortDir.toUpperCase() === "ASC" ? "ASC" : "DESC";
+    /* Original: SELECT COUNT(*) as c FROM contacts WHERE ... */
+    const total = await qb.getCount();
 
-    const allArgs = [...args, ...searchArgs];
-    const countRow = (await this.db
-      .query(
-        `SELECT COUNT(*) as c FROM contacts WHERE ${whereClause}${searchCondition}`
-      )
-      .get(...allArgs)) as { c: number };
-    const total = countRow.c;
-
-    const rows = (await this.db
-      .query(
-        `SELECT * FROM contacts WHERE ${whereClause}${searchCondition} ORDER BY ${orderCol} ${orderDir} LIMIT ? OFFSET ?`
-      )
-      .all(...allArgs, limit, offset)) as Array<Record<string, unknown>>;
+    /* Original: SELECT * FROM contacts WHERE ... ORDER BY ... LIMIT ? OFFSET ? */
+    const entities = await qb
+      .orderBy(`c.${orderCol}`, orderDir as "ASC" | "DESC")
+      .skip(offset)
+      .take(limit)
+      .getMany();
 
     const contacts = await Promise.all(
-      rows.map(async (r) => {
-        const c = rowToContact(r);
+      entities.map(async (e) => {
+        const c = entityToContact(e);
         const rel = await this.loadContactRelations(c.id);
         return { ...c, ...rel };
       })
@@ -177,9 +192,10 @@ export class ContactsService {
   }
 
   async get(id: string): Promise<Contact | null> {
-    const row = await this.db.query("SELECT * FROM contacts WHERE id = ?").get(id) as Record<string, unknown> | null;
-    if (!row) return null;
-    const contact = rowToContact(row);
+    /* Original: SELECT * FROM contacts WHERE id = ? */
+    const entity = await this.ds.getRepository(ContactEntity).findOne({ where: { id } });
+    if (!entity) return null;
+    const contact = entityToContact(entity);
     const rel = await this.loadContactRelations(id);
     return { ...contact, ...rel };
   }
@@ -187,11 +203,11 @@ export class ContactsService {
   async getForDeduplication(): Promise<
     Array<{ id: string; display_name: string; emails: string[]; addressKey: string; nameKey: string }>
   > {
-    const rows = (await this.db
-      .query(
-        "SELECT id, display_name FROM contacts WHERE deleted_at IS NULL"
-      )
-      .all()) as Array<{ id: string; display_name: string }>;
+    /* Original: SELECT id, display_name FROM contacts WHERE deleted_at IS NULL */
+    const contacts = await this.ds.getRepository(ContactEntity).find({
+      where: { deletedAt: IsNull() },
+      select: ["id", "displayName"],
+    });
     const result: Array<{
       id: string;
       display_name: string;
@@ -199,32 +215,35 @@ export class ContactsService {
       addressKey: string;
       nameKey: string;
     }> = [];
-    for (const row of rows) {
-      const emailsRaw = (await this.db
-        .query("SELECT email FROM contact_emails WHERE contact_id = ?")
-        .all(row.id)) as Array<{ email: string }>;
+    for (const row of contacts) {
+      /* Original: SELECT email FROM contact_emails WHERE contact_id = ? */
+      const emailsRaw = await this.ds.getRepository(ContactEmailEntity).find({
+        where: { contactId: row.id },
+        select: ["email"],
+      });
       const emails = emailsRaw.map((e) => e.email.toLowerCase().trim());
-      const addr = (await this.db
-        .query(
-          "SELECT address_line1, city, postal_code FROM contact_addresses WHERE contact_id = ? ORDER BY is_primary_mailing DESC LIMIT 1"
-        )
-        .get(row.id)) as { address_line1: string | null; city: string | null; postal_code: string | null } | undefined;
+      /* Original: SELECT address_line1, city, postal_code FROM contact_addresses WHERE contact_id = ? ORDER BY is_primary_mailing DESC LIMIT 1 */
+      const addr = await this.ds.getRepository(ContactAddressEntity).findOne({
+        where: { contactId: row.id },
+        select: ["addressLine1", "city", "postalCode"],
+        order: { isPrimaryMailing: "DESC" },
+      });
       const addressKey = addr
         ? [
-            addr.address_line1 ?? "",
+            addr.addressLine1 ?? "",
             addr.city ?? "",
-            addr.postal_code ?? "",
+            addr.postalCode ?? "",
           ]
             .map((s) => (s ?? "").toLowerCase().replace(/\s+/g, " "))
             .join("|")
         : "";
-      const nameKey = (row.display_name ?? "")
+      const nameKey = (row.displayName ?? "")
         .toLowerCase()
         .replace(/\s+/g, " ")
         .trim();
       result.push({
         id: row.id,
-        display_name: row.display_name ?? "",
+        display_name: row.displayName ?? "",
         emails,
         addressKey,
         nameKey,
@@ -303,8 +322,9 @@ export class ContactsService {
       for (const t of body.tags) {
         let tagId = typeof t === "string" ? null : t.id;
         if (!tagId && (typeof t === "object" && "name" in t)) {
-          const existing = await this.db.query("SELECT id FROM tags WHERE name = ?").get((t as Tag).name) as { id: string } | undefined;
-          if (existing) tagId = existing.id;
+          /* Original: SELECT id FROM tags WHERE name = ? */
+          const existingTag = await this.ds.getRepository(TagEntity).findOne({ where: { name: (t as Tag).name } });
+          if (existingTag) tagId = existingTag.id;
           else {
             tagId = uuid();
             await this.db.run("INSERT INTO tags (id, name) VALUES (?, ?)", [tagId, (t as Tag).name]);
@@ -325,25 +345,23 @@ export class ContactsService {
   }
 
   async update(id: string, body: Partial<Contact>) {
-    const existing = await this.db.query("SELECT * FROM contacts WHERE id = ?").get(id) as Record<string, unknown> | null;
+    /* Original: SELECT * FROM contacts WHERE id = ? */
+    const existing = await this.ds.getRepository(ContactEntity).findOne({ where: { id } });
     if (!existing) return null;
 
-    const get = (k: string, def: unknown) =>
-      (body as Record<string, unknown>)[k] !== undefined ? (body as Record<string, unknown>)[k] : existing[k] ?? def;
-
-    const display_name = (get("display_name", existing.display_name) as string) ?? "Unknown";
-    const type = get("type", existing.type) as Contact["type"];
-    const status = get("status", existing.status) as Contact["status"];
-    const first_name = get("first_name", existing.first_name) as string | null;
-    const last_name = get("last_name", existing.last_name) as string | null;
-    const organization_name = get("organization_name", existing.organization_name) as string | null;
-    const notes = get("notes", existing.notes) as string | null;
-    const how_we_know_them = get("how_we_know_them", existing.how_we_know_them) as string | null;
-    const ok_to_email = get("ok_to_email", existing.ok_to_email) as Contact["ok_to_email"];
-    const ok_to_mail = get("ok_to_mail", existing.ok_to_mail) as Contact["ok_to_mail"];
-    const do_not_contact = (get("do_not_contact", existing.do_not_contact) as boolean) ? 1 : 0;
-    const club_name = get("club_name", existing.club_name) as string | null;
-    const role = get("role", existing.role) as string | null;
+    const display_name = (body.display_name ?? existing.displayName) ?? "Unknown";
+    const type = (body.type ?? existing.type) as Contact["type"];
+    const status = (body.status ?? existing.status) as Contact["status"];
+    const first_name = body.first_name !== undefined ? body.first_name : existing.firstName;
+    const last_name = body.last_name !== undefined ? body.last_name : existing.lastName;
+    const organization_name = body.organization_name !== undefined ? body.organization_name : existing.organizationName;
+    const notes = body.notes !== undefined ? body.notes : existing.notes;
+    const how_we_know_them = body.how_we_know_them !== undefined ? body.how_we_know_them : existing.howWeKnowThem;
+    const ok_to_email = (body.ok_to_email ?? existing.okToEmail) as Contact["ok_to_email"];
+    const ok_to_mail = (body.ok_to_mail ?? existing.okToMail) as Contact["ok_to_mail"];
+    const do_not_contact = (body.do_not_contact ?? existing.doNotContact === 1) ? 1 : 0;
+    const club_name = body.club_name !== undefined ? body.club_name : existing.clubName;
+    const role = body.role !== undefined ? body.role : existing.role;
 
     await this.db.run(
       `UPDATE contacts SET display_name=?, type=?, status=?, first_name=?, last_name=?, organization_name=?, notes=?, how_we_know_them=?, ok_to_email=?, ok_to_mail=?, do_not_contact=?, club_name=?, role=?, updated_at=datetime('now') WHERE id=?`,
@@ -397,7 +415,8 @@ export class ContactsService {
         let tagId = typeof t === "string" ? null : (t as Tag).id;
         const tagName = typeof t === "object" ? (t as Tag).name : t;
         if (!tagId) {
-          const existingTag = await this.db.query("SELECT id FROM tags WHERE name = ?").get(tagName) as { id: string } | undefined;
+          /* Original: SELECT id FROM tags WHERE name = ? */
+          const existingTag = await this.ds.getRepository(TagEntity).findOne({ where: { name: tagName } });
           if (existingTag) tagId = existingTag.id;
           else {
             tagId = uuid();
@@ -442,7 +461,8 @@ export class ContactsService {
         await this.db.run("DELETE FROM contact_tags WHERE contact_id = ?", [id]);
         for (const t of updates.tags) {
           const tagName = typeof t === "object" ? (t as Tag).name : t;
-          let tagId = (await this.db.query("SELECT id FROM tags WHERE name = ?").get(tagName) as { id: string } | undefined)?.id;
+          /* Original: SELECT id FROM tags WHERE name = ? */
+          let tagId = (await this.ds.getRepository(TagEntity).findOne({ where: { name: tagName } }))?.id;
           if (!tagId) {
             tagId = uuid();
             await this.db.run("INSERT INTO tags (id, name) VALUES (?, ?)", [tagId, tagName]);
@@ -508,8 +528,9 @@ export class ContactsService {
 
   tags = {
     list: async (): Promise<Tag[]> => {
-      const rows = await this.db.query("SELECT * FROM tags ORDER BY name").all() as Array<Record<string, unknown>>;
-      return rows.map((r) => ({ id: r.id as string, name: r.name as string }));
+      /* Original: SELECT * FROM tags ORDER BY name */
+      const entities = await this.ds.getRepository(TagEntity).find({ order: { name: "ASC" } });
+      return entities.map((r) => ({ id: r.id, name: r.name }));
     },
     create: async (name: string): Promise<Tag> => {
       const id = uuid();

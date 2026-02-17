@@ -1,21 +1,36 @@
+import type { DataSource } from "typeorm";
 import type { DbLike } from "../db/dbAdapter";
+import { Scenario } from "../entities";
 import { uuid, DEFAULT_SCENARIO_INPUTS } from "./utils";
 
 export class ScenariosService {
-  constructor(private db: DbLike) {}
+  constructor(
+    private db: DbLike,
+    private ds: DataSource
+  ) {}
 
   async list() {
-    const rows = await this.db.query("SELECT * FROM scenarios ORDER BY name").all();
-    return rows as Array<{ id: string; name: string; description: string | null; inputs: string; created_at: string }>;
+    /* Original: SELECT * FROM scenarios ORDER BY name */
+    const entities = await this.ds.getRepository(Scenario).find({ order: { name: "ASC" } });
+    return entities.map((e) => ({
+      id: e.id,
+      name: e.name,
+      description: e.description,
+      inputs: e.inputs,
+      created_at: e.createdAt ?? "",
+    }));
   }
 
   async get(id: string) {
-    const row = await this.db.query("SELECT * FROM scenarios WHERE id = ?").get(id);
-    if (!row) return null;
-    const r = row as Record<string, unknown>;
+    /* Original: SELECT * FROM scenarios WHERE id = ? */
+    const entity = await this.ds.getRepository(Scenario).findOne({ where: { id } });
+    if (!entity) return null;
     return {
-      ...r,
-      inputs: JSON.parse(r.inputs as string),
+      id: entity.id,
+      name: entity.name,
+      description: entity.description,
+      inputs: JSON.parse(entity.inputs),
+      created_at: entity.createdAt ?? "",
     };
   }
 
@@ -33,12 +48,12 @@ export class ScenariosService {
     id: string,
     body: { name?: string; description?: string; inputs?: Record<string, unknown> }
   ) {
-    const existing = await this.db.query("SELECT * FROM scenarios WHERE id = ?").get(id);
+    /* Original: SELECT * FROM scenarios WHERE id = ? */
+    const existing = await this.ds.getRepository(Scenario).findOne({ where: { id } });
     if (!existing) return null;
-    const row = existing as Record<string, unknown>;
-    const name = (body.name ?? row.name) as string;
-    const description = (body.description !== undefined ? body.description : row.description) as string | null;
-    const inputs = body.inputs ?? JSON.parse(row.inputs as string);
+    const name = body.name ?? existing.name;
+    const description = body.description !== undefined ? body.description : existing.description;
+    const inputs = body.inputs ?? JSON.parse(existing.inputs);
     await this.db.run("UPDATE scenarios SET name = ?, description = ?, inputs = ? WHERE id = ?", [name, description, JSON.stringify(inputs), id]);
     return { id, name, description, inputs };
   }

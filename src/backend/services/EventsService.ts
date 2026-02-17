@@ -1,170 +1,206 @@
+import { In } from "typeorm";
+import type { DataSource } from "typeorm";
 import type { DbLike } from "../db/dbAdapter";
+import {
+  Event,
+  EventPlanningMilestone,
+  EventMilestoneMember,
+  EventPackingCategory,
+  EventPackingItem,
+  EventVolunteer,
+  EventAssignment,
+  EventAssignmentMember,
+  Member,
+} from "../entities";
 import { uuid, memberRowToApi } from "./utils";
 
+function memberEntityToApi(m: Member) {
+  return memberRowToApi({
+    id: m.id,
+    name: m.name,
+    photo: m.photo,
+    photo_thumbnail: m.photoThumbnail,
+  } as Record<string, unknown>);
+}
+
 export class EventsService {
-  constructor(private db: DbLike) {}
+  constructor(
+    private db: DbLike,
+    private ds: DataSource
+  ) {}
 
   async list() {
-    const rows = (await this.db.query("SELECT * FROM events ORDER BY year DESC, name").all()) as Array<Record<string, unknown>>;
-    return rows.map((e) => ({
+    /* Original: SELECT * FROM events ORDER BY year DESC, name */
+    const entities = await this.ds.getRepository(Event).find({
+      order: { year: "DESC", name: "ASC" },
+    });
+    return entities.map((e) => ({
       id: e.id,
       name: e.name,
       description: e.description ?? null,
       year: e.year ?? null,
-      event_date: e.event_date ?? null,
-      event_url: e.event_url ?? null,
-      event_location: e.event_location ?? null,
-      event_location_embed: e.event_location_embed ?? null,
-      ga_ticket_cost: e.ga_ticket_cost != null ? Number(e.ga_ticket_cost) : null,
-      day_pass_cost: e.day_pass_cost != null ? Number(e.day_pass_cost) : null,
-      ga_tickets_sold: e.ga_tickets_sold != null ? Number(e.ga_tickets_sold) : null,
-      day_passes_sold: e.day_passes_sold != null ? Number(e.day_passes_sold) : null,
-      budget_id: e.budget_id ?? null,
-      scenario_id: e.scenario_id ?? null,
-      planning_notes: e.planning_notes ?? null,
-      created_at: e.created_at as string | undefined,
+      event_date: e.eventDate ?? null,
+      event_url: e.eventUrl ?? null,
+      event_location: e.eventLocation ?? null,
+      event_location_embed: e.eventLocationEmbed ?? null,
+      ga_ticket_cost: e.gaTicketCost ?? null,
+      day_pass_cost: e.dayPassCost ?? null,
+      ga_tickets_sold: e.gaTicketsSold ?? null,
+      day_passes_sold: e.dayPassesSold ?? null,
+      budget_id: e.budgetId ?? null,
+      scenario_id: e.scenarioId ?? null,
+      planning_notes: e.planningNotes ?? null,
+      created_at: e.createdAt ?? undefined,
     }));
   }
 
   async get(id: string) {
-    const row = await this.db.query("SELECT * FROM events WHERE id = ?").get(id);
-    if (!row) return null;
-    const e = row as Record<string, unknown>;
-    const milestones = (await this.db
-      .query("SELECT * FROM event_planning_milestones WHERE event_id = ? ORDER BY year, month, sort_order")
-      .all(id)) as Array<Record<string, unknown>>;
+    /* Original: SELECT * FROM events WHERE id = ? */
+    const event = await this.ds.getRepository(Event).findOne({ where: { id } });
+    if (!event) return null;
+    const e = event;
+    /* Original: SELECT * FROM event_planning_milestones WHERE event_id = ? ORDER BY year, month, sort_order */
+    const milestones = await this.ds.getRepository(EventPlanningMilestone).find({
+      where: { eventId: id },
+      order: { year: "ASC", month: "ASC", sortOrder: "ASC" },
+    });
+    /* Original: SELECT emm.* FROM event_milestone_members emm WHERE emm.milestone_id IN (...) ORDER BY emm.milestone_id, emm.sort_order */
     const milestoneMembers = milestones.length
-      ? ((await this.db
-          .query(
-            "SELECT emm.* FROM event_milestone_members emm WHERE emm.milestone_id IN (" +
-              milestones.map(() => "?").join(",") +
-              ") ORDER BY emm.milestone_id, emm.sort_order"
-          )
-          .all(...(milestones.map((m) => m.id) as string[]))) as Array<Record<string, unknown>>)
+      ? await this.ds.getRepository(EventMilestoneMember).find({
+          where: { milestoneId: In(milestones.map((m) => m.id)) },
+          order: { milestoneId: "ASC", sortOrder: "ASC" },
+        })
       : [];
-    const milestoneMemberIds = [...new Set(milestoneMembers.map((mm) => mm.member_id as string))];
+    const milestoneMemberIds = [...new Set(milestoneMembers.map((mm) => mm.memberId))];
+    const memberRepo = this.ds.getRepository(Member);
     const milestoneMembersMap = new Map<string, { id: string; name: string; photo_url: string | null; photo_thumbnail_url: string | null }>();
     for (const mid of milestoneMemberIds) {
-      const m = (await this.db.query("SELECT id, name, photo, photo_thumbnail FROM members WHERE id = ?").get(mid)) as Record<string, unknown> | undefined;
-      if (m) {
-        milestoneMembersMap.set(mid, memberRowToApi(m));
-      }
+      const m = await memberRepo.findOne({ where: { id: mid }, select: ["id", "name", "photo", "photoThumbnail"] });
+      if (m) milestoneMembersMap.set(mid, memberEntityToApi(m));
     }
-    const membersByMilestone = new Map<string, Array<Record<string, unknown>>>();
+    const membersByMilestone = new Map<string, EventMilestoneMember[]>();
     for (const mm of milestoneMembers) {
-      const list = membersByMilestone.get(mm.milestone_id as string) ?? [];
+      const list = membersByMilestone.get(mm.milestoneId) ?? [];
       list.push(mm);
-      membersByMilestone.set(mm.milestone_id as string, list);
+      membersByMilestone.set(mm.milestoneId, list);
     }
-    const packingCategories = (await this.db
-      .query("SELECT * FROM event_packing_categories WHERE event_id = ? ORDER BY sort_order, name")
-      .all(id)) as Array<Record<string, unknown>>;
-    const packing = (await this.db
-      .query("SELECT * FROM event_packing_items WHERE event_id = ? ORDER BY category_id, sort_order, name")
-      .all(id)) as Array<Record<string, unknown>>;
-    const volunteers = (await this.db
-      .query("SELECT * FROM event_volunteers WHERE event_id = ? ORDER BY department, sort_order, name")
-      .all(id)) as Array<Record<string, unknown>>;
-    const assignments = (await this.db
-      .query("SELECT * FROM event_assignments WHERE event_id = ? ORDER BY category, sort_order, name")
-      .all(id)) as Array<Record<string, unknown>>;
+    /* Original: SELECT * FROM event_packing_categories WHERE event_id = ? ORDER BY sort_order, name */
+    const packingCategories = await this.ds.getRepository(EventPackingCategory).find({
+      where: { eventId: id },
+      order: { sortOrder: "ASC", name: "ASC" },
+    });
+    /* Original: SELECT * FROM event_packing_items WHERE event_id = ? ORDER BY category_id, sort_order, name */
+    const packing = await this.ds.getRepository(EventPackingItem).find({
+      where: { eventId: id },
+      order: { categoryId: "ASC", sortOrder: "ASC", name: "ASC" },
+    });
+    /* Original: SELECT * FROM event_volunteers WHERE event_id = ? ORDER BY department, sort_order, name */
+    const volunteers = await this.ds.getRepository(EventVolunteer).find({
+      where: { eventId: id },
+      order: { department: "ASC", sortOrder: "ASC", name: "ASC" },
+    });
+    /* Original: SELECT * FROM event_assignments WHERE event_id = ? ORDER BY category, sort_order, name */
+    const assignments = await this.ds.getRepository(EventAssignment).find({
+      where: { eventId: id },
+      order: { category: "ASC", sortOrder: "ASC", name: "ASC" },
+    });
+    /* Original: SELECT eam.* FROM event_assignment_members eam WHERE eam.assignment_id IN (...) ORDER BY eam.assignment_id, eam.sort_order */
     const assignmentMembers = assignments.length
-      ? ((await this.db
-          .query(
-            "SELECT eam.* FROM event_assignment_members eam WHERE eam.assignment_id IN (" +
-              assignments.map(() => "?").join(",") +
-              ") ORDER BY eam.assignment_id, eam.sort_order"
-          )
-          .all(...(assignments.map((a) => a.id) as string[]))) as Array<Record<string, unknown>>)
+      ? await this.ds.getRepository(EventAssignmentMember).find({
+          where: { assignmentId: In(assignments.map((a) => a.id)) },
+          order: { assignmentId: "ASC", sortOrder: "ASC" },
+        })
       : [];
-    const memberIds = [...new Set(assignmentMembers.map((am) => am.member_id as string))];
+    const memberIds = [...new Set(assignmentMembers.map((am) => am.memberId))];
     const membersMap = new Map<string, { id: string; name: string; photo_url: string | null; photo_thumbnail_url: string | null }>();
     for (const mid of memberIds) {
-      const m = (await this.db.query("SELECT id, name, photo, photo_thumbnail FROM members WHERE id = ?").get(mid)) as Record<string, unknown> | undefined;
-      if (m) {
-        membersMap.set(mid, memberRowToApi(m));
-      }
+      const m = await memberRepo.findOne({ where: { id: mid }, select: ["id", "name", "photo", "photoThumbnail"] });
+      if (m) membersMap.set(mid, memberEntityToApi(m));
     }
-    const membersByAssignment = new Map<string, Array<Record<string, unknown>>>();
+    const membersByAssignment = new Map<string, EventAssignmentMember[]>();
     for (const am of assignmentMembers) {
-      const list = membersByAssignment.get(am.assignment_id as string) ?? [];
+      const list = membersByAssignment.get(am.assignmentId) ?? [];
       list.push(am);
-      membersByAssignment.set(am.assignment_id as string, list);
+      membersByAssignment.set(am.assignmentId, list);
     }
     return {
-      ...e,
-      event_date: e.event_date ?? null,
-      event_url: e.event_url ?? null,
-      event_location: e.event_location ?? null,
-      event_location_embed: e.event_location_embed ?? null,
-      ga_ticket_cost: e.ga_ticket_cost != null ? Number(e.ga_ticket_cost) : null,
-      day_pass_cost: e.day_pass_cost != null ? Number(e.day_pass_cost) : null,
-      ga_tickets_sold: e.ga_tickets_sold != null ? Number(e.ga_tickets_sold) : null,
-      day_passes_sold: e.day_passes_sold != null ? Number(e.day_passes_sold) : null,
-      budget_id: e.budget_id ?? null,
-      scenario_id: e.scenario_id ?? null,
-      planning_notes: e.planning_notes ?? null,
+      id: e.id,
+      name: e.name,
+      description: e.description ?? null,
+      year: e.year ?? null,
+      event_date: e.eventDate ?? null,
+      event_url: e.eventUrl ?? null,
+      event_location: e.eventLocation ?? null,
+      event_location_embed: e.eventLocationEmbed ?? null,
+      ga_ticket_cost: e.gaTicketCost ?? null,
+      day_pass_cost: e.dayPassCost ?? null,
+      ga_tickets_sold: e.gaTicketsSold ?? null,
+      day_passes_sold: e.dayPassesSold ?? null,
+      budget_id: e.budgetId ?? null,
+      scenario_id: e.scenarioId ?? null,
+      planning_notes: e.planningNotes ?? null,
+      created_at: e.createdAt ?? undefined,
       milestones: milestones.map((m) => {
-        const month = m.month as number;
-        const year = m.year as number;
+        const month = m.month;
+        const year = m.year;
         const lastDay = new Date(year, month, 0);
         const defaultDueDate = `${year}-${String(month).padStart(2, "0")}-${String(lastDay.getDate()).padStart(2, "0")}`;
-        const mmList = membersByMilestone.get(m.id as string) ?? [];
+        const mmList = membersByMilestone.get(m.id) ?? [];
         return {
           id: m.id,
-          event_id: m.event_id,
+          event_id: m.eventId,
           month,
           year,
           description: m.description,
-          sort_order: m.sort_order ?? 0,
+          sort_order: m.sortOrder ?? 0,
           completed: m.completed === 1,
-          due_date: (m.due_date as string | null) ?? defaultDueDate,
+          due_date: m.dueDate ?? defaultDueDate,
           members: mmList.map((mm) => ({
             id: mm.id,
-            milestone_id: mm.milestone_id,
-            member_id: mm.member_id,
-            sort_order: mm.sort_order ?? 0,
-            member: milestoneMembersMap.get(mm.member_id as string),
+            milestone_id: mm.milestoneId,
+            member_id: mm.memberId,
+            sort_order: mm.sortOrder ?? 0,
+            member: milestoneMembersMap.get(mm.memberId),
           })),
         };
       }),
       packingCategories: packingCategories.map((c) => ({
         id: c.id,
-        event_id: c.event_id,
+        event_id: c.eventId,
         name: c.name,
-        sort_order: c.sort_order ?? 0,
+        sort_order: c.sortOrder ?? 0,
       })),
       packingItems: packing.map((p) => ({
         id: p.id,
-        event_id: p.event_id,
-        category_id: p.category_id,
+        event_id: p.eventId,
+        category_id: p.categoryId,
         name: p.name,
-        sort_order: p.sort_order ?? 0,
-        quantity: p.quantity != null ? Number(p.quantity) : null,
-        note: (p.note as string | null) ?? null,
+        sort_order: p.sortOrder ?? 0,
+        quantity: p.quantity ?? null,
+        note: p.note ?? null,
         loaded: p.loaded === 1,
       })),
       volunteers: volunteers.map((v) => ({
         id: v.id,
-        event_id: v.event_id,
+        event_id: v.eventId,
         name: v.name,
         department: v.department,
-        sort_order: v.sort_order ?? 0,
+        sort_order: v.sortOrder ?? 0,
       })),
       assignments: assignments.map((a) => {
-        const amList = membersByAssignment.get(a.id as string) ?? [];
+        const amList = membersByAssignment.get(a.id) ?? [];
         return {
           id: a.id,
-          event_id: a.event_id,
+          event_id: a.eventId,
           name: a.name,
           category: a.category,
-          sort_order: a.sort_order ?? 0,
+          sort_order: a.sortOrder ?? 0,
           members: amList.map((am) => ({
             id: am.id,
-            assignment_id: am.assignment_id,
-            member_id: am.member_id,
-            sort_order: am.sort_order ?? 0,
-            member: membersMap.get(am.member_id as string),
+            assignment_id: am.assignmentId,
+            member_id: am.memberId,
+            sort_order: am.sortOrder ?? 0,
+            member: membersMap.get(am.memberId),
           })),
         };
       }),
@@ -227,24 +263,23 @@ export class EventsService {
     scenario_id: string;
     planning_notes: string;
   }>) {
-    const existing = await this.db.query("SELECT * FROM events WHERE id = ?").get(id);
+    /* Original: SELECT * FROM events WHERE id = ? */
+    const existing = await this.ds.getRepository(Event).findOne({ where: { id } });
     if (!existing) return null;
-    const row = existing as Record<string, unknown>;
-    const get = (k: string, def: unknown) => (body[k as keyof typeof body] !== undefined ? body[k as keyof typeof body] : row[k] ?? def);
-    const name = get("name", row.name) as string;
-    const description = get("description", null) as string | null;
-    const year = get("year", null) as number | null;
-    const event_date = get("event_date", null) as string | null;
-    const event_url = get("event_url", null) as string | null;
-    const event_location = get("event_location", null) as string | null;
-    const event_location_embed = get("event_location_embed", null) as string | null;
-    const ga_ticket_cost = get("ga_ticket_cost", null) as number | null;
-    const day_pass_cost = get("day_pass_cost", null) as number | null;
-    const ga_tickets_sold = get("ga_tickets_sold", null) as number | null;
-    const day_passes_sold = get("day_passes_sold", null) as number | null;
-    const budget_id = get("budget_id", null) as string | null;
-    const scenario_id = get("scenario_id", null) as string | null;
-    const planning_notes = get("planning_notes", null) as string | null;
+    const name = body.name ?? existing.name;
+    const description = body.description !== undefined ? body.description : existing.description;
+    const year = body.year !== undefined ? body.year : existing.year;
+    const event_date = body.event_date !== undefined ? body.event_date : existing.eventDate;
+    const event_url = body.event_url !== undefined ? body.event_url : existing.eventUrl;
+    const event_location = body.event_location !== undefined ? body.event_location : existing.eventLocation;
+    const event_location_embed = body.event_location_embed !== undefined ? body.event_location_embed : existing.eventLocationEmbed;
+    const ga_ticket_cost = body.ga_ticket_cost !== undefined ? body.ga_ticket_cost : existing.gaTicketCost;
+    const day_pass_cost = body.day_pass_cost !== undefined ? body.day_pass_cost : existing.dayPassCost;
+    const ga_tickets_sold = body.ga_tickets_sold !== undefined ? body.ga_tickets_sold : existing.gaTicketsSold;
+    const day_passes_sold = body.day_passes_sold !== undefined ? body.day_passes_sold : existing.dayPassesSold;
+    const budget_id = body.budget_id !== undefined ? body.budget_id : existing.budgetId;
+    const scenario_id = body.scenario_id !== undefined ? body.scenario_id : existing.scenarioId;
+    const planning_notes = body.planning_notes !== undefined ? body.planning_notes : existing.planningNotes;
     await this.db.run(
       `UPDATE events SET name = ?, description = ?, year = ?, event_date = ?, event_url = ?, event_location = ?, event_location_embed = ?, ga_ticket_cost = ?, day_pass_cost = ?, ga_tickets_sold = ?, day_passes_sold = ?, budget_id = ?, scenario_id = ?, planning_notes = ? WHERE id = ?`,
       [name, description, year, event_date, event_url, event_location, event_location_embed, ga_ticket_cost, day_pass_cost, ga_tickets_sold, day_passes_sold, budget_id, scenario_id, planning_notes, id]
@@ -266,8 +301,9 @@ export class EventsService {
   assignments = {
     create: async (eventId: string, body: { name: string; category: "planning" | "during" }) => {
       const id = uuid();
-      const maxOrder = await this.db.query("SELECT COALESCE(MAX(sort_order), 0) as m FROM event_assignments WHERE event_id = ? AND category = ?").get(eventId, body.category) as { m: number } | undefined;
-      const sortOrder = (maxOrder?.m ?? 0) + 1;
+      /* Original: SELECT COALESCE(MAX(sort_order), 0) as m FROM event_assignments WHERE event_id = ? AND category = ? */
+      const maxResult = await this.ds.getRepository(EventAssignment).createQueryBuilder("a").select("COALESCE(MAX(a.sortOrder), 0)", "m").where("a.eventId = :eventId", { eventId }).andWhere("a.category = :category", { category: body.category }).getRawOne<{ m: number }>();
+      const sortOrder = (maxResult?.m ?? 0) + 1;
       await this.db.run(
         "INSERT INTO event_assignments (id, event_id, name, category, sort_order) VALUES (?, ?, ?, ?, ?)",
         [id, eventId, body.name, body.category, sortOrder]
@@ -275,26 +311,31 @@ export class EventsService {
       return { id, event_id: eventId, name: body.name, category: body.category, sort_order: sortOrder, members: [] };
     },
     update: async (eventId: string, aid: string, body: { name?: string; category?: "planning" | "during" }) => {
-      const existing = await this.db.query("SELECT * FROM event_assignments WHERE id = ? AND event_id = ?").get(aid, eventId);
+      /* Original: SELECT * FROM event_assignments WHERE id = ? AND event_id = ? */
+      const existing = await this.ds.getRepository(EventAssignment).findOne({ where: { id: aid, eventId } });
       if (!existing) return null;
-      const row = existing as Record<string, unknown>;
-      const name = (body.name ?? row.name) as string;
-      const category = (body.category ?? row.category) as "planning" | "during";
+      const name = body.name ?? existing.name;
+      const category = (body.category ?? existing.category) as "planning" | "during";
       await this.db.run("UPDATE event_assignments SET name = ?, category = ? WHERE id = ? AND event_id = ?", [name, category, aid, eventId]);
-      const amList = (await this.db.query("SELECT * FROM event_assignment_members WHERE assignment_id = ? ORDER BY sort_order").all(aid)) as Array<Record<string, unknown>>;
+      /* Original: SELECT * FROM event_assignment_members WHERE assignment_id = ? ORDER BY sort_order */
+      const amList = await this.ds.getRepository(EventAssignmentMember).find({
+        where: { assignmentId: aid },
+        order: { sortOrder: "ASC" },
+      });
+      const memberRepo = this.ds.getRepository(Member);
       const members = await Promise.all(
         amList.map(async (am) => {
-          const m = (await this.db.query("SELECT id, name, photo, photo_thumbnail FROM members WHERE id = ?").get(am.member_id as string)) as Record<string, unknown> | undefined;
+          const m = await memberRepo.findOne({ where: { id: am.memberId }, select: ["id", "name", "photo", "photoThumbnail"] });
           return {
             id: am.id,
-            assignment_id: am.assignment_id,
-            member_id: am.member_id,
-            sort_order: am.sort_order ?? 0,
-            member: m ? memberRowToApi(m) : undefined,
+            assignment_id: am.assignmentId,
+            member_id: am.memberId,
+            sort_order: am.sortOrder ?? 0,
+            member: m ? memberEntityToApi(m) : undefined,
           };
         })
       );
-      return { id: aid, event_id: eventId, name, category, sort_order: row.sort_order, members };
+      return { id: aid, event_id: eventId, name, category, sort_order: existing.sortOrder, members };
     },
     delete: async (eventId: string, aid: string) => {
       await this.db.run("DELETE FROM event_assignment_members WHERE assignment_id = ?", [aid]);
@@ -302,14 +343,16 @@ export class EventsService {
       return { ok: true };
     },
     addMember: async (eventId: string, aid: string, memberId: string) => {
-      const existing = await this.db.query("SELECT * FROM event_assignments WHERE id = ? AND event_id = ?").get(aid, eventId);
+      /* Original: SELECT * FROM event_assignments WHERE id = ? AND event_id = ? */
+      const existing = await this.ds.getRepository(EventAssignment).findOne({ where: { id: aid, eventId } });
       if (!existing) return null;
-      const maxOrder = await this.db.query("SELECT COALESCE(MAX(sort_order), 0) as m FROM event_assignment_members WHERE assignment_id = ?").get(aid) as { m: number };
+      /* Original: SELECT COALESCE(MAX(sort_order), 0) as m FROM event_assignment_members WHERE assignment_id = ? */
+      const maxResult = await this.ds.getRepository(EventAssignmentMember).createQueryBuilder("am").select("COALESCE(MAX(am.sortOrder), 0)", "m").where("am.assignmentId = :aid", { aid }).getRawOne<{ m: number }>();
       const id = uuid();
       try {
         await this.db.run(
           "INSERT INTO event_assignment_members (id, assignment_id, member_id, sort_order) VALUES (?, ?, ?, ?)",
-          [id, aid, memberId, (maxOrder?.m ?? 0) + 1]
+          [id, aid, memberId, (maxResult?.m ?? 0) + 1]
         );
       } catch {
         return null;
@@ -325,39 +368,42 @@ export class EventsService {
   milestones = {
     create: async (eventId: string, body: { month: number; year: number; description: string; due_date?: string }) => {
       const id = uuid();
-      const maxOrder = await this.db.query("SELECT COALESCE(MAX(sort_order), 0) as m FROM event_planning_milestones WHERE event_id = ?").get(eventId) as { m: number };
+      /* Original: SELECT COALESCE(MAX(sort_order), 0) as m FROM event_planning_milestones WHERE event_id = ? */
+      const maxResult = await this.ds.getRepository(EventPlanningMilestone).createQueryBuilder("m").select("COALESCE(MAX(m.sortOrder), 0)", "m").where("m.eventId = :eventId", { eventId }).getRawOne<{ m: number }>();
       const lastDay = new Date(body.year, body.month, 0);
       const dueDate = body.due_date ?? `${body.year}-${String(body.month).padStart(2, "0")}-${String(lastDay.getDate()).padStart(2, "0")}`;
       await this.db.run(
         "INSERT INTO event_planning_milestones (id, event_id, month, year, description, sort_order, completed, due_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-        [id, eventId, body.month, body.year, body.description, (maxOrder?.m ?? 0) + 1, 0, dueDate]
+        [id, eventId, body.month, body.year, body.description, (maxResult?.m ?? 0) + 1, 0, dueDate]
       );
-      return { id, event_id: eventId, ...body, sort_order: (maxOrder?.m ?? 0) + 1, completed: false, due_date: dueDate };
+      return { id, event_id: eventId, ...body, sort_order: (maxResult?.m ?? 0) + 1, completed: false, due_date: dueDate };
     },
     update: async (eventId: string, mid: string, body: { month?: number; year?: number; description?: string; completed?: boolean; due_date?: string }) => {
-      const existing = await this.db.query("SELECT * FROM event_planning_milestones WHERE id = ? AND event_id = ?").get(mid, eventId);
+      /* Original: SELECT * FROM event_planning_milestones WHERE id = ? AND event_id = ? */
+      const existing = await this.ds.getRepository(EventPlanningMilestone).findOne({ where: { id: mid, eventId } });
       if (!existing) return null;
-      const row = existing as Record<string, unknown>;
-      const month = body.month ?? (row.month as number);
-      const year = body.year ?? (row.year as number);
-      const description = body.description ?? (row.description as string);
-      const completed = body.completed !== undefined ? (body.completed ? 1 : 0) : (row.completed as number);
-      const dueDate = body.due_date ?? (row.due_date as string | null);
+      const month = body.month ?? existing.month;
+      const year = body.year ?? existing.year;
+      const description = body.description ?? existing.description;
+      const completed = body.completed !== undefined ? (body.completed ? 1 : 0) : existing.completed;
+      const dueDate = body.due_date ?? existing.dueDate;
       await this.db.run("UPDATE event_planning_milestones SET month = ?, year = ?, description = ?, completed = ?, due_date = ? WHERE id = ? AND event_id = ?", [month, year, description, completed, dueDate, mid, eventId]);
-      return { id: mid, event_id: eventId, month, year, description, sort_order: row.sort_order, completed: completed === 1, due_date: dueDate };
+      return { id: mid, event_id: eventId, month, year, description, sort_order: existing.sortOrder, completed: completed === 1, due_date: dueDate };
     },
     delete: async (eventId: string, mid: string) => {
       await this.db.run("DELETE FROM event_planning_milestones WHERE id = ? AND event_id = ?", [mid, eventId]);
       return { ok: true };
     },
     addMember: async (eventId: string, mid: string, memberId: string) => {
-      const existing = await this.db.query("SELECT 1 FROM event_planning_milestones WHERE id = ? AND event_id = ?").get(mid, eventId);
+      /* Original: SELECT 1 FROM event_planning_milestones WHERE id = ? AND event_id = ? */
+      const existing = await this.ds.getRepository(EventPlanningMilestone).findOne({ where: { id: mid, eventId } });
       if (!existing) return null;
       const id = uuid();
-      const maxOrder = await this.db.query("SELECT COALESCE(MAX(sort_order), 0) as m FROM event_milestone_members WHERE milestone_id = ?").get(mid) as { m: number };
+      /* Original: SELECT COALESCE(MAX(sort_order), 0) as m FROM event_milestone_members WHERE milestone_id = ? */
+      const maxResult = await this.ds.getRepository(EventMilestoneMember).createQueryBuilder("mm").select("COALESCE(MAX(mm.sortOrder), 0)", "m").where("mm.milestoneId = :mid", { mid }).getRawOne<{ m: number }>();
       await this.db.run(
         "INSERT INTO event_milestone_members (id, milestone_id, member_id, sort_order) VALUES (?, ?, ?, ?)",
-        [id, mid, memberId, (maxOrder?.m ?? 0) + 1]
+        [id, mid, memberId, (maxResult?.m ?? 0) + 1]
       );
       return this.get(eventId);
     },
@@ -370,20 +416,21 @@ export class EventsService {
   packingCategories = {
     create: async (eventId: string, body: { name: string }) => {
       const id = uuid();
-      const maxOrder = await this.db.query("SELECT COALESCE(MAX(sort_order), 0) as m FROM event_packing_categories WHERE event_id = ?").get(eventId) as { m: number };
+      /* Original: SELECT COALESCE(MAX(sort_order), 0) as m FROM event_packing_categories WHERE event_id = ? */
+      const maxResult = await this.ds.getRepository(EventPackingCategory).createQueryBuilder("c").select("COALESCE(MAX(c.sortOrder), 0)", "m").where("c.eventId = :eventId", { eventId }).getRawOne<{ m: number }>();
       await this.db.run(
         "INSERT INTO event_packing_categories (id, event_id, name, sort_order) VALUES (?, ?, ?, ?)",
-        [id, eventId, body.name, (maxOrder?.m ?? 0) + 1]
+        [id, eventId, body.name, (maxResult?.m ?? 0) + 1]
       );
-      return { id, event_id: eventId, name: body.name, sort_order: (maxOrder?.m ?? 0) + 1 };
+      return { id, event_id: eventId, name: body.name, sort_order: (maxResult?.m ?? 0) + 1 };
     },
     update: async (eventId: string, cid: string, body: { name?: string }) => {
-      const existing = await this.db.query("SELECT * FROM event_packing_categories WHERE id = ? AND event_id = ?").get(cid, eventId);
+      /* Original: SELECT * FROM event_packing_categories WHERE id = ? AND event_id = ? */
+      const existing = await this.ds.getRepository(EventPackingCategory).findOne({ where: { id: cid, eventId } });
       if (!existing) return null;
-      const row = existing as Record<string, unknown>;
-      const name = body.name ?? (row.name as string);
+      const name = body.name ?? existing.name;
       await this.db.run("UPDATE event_packing_categories SET name = ? WHERE id = ? AND event_id = ?", [name, cid, eventId]);
-      return { id: cid, event_id: eventId, name, sort_order: row.sort_order };
+      return { id: cid, event_id: eventId, name, sort_order: existing.sortOrder };
     },
     delete: async (eventId: string, cid: string) => {
       await this.db.run("DELETE FROM event_packing_categories WHERE id = ? AND event_id = ?", [cid, eventId]);
@@ -394,24 +441,25 @@ export class EventsService {
   packingItems = {
     create: async (eventId: string, body: { category_id: string; name: string; quantity?: number; note?: string }) => {
       const id = uuid();
-      const maxOrder = await this.db.query("SELECT COALESCE(MAX(sort_order), 0) as m FROM event_packing_items WHERE event_id = ? AND category_id = ?").get(eventId, body.category_id) as { m: number };
+      /* Original: SELECT COALESCE(MAX(sort_order), 0) as m FROM event_packing_items WHERE event_id = ? AND category_id = ? */
+      const maxResult = await this.ds.getRepository(EventPackingItem).createQueryBuilder("p").select("COALESCE(MAX(p.sortOrder), 0)", "m").where("p.eventId = :eventId", { eventId }).andWhere("p.categoryId = :categoryId", { categoryId: body.category_id }).getRawOne<{ m: number }>();
       await this.db.run(
         "INSERT INTO event_packing_items (id, event_id, category_id, name, sort_order, quantity, note, loaded) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-        [id, eventId, body.category_id, body.name, (maxOrder?.m ?? 0) + 1, body.quantity ?? null, body.note ?? null, 0]
+        [id, eventId, body.category_id, body.name, (maxResult?.m ?? 0) + 1, body.quantity ?? null, body.note ?? null, 0]
       );
-      return { id, event_id: eventId, category_id: body.category_id, name: body.name, sort_order: (maxOrder?.m ?? 0) + 1, quantity: body.quantity ?? null, note: body.note ?? null, loaded: false };
+      return { id, event_id: eventId, category_id: body.category_id, name: body.name, sort_order: (maxResult?.m ?? 0) + 1, quantity: body.quantity ?? null, note: body.note ?? null, loaded: false };
     },
     update: async (eventId: string, pid: string, body: { category_id?: string; name?: string; quantity?: number; note?: string; loaded?: boolean }) => {
-      const existing = await this.db.query("SELECT * FROM event_packing_items WHERE id = ? AND event_id = ?").get(pid, eventId);
+      /* Original: SELECT * FROM event_packing_items WHERE id = ? AND event_id = ? */
+      const existing = await this.ds.getRepository(EventPackingItem).findOne({ where: { id: pid, eventId } });
       if (!existing) return null;
-      const row = existing as Record<string, unknown>;
-      const category_id = body.category_id ?? (row.category_id as string);
-      const name = body.name ?? (row.name as string);
-      const quantity = body.quantity !== undefined ? body.quantity : (row.quantity != null ? Number(row.quantity) : null);
-      const note = body.note !== undefined ? body.note : (row.note as string | null);
-      const loaded = body.loaded !== undefined ? (body.loaded ? 1 : 0) : (row.loaded as number);
+      const category_id = body.category_id ?? existing.categoryId;
+      const name = body.name ?? existing.name;
+      const quantity = body.quantity !== undefined ? body.quantity : existing.quantity;
+      const note = body.note !== undefined ? body.note : existing.note;
+      const loaded = body.loaded !== undefined ? (body.loaded ? 1 : 0) : existing.loaded;
       await this.db.run("UPDATE event_packing_items SET category_id = ?, name = ?, quantity = ?, note = ?, loaded = ? WHERE id = ? AND event_id = ?", [category_id, name, quantity, note, loaded, pid, eventId]);
-      return { id: pid, event_id: eventId, category_id, name, sort_order: row.sort_order, quantity, note, loaded: loaded === 1 };
+      return { id: pid, event_id: eventId, category_id, name, sort_order: existing.sortOrder, quantity, note, loaded: loaded === 1 };
     },
     delete: async (eventId: string, pid: string) => {
       await this.db.run("DELETE FROM event_packing_items WHERE id = ? AND event_id = ?", [pid, eventId]);
@@ -422,21 +470,22 @@ export class EventsService {
   volunteers = {
     create: async (eventId: string, body: { name: string; department: string }) => {
       const id = uuid();
-      const maxOrder = await this.db.query("SELECT COALESCE(MAX(sort_order), 0) as m FROM event_volunteers WHERE event_id = ?").get(eventId) as { m: number };
+      /* Original: SELECT COALESCE(MAX(sort_order), 0) as m FROM event_volunteers WHERE event_id = ? */
+      const maxResult = await this.ds.getRepository(EventVolunteer).createQueryBuilder("v").select("COALESCE(MAX(v.sortOrder), 0)", "m").where("v.eventId = :eventId", { eventId }).getRawOne<{ m: number }>();
       await this.db.run(
         "INSERT INTO event_volunteers (id, event_id, name, department, sort_order) VALUES (?, ?, ?, ?, ?)",
-        [id, eventId, body.name, body.department, (maxOrder?.m ?? 0) + 1]
+        [id, eventId, body.name, body.department, (maxResult?.m ?? 0) + 1]
       );
-      return { id, event_id: eventId, ...body, sort_order: (maxOrder?.m ?? 0) + 1 };
+      return { id, event_id: eventId, ...body, sort_order: (maxResult?.m ?? 0) + 1 };
     },
     update: async (eventId: string, vid: string, body: { name?: string; department?: string }) => {
-      const existing = await this.db.query("SELECT * FROM event_volunteers WHERE id = ? AND event_id = ?").get(vid, eventId);
+      /* Original: SELECT * FROM event_volunteers WHERE id = ? AND event_id = ? */
+      const existing = await this.ds.getRepository(EventVolunteer).findOne({ where: { id: vid, eventId } });
       if (!existing) return null;
-      const row = existing as Record<string, unknown>;
-      const name = body.name ?? (row.name as string);
-      const department = body.department ?? (row.department as string);
+      const name = body.name ?? existing.name;
+      const department = body.department ?? existing.department;
       await this.db.run("UPDATE event_volunteers SET name = ?, department = ? WHERE id = ? AND event_id = ?", [name, department, vid, eventId]);
-      return { id: vid, event_id: eventId, name, department, sort_order: row.sort_order };
+      return { id: vid, event_id: eventId, name, department, sort_order: existing.sortOrder };
     },
     delete: async (eventId: string, vid: string) => {
       await this.db.run("DELETE FROM event_volunteers WHERE id = ? AND event_id = ?", [vid, eventId]);

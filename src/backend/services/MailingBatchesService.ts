@@ -1,11 +1,14 @@
+import type { DataSource } from "typeorm";
 import type { DbLike } from "../db/dbAdapter";
 import type { Contact, MailingList, MailingBatch, MailingBatchRecipient } from "@/shared/types/contact";
 import type { MailingListsService } from "./MailingListsService";
+import { MailingBatch as MailingBatchEntity, MailingBatchRecipient as MailingBatchRecipientEntity } from "../entities";
 import { uuid, auditLog } from "./utils";
 
 export class MailingBatchesService {
   constructor(
     private db: DbLike,
+    private ds: DataSource,
     private mailingListsService: MailingListsService
   ) {}
 
@@ -54,65 +57,75 @@ export class MailingBatchesService {
   }
 
   async get(id: string): Promise<MailingBatch | null> {
-    const row = (await this.db
-      .query(
-        `SELECT mb.*, ml.name as list_name, e.name as event_name FROM mailing_batches mb
-         LEFT JOIN mailing_lists ml ON ml.id = mb.list_id LEFT JOIN events e ON e.id = mb.event_id WHERE mb.id = ?`
-      )
-      .get(id)) as Record<string, unknown> | null;
+    /* Original: SELECT mb.*, ml.name as list_name, e.name as event_name FROM mailing_batches mb LEFT JOIN mailing_lists ml ON ml.id = mb.list_id LEFT JOIN events e ON e.id = mb.event_id WHERE mb.id = ? */
+    const row = await this.ds
+      .getRepository(MailingBatchEntity)
+      .createQueryBuilder("mb")
+      .leftJoin("mailing_lists", "ml", "ml.id = mb.list_id")
+      .leftJoin("events", "e", "e.id = mb.event_id")
+      .addSelect("ml.name", "list_name")
+      .addSelect("e.name", "event_name")
+      .where("mb.id = :id", { id })
+      .getRawOne();
     if (!row) return null;
 
-    const recipients = (await this.db
-      .query("SELECT * FROM mailing_batch_recipients WHERE batch_id = ? ORDER BY snapshot_name")
-      .all(id)) as Array<Record<string, unknown>>;
+    /* Original: SELECT * FROM mailing_batch_recipients WHERE batch_id = ? ORDER BY snapshot_name */
+    const recipients = await this.ds.getRepository(MailingBatchRecipientEntity).find({
+      where: { batchId: id },
+      order: { snapshotName: "ASC" },
+    });
 
     return {
-      id: row.id as string,
-      list_id: row.list_id as string,
-      event_id: (row.event_id as string) ?? null,
-      name: row.name as string,
-      created_by: (row.created_by as string) ?? null,
-      created_at: row.created_at as string,
-      recipient_count: (row.recipient_count as number) ?? 0,
-      list: { id: row.list_id as string, name: row.list_name as string } as MailingList,
-      event: row.event_id ? { id: row.event_id as string, name: row.event_name as string } : undefined,
+      id: row.mb_id,
+      list_id: row.mb_list_id,
+      event_id: row.mb_event_id ?? null,
+      name: row.mb_name,
+      created_by: row.mb_created_by ?? null,
+      created_at: row.mb_created_at ?? "",
+      recipient_count: row.mb_recipient_count ?? 0,
+      list: { id: row.mb_list_id, name: row.list_name } as MailingList,
+      event: row.mb_event_id ? { id: row.mb_event_id, name: row.event_name } : undefined,
       recipients: recipients.map((r) => ({
-        id: r.id as string,
-        batch_id: r.batch_id as string,
-        contact_id: r.contact_id as string,
-        snapshot_name: r.snapshot_name as string,
-        snapshot_address_line1: (r.snapshot_address_line1 as string) ?? null,
-        snapshot_address_line2: (r.snapshot_address_line2 as string) ?? null,
-        snapshot_city: (r.snapshot_city as string) ?? null,
-        snapshot_state: (r.snapshot_state as string) ?? null,
-        snapshot_postal_code: (r.snapshot_postal_code as string) ?? null,
-        snapshot_country: (r.snapshot_country as string) ?? null,
-        snapshot_organization: (r.snapshot_organization as string) ?? null,
+        id: r.id,
+        batch_id: r.batchId,
+        contact_id: r.contactId,
+        snapshot_name: r.snapshotName,
+        snapshot_address_line1: r.snapshotAddressLine1,
+        snapshot_address_line2: r.snapshotAddressLine2,
+        snapshot_city: r.snapshotCity,
+        snapshot_state: r.snapshotState,
+        snapshot_postal_code: r.snapshotPostalCode,
+        snapshot_country: r.snapshotCountry,
+        snapshot_organization: r.snapshotOrganization,
         status: (r.status as MailingBatchRecipient["status"]) ?? "queued",
-        invalid_reason: (r.invalid_reason as string) ?? null,
-        returned_reason: (r.returned_reason as string) ?? null,
+        invalid_reason: r.invalidReason,
+        returned_reason: r.returnedReason,
       })),
     };
   }
 
   async list(): Promise<MailingBatch[]> {
-    const rows = (await this.db
-      .query(
-        `SELECT mb.*, ml.name as list_name, e.name as event_name FROM mailing_batches mb
-         LEFT JOIN mailing_lists ml ON ml.id = mb.list_id LEFT JOIN events e ON e.id = mb.event_id ORDER BY mb.created_at DESC`
-      )
-      .all()) as Array<Record<string, unknown>>;
+    /* Original: SELECT mb.*, ml.name as list_name, e.name as event_name FROM mailing_batches mb LEFT JOIN mailing_lists ml ON ml.id = mb.list_id LEFT JOIN events e ON e.id = mb.event_id ORDER BY mb.created_at DESC */
+    const rows = await this.ds
+      .getRepository(MailingBatchEntity)
+      .createQueryBuilder("mb")
+      .leftJoin("mailing_lists", "ml", "ml.id = mb.list_id")
+      .leftJoin("events", "e", "e.id = mb.event_id")
+      .addSelect("ml.name", "list_name")
+      .addSelect("e.name", "event_name")
+      .orderBy("mb.created_at", "DESC")
+      .getRawMany();
 
     return rows.map((r) => ({
-      id: r.id as string,
-      list_id: r.list_id as string,
-      event_id: (r.event_id as string) ?? null,
-      name: r.name as string,
-      created_by: (r.created_by as string) ?? null,
-      created_at: r.created_at as string,
-      recipient_count: (r.recipient_count as number) ?? 0,
-      list: { id: r.list_id as string, name: r.list_name as string } as MailingList,
-      event: r.event_id ? { id: r.event_id as string, name: r.event_name as string } : undefined,
+      id: r.mb_id,
+      list_id: r.mb_list_id,
+      event_id: r.mb_event_id ?? null,
+      name: r.mb_name,
+      created_by: r.mb_created_by ?? null,
+      created_at: r.mb_created_at ?? "",
+      recipient_count: r.mb_recipient_count ?? 0,
+      list: { id: r.mb_list_id, name: r.list_name } as MailingList,
+      event: r.mb_event_id ? { id: r.mb_event_id, name: r.event_name } : undefined,
     }));
   }
 

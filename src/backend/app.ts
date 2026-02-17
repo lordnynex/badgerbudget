@@ -1,3 +1,4 @@
+import type { DataSource } from "typeorm";
 import { Elysia } from "elysia";
 import { cors } from "@elysiajs/cors";
 import { staticPlugin } from "@elysiajs/static";
@@ -11,8 +12,8 @@ import { accessLog } from "./middleware/accessLog";
 const projectRoot = join(import.meta.dir, "../..");
 const distDir = join(projectRoot, "dist");
 
-export function createApp(db: DbLike) {
-  const api = createApi(db);
+export function createApp(db: DbLike, ds: DataSource) {
+  const api = createApi(db, ds);
   const apiRoutes = createApiRoutes(api);
 
   return new Elysia()
