@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,6 +34,8 @@ function useDebounce<T>(value: T, delay: number): T {
 
 export function ContactsPanel() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const location = useLocation();
   const invalidate = useInvalidateQueries();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<ContactSearchParams["status"]>("active");
@@ -41,7 +43,7 @@ export function ContactsPanel() {
   const [hasEmail, setHasEmail] = useState<boolean | undefined>();
   const [sort, setSort] = useState<ContactSearchParams["sort"]>("updated_at");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
-  const [page, setPage] = useState(1);
+  const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10) || 1);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [addOpen, setAddOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
@@ -265,7 +267,11 @@ export function ContactsPanel() {
                 selectedIds={selectedIds}
                 onToggleSelect={toggleSelect}
                 onToggleSelectAll={toggleSelectAll}
-                onRowClick={(c) => navigate(`/contacts/${c.id}`)}
+                onRowClick={(c) =>
+                  navigate(`/contacts/${c.id}`, {
+                    state: { from: location.pathname + location.search },
+                  })
+                }
               />
             </div>
           )}
@@ -276,10 +282,30 @@ export function ContactsPanel() {
                 Showing {(page - 1) * 25 + 1}–{Math.min(page * 25, total)} of {total}
               </p>
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page <= 1}
+                  onClick={() => {
+                  const next = new URLSearchParams(searchParams);
+                  next.set("page", String(page - 1));
+                  setSearchParams(next);
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+                >
                   Previous
                 </Button>
-                <Button variant="outline" size="sm" disabled={page * 25 >= total} onClick={() => setPage((p) => p + 1)}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page * 25 >= total}
+                  onClick={() => {
+                  const next = new URLSearchParams(searchParams);
+                  next.set("page", String(page + 1));
+                  setSearchParams(next);
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+                >
                   Next
                 </Button>
               </div>

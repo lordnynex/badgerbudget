@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate, useLocation, Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { api } from "@/data/api";
@@ -46,6 +46,7 @@ export function ContactDetailPage() {
 
 function ContactDetailContent({ id }: { id: string }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const invalidate = useInvalidateQueries();
   const { data: contact } = useContactSuspense(id);
   const [editOpen, setEditOpen] = useState(false);
@@ -138,7 +139,7 @@ function ContactDetailContent({ id }: { id: string }) {
   const handleDelete = async () => {
     if (!confirm("Soft delete this contact? You can restore it later.")) return;
     await api.contacts.delete(id);
-    navigate("/contacts");
+    navigate((location.state as { from?: string })?.from ?? "/contacts");
   };
 
   const handleRestore = async () => {
@@ -442,7 +443,10 @@ function ContactDetailContent({ id }: { id: string }) {
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <Button variant="ghost" onClick={() => navigate("/contacts")}>
+        <Button
+          variant="ghost"
+          onClick={() => navigate((location.state as { from?: string })?.from ?? "/contacts")}
+        >
           <ArrowLeft className="size-4" />
           Back to Contacts
         </Button>
