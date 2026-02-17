@@ -28,7 +28,7 @@ export function Main({ activeTab, onPrint, onEmail }: MainProps) {
       {activeTab === "events" && <EventsPanel />}
       {activeTab === "projections" && (
         <>
-          <InputsPanel readOnly onEditScenario={() => navigate("/scenarios")} />
+          <InputsPanel readOnly onEditScenario={() => navigate("/budgeting/scenarios")} />
           <section id="summary" className="scroll-mt-28">
             <SummarySection metrics={metrics} filteredMetrics={metrics} />
           </section>

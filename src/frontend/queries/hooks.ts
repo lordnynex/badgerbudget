@@ -12,20 +12,21 @@ import type {
   MailingListStats,
   MailingListIncludedPage,
 } from "@/types/contact";
+import type { Budget, BudgetSummary, Scenario, ScenarioSummary } from "@/types/budget";
 import { queryKeys } from "./keys";
 
 // —— Budgets & scenarios (used only on projections / budget / scenarios pages)
 export function useBudgetsSuspense() {
-  return useSuspenseQuery({
+  return useSuspenseQuery<BudgetSummary[]>({
     queryKey: queryKeys.budgets,
-    queryFn: () => api.budgets.list(),
+    queryFn: async () => (await api.budgets.list()) as unknown as BudgetSummary[],
   });
 }
 
 export function useScenariosSuspense() {
-  return useSuspenseQuery({
+  return useSuspenseQuery<ScenarioSummary[]>({
     queryKey: queryKeys.scenarios,
-    queryFn: () => api.scenarios.list(),
+    queryFn: async () => (await api.scenarios.list()) as unknown as ScenarioSummary[],
   });
 }
 
@@ -46,17 +47,17 @@ export function useScenariosOptional() {
 
 /** Call only when id is non-null (e.g. inside a component rendered when id exists). */
 export function useBudgetSuspense(id: string) {
-  return useSuspenseQuery({
+  return useSuspenseQuery<Budget>({
     queryKey: queryKeys.budget(id),
-    queryFn: () => api.budgets.get(id),
+    queryFn: async () => (await api.budgets.get(id)) as unknown as Budget,
   });
 }
 
 /** Call only when id is non-null. */
 export function useScenarioSuspense(id: string) {
-  return useSuspenseQuery({
+  return useSuspenseQuery<Scenario>({
     queryKey: queryKeys.scenario(id),
-    queryFn: () => api.scenarios.get(id),
+    queryFn: async () => (await api.scenarios.get(id)) as unknown as Scenario,
   });
 }
 

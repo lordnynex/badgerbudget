@@ -11,7 +11,7 @@ import { PageLoading } from "./PageLoading";
 /**
  * Loads budgets and scenarios lists (suspends), syncs to AppState, sets default
  * selection, then loads selected budget and scenario (suspends again) and syncs.
- * Use only on /projections, /budget, /scenarios routes.
+ * Use only on /budgeting/projections, /budgeting/budget, /budgeting/scenarios routes.
  */
 function BudgetScenarioListsSync({ children }: { children: ReactNode }) {
   const { data: budgets } = useBudgetsSuspense();
@@ -25,10 +25,12 @@ function BudgetScenarioListsSync({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (budgets.length && selectedBudgetId == null) {
-      dispatch({ type: "SET_SELECTED_BUDGET", payload: budgets[0].id });
+      const first = budgets[0];
+      if (first) dispatch({ type: "SET_SELECTED_BUDGET", payload: first.id });
     }
     if (scenarios.length && selectedScenarioId == null) {
-      dispatch({ type: "SET_SELECTED_SCENARIO", payload: scenarios[0].id });
+      const first = scenarios[0];
+      if (first) dispatch({ type: "SET_SELECTED_SCENARIO", payload: first.id });
     }
   }, [budgets, scenarios, selectedBudgetId, selectedScenarioId, dispatch]);
 

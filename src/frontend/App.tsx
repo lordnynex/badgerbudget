@@ -1,9 +1,9 @@
 import { Suspense, useState } from "react";
-import { Routes, Route, useLocation, useNavigate } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { AppStateProvider, useAppState } from "@/state/AppState";
 import { Header } from "@/components/layout/Header";
 import { Main } from "@/components/layout/Main";
-import { BudgetScenarioLayout } from "@/components/layout/BudgetScenarioLayout";
+import { BudgetingLayout } from "@/components/layout/BudgetingLayout";
 import { PageLoading } from "@/components/layout/PageLoading";
 import { NotFoundPage } from "@/components/layout/NotFoundPage";
 import { HomePage } from "@/components/layout/HomePage";
@@ -18,7 +18,6 @@ import { MailingListsPanel } from "@/components/contacts/MailingListsPanel";
 import { QrCodesPanel } from "@/components/contacts/QrCodesPanel";
 import { QrCodeDetailPage } from "@/components/contacts/QrCodeDetailPage";
 import { ContactsLayout } from "@/components/layout/ContactsLayout";
-import { ProjectionsSubNav } from "@/components/layout/ProjectionsSubNav";
 import { EventDetailSubNav } from "@/components/layout/EventDetailSubNav";
 import { PrintView } from "@/components/export/PrintView";
 import { EmailView } from "@/components/export/EmailView";
@@ -68,7 +67,7 @@ function AppContent() {
             <Button variant="outline" onClick={openPrintInNewTab}>
               Open in new tab
             </Button>
-            <Button variant="outline" onClick={() => (isPrintRoute ? navigate("/projections") : setPrintMode(false))}>
+            <Button variant="outline" onClick={() => (isPrintRoute ? navigate("/budgeting/projections") : setPrintMode(false))}>
               Back to Dashboard
             </Button>
           </div>
@@ -77,9 +76,6 @@ function AppContent() {
         <>
           <div className="sticky top-0 z-40 bg-background">
             <Header />
-            {location.pathname === "/projections" && (
-              <ProjectionsSubNav onPrint={onPrint} onEmail={onEmail} />
-            )}
             {location.pathname.startsWith("/events/") && location.pathname !== "/events" && (
               <EventDetailSubNav />
             )}
@@ -108,36 +104,33 @@ function AppContent() {
                 </main>
               }
             />
-            <Route
-              path="/projections"
-              element={
-                <Suspense fallback={<PageLoading />}>
-                  <BudgetScenarioLayout>
+            <Route path="budgeting" element={<BudgetingLayout onPrint={onPrint} onEmail={onEmail} />}>
+              <Route index element={<Navigate to="projections" replace />} />
+              <Route
+                path="projections"
+                element={
+                  <Suspense fallback={<PageLoading />}>
                     <Main activeTab="projections" onPrint={onPrint} onEmail={onEmail} />
-                  </BudgetScenarioLayout>
-                </Suspense>
-              }
-            />
-            <Route
-              path="/budget"
-              element={
-                <Suspense fallback={<PageLoading />}>
-                  <BudgetScenarioLayout>
+                  </Suspense>
+                }
+              />
+              <Route
+                path="budget"
+                element={
+                  <Suspense fallback={<PageLoading />}>
                     <Main activeTab="budget" onPrint={onPrint} onEmail={onEmail} />
-                  </BudgetScenarioLayout>
-                </Suspense>
-              }
-            />
-            <Route
-              path="/scenarios"
-              element={
-                <Suspense fallback={<PageLoading />}>
-                  <BudgetScenarioLayout>
+                  </Suspense>
+                }
+              />
+              <Route
+                path="scenarios"
+                element={
+                  <Suspense fallback={<PageLoading />}>
                     <Main activeTab="scenarios" onPrint={onPrint} onEmail={onEmail} />
-                  </BudgetScenarioLayout>
-                </Suspense>
-              }
-            />
+                  </Suspense>
+                }
+              />
+            </Route>
             <Route
               path="/contacts"
               element={
