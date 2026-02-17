@@ -12,7 +12,11 @@ const contactStatus = t.Union([
   t.Literal("inactive"),
   t.Literal("deleted"),
 ]);
-const consentStatus = t.Union([t.Literal("yes"), t.Literal("no"), t.Literal("unknown")]);
+const consentStatus = t.Union([
+  t.Literal("yes"),
+  t.Literal("no"),
+  t.Literal("unknown"),
+]);
 const contactType = t.Union([t.Literal("person"), t.Literal("organization")]);
 const conflictResolution = t.Union([t.Literal("source"), t.Literal("target")]);
 
@@ -24,26 +28,66 @@ const tagSchema = t.Union([
   }),
 ]);
 
-const contactCreateItem = t.Object({
-  display_name: t.String(),
-  type: t.Optional(contactType),
-  status: t.Optional(contactStatus),
-  first_name: t.Optional(t.Union([t.String(), t.Null()])),
-  last_name: t.Optional(t.Union([t.String(), t.Null()])),
-  organization_name: t.Optional(t.Union([t.String(), t.Null()])),
-  notes: t.Optional(t.Union([t.String(), t.Null()])),
-  how_we_know_them: t.Optional(t.Union([t.String(), t.Null()])),
-  ok_to_email: t.Optional(consentStatus),
-  ok_to_mail: t.Optional(consentStatus),
-  do_not_contact: t.Optional(t.Boolean()),
-  club_name: t.Optional(t.Union([t.String(), t.Null()])),
-  role: t.Optional(t.Union([t.String(), t.Null()])),
-  uid: t.Optional(t.Union([t.String(), t.Null()])),
-  emails: t.Optional(t.Array(t.Object({}))),
-  phones: t.Optional(t.Array(t.Object({}))),
-  addresses: t.Optional(t.Array(t.Object({}))),
-  tags: t.Optional(t.Array(tagSchema)),
-}, { additionalProperties: true });
+const emailPhoneType = t.Union([
+  t.Literal("work"),
+  t.Literal("home"),
+  t.Literal("cell"),
+  t.Literal("other"),
+]);
+
+const addressType = t.Union([
+  t.Literal("home"),
+  t.Literal("work"),
+  t.Literal("postal"),
+  t.Literal("other"),
+]);
+
+const contactEmailItem = t.Object({
+  email: t.String(),
+  type: t.Optional(emailPhoneType),
+  is_primary: t.Optional(t.Boolean()),
+});
+
+const contactPhoneItem = t.Object({
+  phone: t.String(),
+  type: t.Optional(emailPhoneType),
+  is_primary: t.Optional(t.Boolean()),
+});
+
+const contactAddressItem = t.Object({
+  address_line1: t.Optional(t.Union([t.String(), t.Null()])),
+  address_line2: t.Optional(t.Union([t.String(), t.Null()])),
+  city: t.Optional(t.Union([t.String(), t.Null()])),
+  state: t.Optional(t.Union([t.String(), t.Null()])),
+  postal_code: t.Optional(t.Union([t.String(), t.Null()])),
+  country: t.Optional(t.Union([t.String(), t.Null()])),
+  type: t.Optional(addressType),
+  is_primary_mailing: t.Optional(t.Boolean()),
+});
+
+const contactCreateItem = t.Object(
+  {
+    display_name: t.String(),
+    type: t.Optional(contactType),
+    status: t.Optional(contactStatus),
+    first_name: t.Optional(t.Union([t.String(), t.Null()])),
+    last_name: t.Optional(t.Union([t.String(), t.Null()])),
+    organization_name: t.Optional(t.Union([t.String(), t.Null()])),
+    notes: t.Optional(t.Union([t.String(), t.Null()])),
+    how_we_know_them: t.Optional(t.Union([t.String(), t.Null()])),
+    ok_to_email: t.Optional(consentStatus),
+    ok_to_mail: t.Optional(consentStatus),
+    do_not_contact: t.Optional(t.Boolean()),
+    club_name: t.Optional(t.Union([t.String(), t.Null()])),
+    role: t.Optional(t.Union([t.String(), t.Null()])),
+    uid: t.Optional(t.Union([t.String(), t.Null()])),
+    emails: t.Optional(t.Array(contactEmailItem)),
+    phones: t.Optional(t.Array(contactPhoneItem)),
+    addresses: t.Optional(t.Array(contactAddressItem)),
+    tags: t.Optional(t.Array(tagSchema)),
+  },
+  { additionalProperties: true },
+);
 
 export const ContactsDto = {
   params: CommonParams.id,
@@ -56,7 +100,13 @@ export const ContactsDto = {
     tagIds: t.Optional(t.String()),
     organization: t.Optional(t.String()),
     role: t.Optional(t.String()),
-    sort: t.Optional(t.Union([t.Literal("updated_at"), t.Literal("name"), t.Literal("last_contacted")])),
+    sort: t.Optional(
+      t.Union([
+        t.Literal("updated_at"),
+        t.Literal("name"),
+        t.Literal("last_contacted"),
+      ]),
+    ),
     sortDir: t.Optional(t.Union([t.Literal("asc"), t.Literal("desc")])),
     page: t.Optional(t.String()),
     limit: t.Optional(t.String()),
@@ -79,7 +129,9 @@ export const ContactsDto = {
   mergeBody: t.Object({
     sourceId: t.String(),
     targetId: t.String(),
-    conflictResolution: t.Optional(t.Object({}, { additionalProperties: conflictResolution })),
+    conflictResolution: t.Optional(
+      t.Object({}, { additionalProperties: conflictResolution }),
+    ),
   }),
 
   tagCreateBody: t.Object({ name: t.String() }),
@@ -95,27 +147,30 @@ export const ContactsDto = {
       type: t.Optional(t.String()),
       set_as_profile: t.Optional(t.Union([t.Boolean(), t.String()])),
     },
-    { additionalProperties: true }
+    { additionalProperties: true },
   ),
 
-  updateBody: t.Object({
-    type: t.Optional(contactType),
-    status: t.Optional(contactStatus),
-    display_name: t.Optional(t.String()),
-    first_name: t.Optional(t.Union([t.String(), t.Null()])),
-    last_name: t.Optional(t.Union([t.String(), t.Null()])),
-    organization_name: t.Optional(t.Union([t.String(), t.Null()])),
-    notes: t.Optional(t.Union([t.String(), t.Null()])),
-    how_we_know_them: t.Optional(t.Union([t.String(), t.Null()])),
-    ok_to_email: t.Optional(consentStatus),
-    ok_to_mail: t.Optional(consentStatus),
-    do_not_contact: t.Optional(t.Boolean()),
-    club_name: t.Optional(t.Union([t.String(), t.Null()])),
-    role: t.Optional(t.Union([t.String(), t.Null()])),
-    uid: t.Optional(t.Union([t.String(), t.Null()])),
-    emails: t.Optional(t.Array(t.Object({}))),
-    phones: t.Optional(t.Array(t.Object({}))),
-    addresses: t.Optional(t.Array(t.Object({}))),
-    tags: t.Optional(t.Array(tagSchema)),
-  }, { additionalProperties: true }),
+  updateBody: t.Object(
+    {
+      type: t.Optional(contactType),
+      status: t.Optional(contactStatus),
+      display_name: t.Optional(t.String()),
+      first_name: t.Optional(t.Union([t.String(), t.Null()])),
+      last_name: t.Optional(t.Union([t.String(), t.Null()])),
+      organization_name: t.Optional(t.Union([t.String(), t.Null()])),
+      notes: t.Optional(t.Union([t.String(), t.Null()])),
+      how_we_know_them: t.Optional(t.Union([t.String(), t.Null()])),
+      ok_to_email: t.Optional(consentStatus),
+      ok_to_mail: t.Optional(consentStatus),
+      do_not_contact: t.Optional(t.Boolean()),
+      club_name: t.Optional(t.Union([t.String(), t.Null()])),
+      role: t.Optional(t.Union([t.String(), t.Null()])),
+      uid: t.Optional(t.Union([t.String(), t.Null()])),
+      emails: t.Optional(t.Array(contactEmailItem)),
+      phones: t.Optional(t.Array(contactPhoneItem)),
+      addresses: t.Optional(t.Array(contactAddressItem)),
+      tags: t.Optional(t.Array(tagSchema)),
+    },
+    { additionalProperties: true },
+  ),
 };

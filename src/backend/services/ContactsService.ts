@@ -12,7 +12,16 @@ import type {
   ContactSearchParams,
   ContactSearchResult,
 } from "@/shared/types/contact";
-import { Contact as ContactEntity, ContactEmail as ContactEmailEntity, ContactPhone as ContactPhoneEntity, ContactAddress as ContactAddressEntity, ContactNote as ContactNoteEntity, ContactPhoto as ContactPhotoEntity, Tag as TagEntity, ContactTag } from "../entities";
+import {
+  Contact as ContactEntity,
+  ContactEmail as ContactEmailEntity,
+  ContactPhone as ContactPhoneEntity,
+  ContactAddress as ContactAddressEntity,
+  ContactNote as ContactNoteEntity,
+  ContactPhoto as ContactPhotoEntity,
+  Tag as TagEntity,
+  ContactTag,
+} from "../entities";
 import { ImageService } from "./ImageService";
 import { uuid } from "./utils";
 
@@ -67,7 +76,7 @@ function rowToContact(row: Record<string, unknown>): Contact {
 export class ContactsService {
   constructor(
     private db: DbLike,
-    private ds: DataSource
+    private ds: DataSource,
   ) {}
 
   private async loadContactRelations(contactId: string): Promise<{
@@ -99,7 +108,9 @@ export class ContactsService {
       order: { createdAt: "DESC" },
     });
     /* Original: SELECT t.id, t.name FROM tags t JOIN contact_tags ct ON t.id = ct.tag_id WHERE ct.contact_id = ? */
-    const contactTags = await this.ds.getRepository(ContactTag).find({ where: { contactId } });
+    const contactTags = await this.ds
+      .getRepository(ContactTag)
+      .find({ where: { contactId } });
     const tagRows =
       contactTags.length > 0
         ? await this.ds.getRepository(TagEntity).find({
@@ -170,7 +181,11 @@ export class ContactsService {
   /**
    * Get contact photo as buffer for the given size. Returns null if not found.
    */
-  async getPhoto(contactId: string, photoId: string, size: ContactPhotoSize): Promise<Buffer | null> {
+  async getPhoto(
+    contactId: string,
+    photoId: string,
+    size: ContactPhotoSize,
+  ): Promise<Buffer | null> {
     const photo = await this.ds.getRepository(ContactPhotoEntity).findOne({
       where: { id: photoId, contactId },
       select: ["photo", "photoThumbnail"],
@@ -199,9 +214,11 @@ export class ContactsService {
     contactId: string,
     imageBuffer: Buffer,
     type: "profile" | "contact" = "contact",
-    setAsProfile = false
+    setAsProfile = false,
   ): Promise<ContactPhotoType | null> {
-    const contact = await this.ds.getRepository(ContactEntity).findOne({ where: { id: contactId } });
+    const contact = await this.ds
+      .getRepository(ContactEntity)
+      .findOne({ where: { id: contactId } });
     if (!contact) return null;
 
     const optimized = await ImageService.optimize(imageBuffer, 1920, 1920, 88);
@@ -213,12 +230,22 @@ export class ContactsService {
     const sortOrder = setAsProfile ? 0 : 999;
 
     if (setAsProfile) {
-      await this.db.run("UPDATE contact_photos SET type = 'contact' WHERE contact_id = ?", [contactId]);
+      await this.db.run(
+        "UPDATE contact_photos SET type = 'contact' WHERE contact_id = ?",
+        [contactId],
+      );
     }
 
     await this.db.run(
       "INSERT INTO contact_photos (id, contact_id, type, sort_order, photo, photo_thumbnail) VALUES (?, ?, ?, ?, ?, ?)",
-      [id, contactId, finalType, sortOrder, photoBlob, thumbnailBlob ?? photoBlob]
+      [
+        id,
+        contactId,
+        finalType,
+        sortOrder,
+        photoBlob,
+        thumbnailBlob ?? photoBlob,
+      ],
     );
 
     return {
@@ -253,11 +280,14 @@ export class ContactsService {
     });
     if (!photo) return false;
 
-    await this.db.run("UPDATE contact_photos SET type = 'contact' WHERE contact_id = ?", [contactId]);
-    await this.db.run("UPDATE contact_photos SET type = 'profile', sort_order = 0 WHERE id = ? AND contact_id = ?", [
-      photoId,
-      contactId,
-    ]);
+    await this.db.run(
+      "UPDATE contact_photos SET type = 'contact' WHERE contact_id = ?",
+      [contactId],
+    );
+    await this.db.run(
+      "UPDATE contact_photos SET type = 'profile', sort_order = 0 WHERE id = ? AND contact_id = ?",
+      [photoId, contactId],
+    );
     return true;
   }
 
@@ -281,17 +311,24 @@ export class ContactsService {
     }
     if (params.hasPostalAddress === true) {
       qb.andWhere(
-        "EXISTS (SELECT 1 FROM contact_addresses ca WHERE ca.contact_id = c.id AND ca.address_line1 IS NOT NULL AND ca.address_line1 != '')"
+        "EXISTS (SELECT 1 FROM contact_addresses ca WHERE ca.contact_id = c.id AND ca.address_line1 IS NOT NULL AND ca.address_line1 != '')",
       );
     }
     if (params.hasEmail === true) {
-      qb.andWhere("EXISTS (SELECT 1 FROM contact_emails ce WHERE ce.contact_id = c.id)");
+      qb.andWhere(
+        "EXISTS (SELECT 1 FROM contact_emails ce WHERE ce.contact_id = c.id)",
+      );
     }
     if (params.tagIds && params.tagIds.length > 0) {
-      qb.andWhere("c.id IN (SELECT contact_id FROM contact_tags WHERE tag_id IN (:...tagIds))", { tagIds: params.tagIds });
+      qb.andWhere(
+        "c.id IN (SELECT contact_id FROM contact_tags WHERE tag_id IN (:...tagIds))",
+        { tagIds: params.tagIds },
+      );
     }
     if (params.organization) {
-      qb.andWhere("c.organizationName LIKE :org", { org: `%${params.organization}%` });
+      qb.andWhere("c.organizationName LIKE :org", {
+        org: `%${params.organization}%`,
+      });
     }
     if (params.role) {
       qb.andWhere("c.role LIKE :role", { role: `%${params.role}%` });
@@ -300,7 +337,7 @@ export class ContactsService {
       const q = `%${params.q.trim()}%`;
       qb.andWhere(
         `(c.displayName LIKE :q OR c.firstName LIKE :q OR c.lastName LIKE :q OR c.organizationName LIKE :q OR c.notes LIKE :q OR c.clubName LIKE :q OR c.role LIKE :q OR EXISTS (SELECT 1 FROM contact_emails ce WHERE ce.contact_id = c.id AND ce.email LIKE :q) OR EXISTS (SELECT 1 FROM contact_phones cp WHERE cp.contact_id = c.id AND cp.phone LIKE :q) OR EXISTS (SELECT 1 FROM contact_addresses ca WHERE ca.contact_id = c.id AND (ca.city LIKE :q OR ca.state LIKE :q)) OR EXISTS (SELECT 1 FROM contact_tags ct JOIN tags t ON t.id = ct.tag_id WHERE ct.contact_id = c.id AND t.name LIKE :q) OR EXISTS (SELECT 1 FROM contact_notes cn WHERE cn.contact_id = c.id AND cn.content LIKE :q))`,
-        { q }
+        { q },
       );
     }
 
@@ -319,7 +356,7 @@ export class ContactsService {
         const c = entityToContact(e);
         const rel = await this.loadContactRelations(c.id);
         return { ...c, ...rel };
-      })
+      }),
     );
 
     return { contacts, total, page, limit };
@@ -327,7 +364,9 @@ export class ContactsService {
 
   async get(id: string): Promise<Contact | null> {
     /* Original: SELECT * FROM contacts WHERE id = ? */
-    const entity = await this.ds.getRepository(ContactEntity).findOne({ where: { id } });
+    const entity = await this.ds
+      .getRepository(ContactEntity)
+      .findOne({ where: { id } });
     if (!entity) return null;
     const contact = entityToContact(entity);
     const rel = await this.loadContactRelations(id);
@@ -335,7 +374,13 @@ export class ContactsService {
   }
 
   async getForDeduplication(): Promise<
-    Array<{ id: string; display_name: string; emails: string[]; addressKey: string; nameKey: string }>
+    Array<{
+      id: string;
+      display_name: string;
+      emails: string[];
+      addressKey: string;
+      nameKey: string;
+    }>
   > {
     /* Original: SELECT id, display_name FROM contacts WHERE deleted_at IS NULL */
     const contacts = await this.ds.getRepository(ContactEntity).find({
@@ -363,11 +408,7 @@ export class ContactsService {
         order: { isPrimaryMailing: "DESC" },
       });
       const addressKey = addr
-        ? [
-            addr.addressLine1 ?? "",
-            addr.city ?? "",
-            addr.postalCode ?? "",
-          ]
+        ? [addr.addressLine1 ?? "", addr.city ?? "", addr.postalCode ?? ""]
             .map((s) => (s ?? "").toLowerCase().replace(/\s+/g, " "))
             .join("|")
         : "";
@@ -411,7 +452,7 @@ export class ContactsService {
         body.club_name ?? null,
         body.role ?? null,
         uid,
-      ]
+      ],
     );
 
     if (body.emails?.length) {
@@ -419,7 +460,7 @@ export class ContactsService {
         const eid = uuid();
         await this.db.run(
           "INSERT INTO contact_emails (id, contact_id, email, type, is_primary) VALUES (?, ?, ?, ?, ?)",
-          [eid, id, e.email, e.type ?? "other", e.is_primary ? 1 : 0]
+          [eid, id, e.email, e.type ?? "other", e.is_primary ? 1 : 0],
         );
       }
     }
@@ -428,7 +469,7 @@ export class ContactsService {
         const pid = uuid();
         await this.db.run(
           "INSERT INTO contact_phones (id, contact_id, phone, type, is_primary) VALUES (?, ?, ?, ?, ?)",
-          [pid, id, p.phone, p.type ?? "other", p.is_primary ? 1 : 0]
+          [pid, id, p.phone, p.type ?? "other", p.is_primary ? 1 : 0],
         );
       }
     }
@@ -448,25 +489,33 @@ export class ContactsService {
             a.country ?? "US",
             a.type ?? "home",
             a.is_primary_mailing ? 1 : 0,
-          ]
+          ],
         );
       }
     }
     if (body.tags?.length) {
       for (const t of body.tags) {
         let tagId = typeof t === "string" ? null : t.id;
-        if (!tagId && (typeof t === "object" && "name" in t)) {
+        if (!tagId && typeof t === "object" && "name" in t) {
           /* Original: SELECT id FROM tags WHERE name = ? */
-          const existingTag = await this.ds.getRepository(TagEntity).findOne({ where: { name: (t as Tag).name } });
+          const existingTag = await this.ds
+            .getRepository(TagEntity)
+            .findOne({ where: { name: (t as Tag).name } });
           if (existingTag) tagId = existingTag.id;
           else {
             tagId = uuid();
-            await this.db.run("INSERT INTO tags (id, name) VALUES (?, ?)", [tagId, (t as Tag).name]);
+            await this.db.run("INSERT INTO tags (id, name) VALUES (?, ?)", [
+              tagId,
+              (t as Tag).name,
+            ]);
           }
         }
         if (tagId) {
           try {
-            await this.db.run("INSERT INTO contact_tags (contact_id, tag_id) VALUES (?, ?)", [id, tagId]);
+            await this.db.run(
+              "INSERT INTO contact_tags (contact_id, tag_id) VALUES (?, ?)",
+              [id, tagId],
+            );
           } catch {
             // duplicate
           }
@@ -479,50 +528,103 @@ export class ContactsService {
 
   async update(id: string, body: Partial<Contact>) {
     /* Original: SELECT * FROM contacts WHERE id = ? */
-    const existing = await this.ds.getRepository(ContactEntity).findOne({ where: { id } });
+    const existing = await this.ds
+      .getRepository(ContactEntity)
+      .findOne({ where: { id } });
     if (!existing) return null;
 
-    const display_name = (body.display_name ?? existing.displayName) ?? "Unknown";
+    const display_name = body.display_name ?? existing.displayName ?? "Unknown";
     const type = (body.type ?? existing.type) as Contact["type"];
     const status = (body.status ?? existing.status) as Contact["status"];
-    const first_name = body.first_name !== undefined ? body.first_name : existing.firstName;
-    const last_name = body.last_name !== undefined ? body.last_name : existing.lastName;
-    const organization_name = body.organization_name !== undefined ? body.organization_name : existing.organizationName;
+    const first_name =
+      body.first_name !== undefined ? body.first_name : existing.firstName;
+    const last_name =
+      body.last_name !== undefined ? body.last_name : existing.lastName;
+    const organization_name =
+      body.organization_name !== undefined
+        ? body.organization_name
+        : existing.organizationName;
     const notes = body.notes !== undefined ? body.notes : existing.notes;
-    const how_we_know_them = body.how_we_know_them !== undefined ? body.how_we_know_them : existing.howWeKnowThem;
-    const ok_to_email = (body.ok_to_email ?? existing.okToEmail) as Contact["ok_to_email"];
-    const ok_to_mail = (body.ok_to_mail ?? existing.okToMail) as Contact["ok_to_mail"];
-    const do_not_contact = (body.do_not_contact ?? existing.doNotContact === 1) ? 1 : 0;
-    const club_name = body.club_name !== undefined ? body.club_name : existing.clubName;
+    const how_we_know_them =
+      body.how_we_know_them !== undefined
+        ? body.how_we_know_them
+        : existing.howWeKnowThem;
+    const ok_to_email = (body.ok_to_email ??
+      existing.okToEmail) as Contact["ok_to_email"];
+    const ok_to_mail = (body.ok_to_mail ??
+      existing.okToMail) as Contact["ok_to_mail"];
+    const do_not_contact =
+      (body.do_not_contact ?? existing.doNotContact === 1) ? 1 : 0;
+    const club_name =
+      body.club_name !== undefined ? body.club_name : existing.clubName;
     const role = body.role !== undefined ? body.role : existing.role;
 
     await this.db.run(
       `UPDATE contacts SET display_name=?, type=?, status=?, first_name=?, last_name=?, organization_name=?, notes=?, how_we_know_them=?, ok_to_email=?, ok_to_mail=?, do_not_contact=?, club_name=?, role=?, updated_at=datetime('now') WHERE id=?`,
-      [display_name, type, status, first_name, last_name, organization_name, notes, how_we_know_them, ok_to_email, ok_to_mail, do_not_contact, club_name, role, id]
+      [
+        display_name,
+        type,
+        status,
+        first_name,
+        last_name,
+        organization_name,
+        notes,
+        how_we_know_them,
+        ok_to_email,
+        ok_to_mail,
+        do_not_contact,
+        club_name,
+        role,
+        id,
+      ],
     );
 
     if (body.emails !== undefined) {
-      await this.db.run("DELETE FROM contact_emails WHERE contact_id = ?", [id]);
-      for (const e of body.emails) {
+      await this.db.run("DELETE FROM contact_emails WHERE contact_id = ?", [
+        id,
+      ]);
+      const validEmails = body.emails.filter(
+        (e) => e?.email != null && String(e.email).trim() !== "",
+      );
+      for (const e of validEmails) {
         const eid = uuid();
         await this.db.run(
           "INSERT INTO contact_emails (id, contact_id, email, type, is_primary) VALUES (?, ?, ?, ?, ?)",
-          [eid, id, e.email, e.type ?? "other", e.is_primary ? 1 : 0]
+          [
+            eid,
+            id,
+            String(e.email).trim(),
+            e.type ?? "other",
+            e.is_primary ? 1 : 0,
+          ],
         );
       }
     }
     if (body.phones !== undefined) {
-      await this.db.run("DELETE FROM contact_phones WHERE contact_id = ?", [id]);
-      for (const p of body.phones) {
+      await this.db.run("DELETE FROM contact_phones WHERE contact_id = ?", [
+        id,
+      ]);
+      const validPhones = body.phones.filter(
+        (p) => p?.phone != null && String(p.phone).trim() !== "",
+      );
+      for (const p of validPhones) {
         const pid = uuid();
         await this.db.run(
           "INSERT INTO contact_phones (id, contact_id, phone, type, is_primary) VALUES (?, ?, ?, ?, ?)",
-          [pid, id, p.phone, p.type ?? "other", p.is_primary ? 1 : 0]
+          [
+            pid,
+            id,
+            String(p.phone).trim(),
+            p.type ?? "other",
+            p.is_primary ? 1 : 0,
+          ],
         );
       }
     }
     if (body.addresses !== undefined) {
-      await this.db.run("DELETE FROM contact_addresses WHERE contact_id = ?", [id]);
+      await this.db.run("DELETE FROM contact_addresses WHERE contact_id = ?", [
+        id,
+      ]);
       for (const a of body.addresses) {
         const aid = uuid();
         await this.db.run(
@@ -538,7 +640,7 @@ export class ContactsService {
             a.country ?? "US",
             a.type ?? "home",
             a.is_primary_mailing ? 1 : 0,
-          ]
+          ],
         );
       }
     }
@@ -549,16 +651,24 @@ export class ContactsService {
         const tagName = typeof t === "object" ? (t as Tag).name : t;
         if (!tagId) {
           /* Original: SELECT id FROM tags WHERE name = ? */
-          const existingTag = await this.ds.getRepository(TagEntity).findOne({ where: { name: tagName } });
+          const existingTag = await this.ds
+            .getRepository(TagEntity)
+            .findOne({ where: { name: tagName } });
           if (existingTag) tagId = existingTag.id;
           else {
             tagId = uuid();
-            await this.db.run("INSERT INTO tags (id, name) VALUES (?, ?)", [tagId, tagName]);
+            await this.db.run("INSERT INTO tags (id, name) VALUES (?, ?)", [
+              tagId,
+              tagName,
+            ]);
           }
         }
         if (tagId) {
           try {
-            await this.db.run("INSERT INTO contact_tags (contact_id, tag_id) VALUES (?, ?)", [id, tagId]);
+            await this.db.run(
+              "INSERT INTO contact_tags (contact_id, tag_id) VALUES (?, ?)",
+              [id, tagId],
+            );
           } catch {
             // duplicate
           }
@@ -570,35 +680,56 @@ export class ContactsService {
   }
 
   async delete(id: string) {
-    await this.db.run("UPDATE contacts SET status = 'deleted', deleted_at = datetime('now'), updated_at = datetime('now') WHERE id = ?", [id]);
+    await this.db.run(
+      "UPDATE contacts SET status = 'deleted', deleted_at = datetime('now'), updated_at = datetime('now') WHERE id = ?",
+      [id],
+    );
     return { ok: true };
   }
 
   async restore(id: string) {
-    await this.db.run("UPDATE contacts SET status = 'active', deleted_at = NULL, updated_at = datetime('now') WHERE id = ?", [id]);
+    await this.db.run(
+      "UPDATE contacts SET status = 'active', deleted_at = NULL, updated_at = datetime('now') WHERE id = ?",
+      [id],
+    );
     return this.get(id)!;
   }
 
   async bulkUpdate(
     ids: string[],
-    updates: { tags?: (string | Tag)[]; status?: Contact["status"] }
+    updates: { tags?: (string | Tag)[]; status?: Contact["status"] },
   ) {
     for (const id of ids) {
       if (updates.status) {
-        await this.db.run("UPDATE contacts SET status = ?, updated_at = datetime('now') WHERE id = ?", [updates.status, id]);
+        await this.db.run(
+          "UPDATE contacts SET status = ?, updated_at = datetime('now') WHERE id = ?",
+          [updates.status, id],
+        );
       }
       if (updates.tags) {
-        await this.db.run("DELETE FROM contact_tags WHERE contact_id = ?", [id]);
+        await this.db.run("DELETE FROM contact_tags WHERE contact_id = ?", [
+          id,
+        ]);
         for (const t of updates.tags) {
           const tagName = typeof t === "object" ? (t as Tag).name : t;
           /* Original: SELECT id FROM tags WHERE name = ? */
-          let tagId = (await this.ds.getRepository(TagEntity).findOne({ where: { name: tagName } }))?.id;
+          let tagId = (
+            await this.ds
+              .getRepository(TagEntity)
+              .findOne({ where: { name: tagName } })
+          )?.id;
           if (!tagId) {
             tagId = uuid();
-            await this.db.run("INSERT INTO tags (id, name) VALUES (?, ?)", [tagId, tagName]);
+            await this.db.run("INSERT INTO tags (id, name) VALUES (?, ?)", [
+              tagId,
+              tagName,
+            ]);
           }
           try {
-            await this.db.run("INSERT INTO contact_tags (contact_id, tag_id) VALUES (?, ?)", [id, tagId]);
+            await this.db.run(
+              "INSERT INTO contact_tags (contact_id, tag_id) VALUES (?, ?)",
+              [id, tagId],
+            );
           } catch {
             // duplicate
           }
@@ -611,7 +742,7 @@ export class ContactsService {
   async merge(
     sourceId: string,
     targetId: string,
-    conflictResolution?: Record<string, "source" | "target">
+    conflictResolution?: Record<string, "source" | "target">,
   ) {
     const source = await this.get(sourceId);
     const target = await this.get(targetId);
@@ -619,25 +750,61 @@ export class ContactsService {
 
     const resolution = conflictResolution ?? {};
     const mergeContact: Partial<Contact> = {
-      display_name: (resolution.display_name === "source" ? source : target).display_name,
-      first_name: (resolution.first_name === "source" ? source : target).first_name ?? (resolution.first_name === "target" ? target : source).first_name,
-      last_name: (resolution.last_name === "source" ? source : target).last_name ?? (resolution.last_name === "target" ? target : source).last_name,
-      organization_name: (resolution.organization_name === "source" ? source : target).organization_name ?? (resolution.organization_name === "target" ? target : source).organization_name,
+      display_name: (resolution.display_name === "source" ? source : target)
+        .display_name,
+      first_name:
+        (resolution.first_name === "source" ? source : target).first_name ??
+        (resolution.first_name === "target" ? target : source).first_name,
+      last_name:
+        (resolution.last_name === "source" ? source : target).last_name ??
+        (resolution.last_name === "target" ? target : source).last_name,
+      organization_name:
+        (resolution.organization_name === "source" ? source : target)
+          .organization_name ??
+        (resolution.organization_name === "target" ? target : source)
+          .organization_name,
       notes: undefined, // contact_notes are merged separately
-      ok_to_email: (resolution.ok_to_email === "source" ? source : target).ok_to_email,
-      ok_to_mail: (resolution.ok_to_mail === "source" ? source : target).ok_to_mail,
+      ok_to_email: (resolution.ok_to_email === "source" ? source : target)
+        .ok_to_email,
+      ok_to_mail: (resolution.ok_to_mail === "source" ? source : target)
+        .ok_to_mail,
       do_not_contact: source.do_not_contact || target.do_not_contact,
-      club_name: (resolution.club_name === "source" ? source : target).club_name ?? (resolution.club_name === "target" ? target : source).club_name,
-      role: (resolution.role === "source" ? source : target).role ?? (resolution.role === "target" ? target : source).role,
+      club_name:
+        (resolution.club_name === "source" ? source : target).club_name ??
+        (resolution.club_name === "target" ? target : source).club_name,
+      role:
+        (resolution.role === "source" ? source : target).role ??
+        (resolution.role === "target" ? target : source).role,
     };
 
-    const allEmails = [...(target.emails ?? []), ...(source.emails ?? []).filter((e) => !(target.emails ?? []).some((te) => te.email === e.email))];
-    const allPhones = [...(target.phones ?? []), ...(source.phones ?? []).filter((p) => !(target.phones ?? []).some((tp) => tp.phone === p.phone))];
-    const allAddresses = [...(target.addresses ?? []), ...(source.addresses ?? []).filter((a) => {
-      const key = (addr: ContactAddress) => [addr.address_line1, addr.city, addr.postal_code].join("|");
-      return !(target.addresses ?? []).some((ta) => key(ta) === key(a));
-    })];
-    const allTags = [...new Map([...(target.tags ?? []), ...(source.tags ?? [])].map((t) => [t.name, t])).values()];
+    const allEmails = [
+      ...(target.emails ?? []),
+      ...(source.emails ?? []).filter(
+        (e) => !(target.emails ?? []).some((te) => te.email === e.email),
+      ),
+    ];
+    const allPhones = [
+      ...(target.phones ?? []),
+      ...(source.phones ?? []).filter(
+        (p) => !(target.phones ?? []).some((tp) => tp.phone === p.phone),
+      ),
+    ];
+    const allAddresses = [
+      ...(target.addresses ?? []),
+      ...(source.addresses ?? []).filter((a) => {
+        const key = (addr: ContactAddress) =>
+          [addr.address_line1, addr.city, addr.postal_code].join("|");
+        return !(target.addresses ?? []).some((ta) => key(ta) === key(a));
+      }),
+    ];
+    const allTags = [
+      ...new Map(
+        [...(target.tags ?? []), ...(source.tags ?? [])].map((t) => [
+          t.name,
+          t,
+        ]),
+      ).values(),
+    ];
 
     await this.update(targetId, {
       ...mergeContact,
@@ -647,23 +814,40 @@ export class ContactsService {
       tags: allTags,
     });
 
-    await this.db.run("UPDATE mailing_list_members SET contact_id = ? WHERE contact_id = ?", [targetId, sourceId]);
-    await this.db.run("UPDATE mailing_batch_recipients SET contact_id = ? WHERE contact_id = ?", [targetId, sourceId]);
-    await this.db.run("UPDATE contact_notes SET contact_id = ? WHERE contact_id = ?", [targetId, sourceId]);
-    await this.db.run("UPDATE contact_photos SET contact_id = ? WHERE contact_id = ?", [targetId, sourceId]);
+    await this.db.run(
+      "UPDATE mailing_list_members SET contact_id = ? WHERE contact_id = ?",
+      [targetId, sourceId],
+    );
+    await this.db.run(
+      "UPDATE mailing_batch_recipients SET contact_id = ? WHERE contact_id = ?",
+      [targetId, sourceId],
+    );
+    await this.db.run(
+      "UPDATE contact_notes SET contact_id = ? WHERE contact_id = ?",
+      [targetId, sourceId],
+    );
+    await this.db.run(
+      "UPDATE contact_photos SET contact_id = ? WHERE contact_id = ?",
+      [targetId, sourceId],
+    );
     await this.delete(sourceId);
 
     return this.get(targetId)!;
   }
 
   notes = {
-    create: async (contactId: string, content: string): Promise<ContactNote> => {
+    create: async (
+      contactId: string,
+      content: string,
+    ): Promise<ContactNote> => {
       const id = uuid();
       await this.db.run(
         "INSERT INTO contact_notes (id, contact_id, content) VALUES (?, ?, ?)",
-        [id, contactId, content.trim()]
+        [id, contactId, content.trim()],
       );
-      const rows = (await this.db.query("SELECT * FROM contact_notes WHERE id = ?", id).all()) as Array<Record<string, unknown>>;
+      const rows = (await this.db
+        .query("SELECT * FROM contact_notes WHERE id = ?", id)
+        .all()) as Array<Record<string, unknown>>;
       const r = rows[0];
       if (!r) throw new Error("Failed to create note");
       return {
@@ -673,16 +857,41 @@ export class ContactsService {
         created_at: (r.created_at as string) ?? null,
       };
     },
-    update: async (contactId: string, noteId: string, content: string): Promise<ContactNote | null> => {
-      const rows = (await this.db.query("SELECT id FROM contact_notes WHERE id = ? AND contact_id = ?", noteId, contactId).all()) as Array<Record<string, unknown>>;
+    update: async (
+      contactId: string,
+      noteId: string,
+      content: string,
+    ): Promise<ContactNote | null> => {
+      const rows = (await this.db
+        .query(
+          "SELECT id FROM contact_notes WHERE id = ? AND contact_id = ?",
+          noteId,
+          contactId,
+        )
+        .all()) as Array<Record<string, unknown>>;
       if (rows.length === 0) return null;
-      await this.db.run("UPDATE contact_notes SET content = ? WHERE id = ? AND contact_id = ?", [content.trim(), noteId, contactId]);
-      const updated = (await this.db.query("SELECT * FROM contact_notes WHERE id = ?", noteId).all()) as Array<Record<string, unknown>>;
+      await this.db.run(
+        "UPDATE contact_notes SET content = ? WHERE id = ? AND contact_id = ?",
+        [content.trim(), noteId, contactId],
+      );
+      const updated = (await this.db
+        .query("SELECT * FROM contact_notes WHERE id = ?", noteId)
+        .all()) as Array<Record<string, unknown>>;
       const r = updated[0];
-      return r ? { id: r.id as string, contact_id: r.contact_id as string, content: r.content as string, created_at: (r.created_at as string) ?? null } : null;
+      return r
+        ? {
+            id: r.id as string,
+            contact_id: r.contact_id as string,
+            content: r.content as string,
+            created_at: (r.created_at as string) ?? null,
+          }
+        : null;
     },
     delete: async (contactId: string, noteId: string): Promise<boolean> => {
-      const result = await this.db.run("DELETE FROM contact_notes WHERE id = ? AND contact_id = ?", [noteId, contactId]);
+      const result = await this.db.run(
+        "DELETE FROM contact_notes WHERE id = ? AND contact_id = ?",
+        [noteId, contactId],
+      );
       return true;
     },
   };
@@ -690,12 +899,17 @@ export class ContactsService {
   tags = {
     list: async (): Promise<Tag[]> => {
       /* Original: SELECT * FROM tags ORDER BY name */
-      const entities = await this.ds.getRepository(TagEntity).find({ order: { name: "ASC" } });
+      const entities = await this.ds
+        .getRepository(TagEntity)
+        .find({ order: { name: "ASC" } });
       return entities.map((r) => ({ id: r.id, name: r.name }));
     },
     create: async (name: string): Promise<Tag> => {
       const id = uuid();
-      await this.db.run("INSERT INTO tags (id, name) VALUES (?, ?)", [id, name]);
+      await this.db.run("INSERT INTO tags (id, name) VALUES (?, ?)", [
+        id,
+        name,
+      ]);
       return { id, name };
     },
   };

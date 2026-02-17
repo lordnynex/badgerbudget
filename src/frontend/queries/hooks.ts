@@ -4,7 +4,14 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import { api } from "@/data/api";
-import type { ContactSearchParams, MailingList, ListPreview, MailingListStats, MailingListIncludedPage } from "@/types/contact";
+import type {
+  Contact,
+  ContactSearchParams,
+  MailingList,
+  ListPreview,
+  MailingListStats,
+  MailingListIncludedPage,
+} from "@/types/contact";
 import { queryKeys } from "./keys";
 
 // —— Budgets & scenarios (used only on projections / budget / scenarios pages)
@@ -124,7 +131,8 @@ export function useMailingListSuspense(id: string) {
 export function useMailingListPreview(id: string | null) {
   return useQuery<ListPreview | null>({
     queryKey: queryKeys.mailingListPreview(id ?? ""),
-    queryFn: async () => (await api.mailingLists.preview(id!)) as ListPreview | null,
+    queryFn: async () =>
+      (await api.mailingLists.preview(id!)) as ListPreview | null,
     enabled: !!id,
   });
 }
@@ -132,12 +140,18 @@ export function useMailingListPreview(id: string | null) {
 export function useMailingListStats(id: string | null) {
   return useQuery<MailingListStats | null>({
     queryKey: queryKeys.mailingListStats(id ?? ""),
-    queryFn: async () => (await api.mailingLists.getStats(id!)) as MailingListStats | null,
+    queryFn: async () =>
+      (await api.mailingLists.getStats(id!)) as MailingListStats | null,
     enabled: !!id,
   });
 }
 
-export function useMailingListIncluded(id: string | null, page: number, limit: number, q?: string) {
+export function useMailingListIncluded(
+  id: string | null,
+  page: number,
+  limit: number,
+  q?: string,
+) {
   return useQuery<MailingListIncludedPage | null>({
     queryKey: queryKeys.mailingListIncluded(id ?? "", page, limit, q),
     queryFn: () => api.mailingLists.getIncluded(id!, { page, limit, q }),
@@ -172,24 +186,27 @@ export function useMailingBatchSuspense(id: string) {
 export function useInvalidateQueries() {
   const qc = useQueryClient();
   return {
-    invalidateBudgets: () => qc.invalidateQueries({ queryKey: queryKeys.budgets }),
+    invalidateBudgets: () =>
+      qc.invalidateQueries({ queryKey: queryKeys.budgets }),
     invalidateBudget: (id: string) =>
       qc.invalidateQueries({ queryKey: queryKeys.budget(id) }),
     invalidateScenarios: () =>
       qc.invalidateQueries({ queryKey: queryKeys.scenarios }),
     invalidateScenario: (id: string) =>
       qc.invalidateQueries({ queryKey: queryKeys.scenario(id) }),
-    invalidateEvents: () => qc.invalidateQueries({ queryKey: queryKeys.events }),
+    invalidateEvents: () =>
+      qc.invalidateQueries({ queryKey: queryKeys.events }),
     invalidateEvent: (id: string) =>
       qc.invalidateQueries({ queryKey: queryKeys.event(id) }),
     invalidateMembers: () =>
       qc.invalidateQueries({ queryKey: queryKeys.members }),
     invalidateMember: (id: string) =>
       qc.invalidateQueries({ queryKey: queryKeys.member(id) }),
-    invalidateContacts: () =>
-      qc.invalidateQueries({ queryKey: ["contacts"] }),
+    invalidateContacts: () => qc.invalidateQueries({ queryKey: ["contacts"] }),
     invalidateContact: (id: string) =>
       qc.invalidateQueries({ queryKey: queryKeys.contact(id) }),
+    setContactData: (id: string, data: Contact) =>
+      qc.setQueryData(queryKeys.contact(id), data),
     invalidateMailingLists: () =>
       qc.invalidateQueries({ queryKey: queryKeys.mailingLists }),
     invalidateMailingList: (id: string) => {
