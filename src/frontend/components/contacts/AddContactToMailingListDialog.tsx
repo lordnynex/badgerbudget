@@ -75,8 +75,27 @@ export function AddContactToMailingListDialog({ open, onOpenChange, listId, onSu
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] max-w-md">
         <DialogHeader>
-          <DialogTitle>Add contacts to list</DialogTitle>
+          <DialogTitle>Add Contacts</DialogTitle>
         </DialogHeader>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={async () => {
+              setSaving(true);
+              try {
+                await api.mailingLists.addAllContacts(listId);
+                onOpenChange(false);
+                onSuccess();
+              } finally {
+                setSaving(false);
+              }
+            }}
+            disabled={saving}
+          >
+            {saving ? "Adding..." : "Add ALL contacts"}
+          </Button>
+        </div>
         <Input
           placeholder="Search contacts..."
           value={search}

@@ -1,5 +1,5 @@
 import { Suspense, useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,13 +33,19 @@ export function MailingListsPanel() {
   const { data: listsData } = useMailingListsSuspense();
   const lists = Array.isArray(listsData) ? listsData : [];
   const { data: events } = useEventsSuspense();
-  const [createOpen, setCreateOpen] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [createOpen, setCreateOpen] = useState(searchParams.get("create") === "1");
   const [newName, setNewName] = useState("");
   const [newDescription, setNewDescription] = useState("");
   const [newListType, setNewListType] = useState<MailingList["list_type"]>("static");
+  const [newDeliveryType, setNewDeliveryType] = useState<MailingList["delivery_type"]>("both");
   const [newEventId, setNewEventId] = useState<string>("");
 
   const refreshLists = () => invalidate.invalidateMailingLists();
+
+  useEffect(() => {
+    if (searchParams.get("create") === "1") setCreateOpen(true);
+  }, [searchParams]);
 
   const handleCreate = async () => {
     if (!newName.trim()) return;
@@ -47,13 +53,20 @@ export function MailingListsPanel() {
       name: newName.trim(),
       description: newDescription.trim() || undefined,
       list_type: newListType,
+      delivery_type: newDeliveryType,
       event_id: (newEventId && newEventId !== "__none__") ? newEventId : null,
     });
     setNewName("");
     setNewDescription("");
     setNewListType("static");
+    setNewDeliveryType("both");
     setNewEventId("");
     setCreateOpen(false);
+    setSearchParams((p) => {
+      const next = new URLSearchParams(p);
+      next.delete("create");
+      return next;
+    });
     refreshLists();
   };
 
@@ -102,7 +115,7 @@ export function MailingListsPanel() {
                   <div>
                     <p className="font-medium">{l.name}</p>
                     <p className="text-sm text-muted-foreground">
-                      {l.list_type} • {l.member_count ?? 0} members
+                      {l.delivery_type ?? "both"} • {l.member_count ?? 0} members
                       {l.event_id && events.find((e) => e.id === l.event_id) && (
                         <> • {events.find((e) => e.id === l.event_id)!.name}</>
                       )}
@@ -118,7 +131,13 @@ export function MailingListsPanel() {
         </CardContent>
       </Card>
 
-      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+      <Dialog
+        open={createOpen}
+        onOpenChange={(open) => {
+          setCreateOpen(open);
+          if (!open) setSearchParams((p) => { const n = new URLSearchParams(p); n.delete("create"); return n; });
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Create mailing list</DialogTitle>
@@ -131,6 +150,19 @@ export function MailingListsPanel() {
             <div>
               <Label>Description</Label>
               <Input value={newDescription} onChange={(e) => setNewDescription(e.target.value)} placeholder="Optional" />
+            </div>
+            <div>
+              <Label>Delivery type</Label>
+              <Select value={newDeliveryType} onValueChange={(v) => setNewDeliveryType(v as MailingList["delivery_type"])}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="physical">Physical mail only</SelectItem>
+                  <SelectItem value="email">Email only</SelectItem>
+                  <SelectItem value="both">Both (physical + email)</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <Label>List type</Label>
@@ -193,6 +225,7 @@ function MailingListDetail({
   const [editOpen, setEditOpen] = useState(false);
   const [editName, setEditName] = useState(selectedList.name);
   const [editDescription, setEditDescription] = useState(selectedList.description ?? "");
+  const [editDeliveryType, setEditDeliveryType] = useState(selectedList.delivery_type ?? "both");
   const [addMemberOpen, setAddMemberOpen] = useState(false);
 
   const refreshList = () => {
@@ -228,7 +261,7 @@ function MailingListDetail({
   };
 
   const handleSaveEdit = async () => {
-    await api.mailingLists.update(selectedList.id, { name: editName, description: editDescription });
+    await api.mailingLists.update(selectedList.id, { name: editName, description: editDescription, delivery_type: editDeliveryType });
     setEditOpen(false);
     refreshList();
   };
@@ -243,7 +276,7 @@ function MailingListDetail({
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => setAddMemberOpen(true)}>
             <Users className="size-4" />
-            Add members
+            Add Contacts
           </Button>
           <Button variant="outline" onClick={handleExportVCard} disabled={!preview || preview.totalIncluded === 0}>
             <Download className="size-4" />
@@ -253,7 +286,7 @@ function MailingListDetail({
             <Mail className="size-4" />
             Create mailing batch
           </Button>
-          <Button variant="outline" onClick={() => { setEditName(selectedList.name); setEditDescription(selectedList.description ?? ""); setEditOpen(true); }}>
+          <Button variant="outline" onClick={() => { setEditName(selectedList.name); setEditDescription(selectedList.description ?? ""); setEditDeliveryType(selectedList.delivery_type ?? "both"); setEditOpen(true); }}>
             <Pencil className="size-4" />
             Edit
           </Button>
@@ -268,7 +301,7 @@ function MailingListDetail({
         <CardHeader>
           <CardTitle>{selectedList.name}</CardTitle>
           <p className="text-sm text-muted-foreground">
-            {selectedList.list_type} list
+            {selectedList.delivery_type ?? "both"} • {selectedList.list_type} list
             {selectedList.event_id && events.find((e) => e.id === selectedList.event_id) && (
               <> • {events.find((e) => e.id === selectedList.event_id)!.name}</>
             )}
@@ -362,6 +395,19 @@ function MailingListDetail({
             <div>
               <Label>Description</Label>
               <Input value={editDescription} onChange={(e) => setEditDescription(e.target.value)} />
+            </div>
+            <div>
+              <Label>Delivery type</Label>
+              <Select value={editDeliveryType} onValueChange={(v) => setEditDeliveryType(v as MailingList["delivery_type"])}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="physical">Physical mail only</SelectItem>
+                  <SelectItem value="email">Email only</SelectItem>
+                  <SelectItem value="both">Both (physical + email)</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <DialogFooter>

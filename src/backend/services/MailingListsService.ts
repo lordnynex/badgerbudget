@@ -7,6 +7,7 @@ import type {
   ListPreview,
 } from "@/shared/types/contact";
 import type { ContactsService } from "./ContactsService";
+import { IsNull } from "typeorm";
 import { Contact as ContactEntity, MailingList as MailingListEntity, MailingListMember as MailingListMemberEntity } from "../entities";
 import { uuid } from "./utils";
 
@@ -76,6 +77,7 @@ export class MailingListsService {
       name: r.ml_name,
       description: r.ml_description ?? null,
       list_type: (r.ml_list_type as MailingList["list_type"]) ?? "static",
+      delivery_type: (r.ml_delivery_type as MailingList["delivery_type"]) ?? "both",
       event_id: r.ml_event_id ?? null,
       template: r.ml_template ?? null,
       criteria: r.ml_criteria ? (JSON.parse(r.ml_criteria) as MailingListCriteria) : null,
@@ -92,7 +94,7 @@ export class MailingListsService {
       .getRepository(MailingListEntity)
       .createQueryBuilder("ml")
       .leftJoin("events", "e", "e.id = ml.event_id")
-      .addSelect(["ml.id", "ml.name", "ml.description", "ml.listType", "ml.eventId", "ml.template", "ml.criteria", "ml.createdAt", "ml.updatedAt"])
+      .addSelect(["ml.id", "ml.name", "ml.description", "ml.listType", "ml.deliveryType", "ml.eventId", "ml.template", "ml.criteria", "ml.createdAt", "ml.updatedAt"])
       .addSelect("e.name", "event_name")
       .where("ml.id = :id", { id })
       .getRawOne();
@@ -107,6 +109,7 @@ export class MailingListsService {
       name: row.ml_name,
       description: row.ml_description ?? null,
       list_type: (row.ml_list_type as MailingList["list_type"]) ?? "static",
+      delivery_type: (row.ml_delivery_type as MailingList["delivery_type"]) ?? "both",
       event_id: row.ml_event_id ?? null,
       template: row.ml_template ?? null,
       criteria: row.ml_criteria ? (JSON.parse(row.ml_criteria) as MailingListCriteria) : null,
@@ -121,18 +124,20 @@ export class MailingListsService {
     name: string;
     description?: string;
     list_type?: MailingList["list_type"];
+    delivery_type?: MailingList["delivery_type"];
     event_id?: string | null;
     template?: string | null;
     criteria?: MailingListCriteria | null;
   }) {
     const id = uuid();
     await this.db.run(
-      "INSERT INTO mailing_lists (id, name, description, list_type, event_id, template, criteria) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      "INSERT INTO mailing_lists (id, name, description, list_type, delivery_type, event_id, template, criteria) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
       [
         id,
         body.name,
         body.description ?? null,
         body.list_type ?? "static",
+        body.delivery_type ?? "both",
         body.event_id ?? null,
         body.template ?? null,
         body.criteria ? JSON.stringify(body.criteria) : null,
@@ -147,6 +152,7 @@ export class MailingListsService {
       name: string;
       description: string;
       list_type: MailingList["list_type"];
+      delivery_type: MailingList["delivery_type"];
       event_id: string | null;
       template: string | null;
       criteria: MailingListCriteria | null;
@@ -159,13 +165,14 @@ export class MailingListsService {
     const name = body.name ?? existing.name;
     const description = body.description !== undefined ? body.description : existing.description;
     const list_type = (body.list_type ?? existing.listType) as MailingList["list_type"];
+    const delivery_type = (body.delivery_type ?? existing.deliveryType) as MailingList["delivery_type"];
     const event_id = body.event_id !== undefined ? body.event_id : existing.eventId;
     const template = body.template !== undefined ? body.template : existing.template;
     const criteria = body.criteria !== undefined ? body.criteria : (existing.criteria ? JSON.parse(existing.criteria) : null);
 
     await this.db.run(
-      "UPDATE mailing_lists SET name = ?, description = ?, list_type = ?, event_id = ?, template = ?, criteria = ?, updated_at = datetime('now') WHERE id = ?",
-      [name, description, list_type, event_id, template, criteria ? JSON.stringify(criteria) : null, id]
+      "UPDATE mailing_lists SET name = ?, description = ?, list_type = ?, delivery_type = ?, event_id = ?, template = ?, criteria = ?, updated_at = datetime('now') WHERE id = ?",
+      [name, description, list_type, delivery_type, event_id, template, criteria ? JSON.stringify(criteria) : null, id]
     );
     return this.get(id)!;
   }
@@ -217,6 +224,16 @@ export class MailingListsService {
     return { ok: true };
   }
 
+  async addAllContacts(listId: string, source: "manual" | "import" | "rule" = "manual") {
+    const rows = await this.ds.getRepository(ContactEntity).find({
+      where: { deletedAt: IsNull(), status: "active" },
+      select: ["id"],
+    });
+    const contactIds = rows.map((r) => r.id);
+    await this.addMembersBulk(listId, contactIds, source);
+    return { ok: true, added: contactIds.length };
+  }
+
   async preview(id: string): Promise<ListPreview> {
     const list = await this.get(id);
     if (!list) return { included: [], excluded: [], totalIncluded: 0, totalExcluded: 0 };
@@ -264,6 +281,21 @@ export class MailingListsService {
       if (contact.status === "inactive" || contact.status === "deleted") {
         excluded.push({ contact, reason: "Inactive or deleted", canRemoveFromList: hasMembership });
         continue;
+      }
+
+      /* Exclude if consent is false for the list's delivery type. Unknown = include. */
+      const dt = list.delivery_type ?? "both";
+      if (dt === "physical" || dt === "both") {
+        if (contact.ok_to_mail === "no") {
+          excluded.push({ contact, reason: "No consent for physical mail", canRemoveFromList: hasMembership });
+          continue;
+        }
+      }
+      if (dt === "email" || dt === "both") {
+        if (contact.ok_to_email === "no") {
+          excluded.push({ contact, reason: "No consent for email", canRemoveFromList: hasMembership });
+          continue;
+        }
       }
 
       if (memberRow?.suppressed) {

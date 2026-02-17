@@ -14,6 +14,9 @@ export class MailingList {
   @Column({ name: "list_type", type: "text", default: "static" })
   listType!: string;
 
+  @Column({ name: "delivery_type", type: "text", default: "both" })
+  deliveryType!: string;
+
   @Column({ name: "event_id", type: "text", nullable: true })
   eventId!: string | null;
 

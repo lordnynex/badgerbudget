@@ -4,6 +4,7 @@ export type ConsentStatus = "yes" | "no" | "unknown";
 export type EmailPhoneType = "work" | "home" | "cell" | "other";
 export type AddressType = "home" | "work" | "postal" | "other";
 export type ListType = "static" | "dynamic" | "hybrid";
+export type DeliveryType = "physical" | "email" | "both";
 export type MemberSource = "manual" | "import" | "rule";
 export type BatchRecipientStatus = "queued" | "printed" | "mailed" | "returned" | "invalid";
 
@@ -96,6 +97,7 @@ export interface MailingList {
   name: string;
   description: string | null;
   list_type: ListType;
+  delivery_type: DeliveryType;
   event_id: string | null;
   template: string | null;
   criteria: MailingListCriteria | null;

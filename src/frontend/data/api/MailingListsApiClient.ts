@@ -57,6 +57,12 @@ export class MailingListsApiClient {
     );
   }
 
+  addAllContacts(listId: string) {
+    return unwrap(
+      client.api["mailing-lists"]({ id: listId }).members["add-all"].post(),
+    );
+  }
+
   removeMember(listId: string, contactId: string) {
     return unwrap(
       client.api

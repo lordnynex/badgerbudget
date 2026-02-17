@@ -2,6 +2,7 @@ import { t } from "elysia";
 import { CommonParams } from "./common";
 
 const listType = t.Union([t.Literal("static"), t.Literal("dynamic"), t.Literal("hybrid")]);
+const deliveryType = t.Union([t.Literal("physical"), t.Literal("email"), t.Literal("both")]);
 const memberSource = t.Union([t.Literal("manual"), t.Literal("import"), t.Literal("rule")]);
 
 const criteriaSchema = t.Object({
@@ -24,6 +25,7 @@ export const MailingListsDto = {
     name: t.String(),
     description: t.Optional(t.String()),
     list_type: t.Optional(listType),
+    delivery_type: t.Optional(deliveryType),
     event_id: t.Optional(t.Union([t.String(), t.Null()])),
     template: t.Optional(t.Union([t.String(), t.Null()])),
     criteria: t.Optional(t.Union([criteriaSchema, t.Null()])),
@@ -33,6 +35,7 @@ export const MailingListsDto = {
     name: t.Optional(t.String()),
     description: t.Optional(t.Union([t.String(), t.Null()])),
     list_type: t.Optional(listType),
+    delivery_type: t.Optional(deliveryType),
     event_id: t.Optional(t.Union([t.String(), t.Null()])),
     template: t.Optional(t.Union([t.String(), t.Null()])),
     criteria: t.Optional(t.Union([criteriaSchema, t.Null()])),
