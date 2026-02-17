@@ -18,9 +18,8 @@ export function createApp(db: DbLike, ds: DataSource) {
 
   return new Elysia()
     .use(cors())
-    .decorate("log", logger)
-    .use(accessLog(logger))
     .use(apiRoutes)
+    .use(accessLog(logger))
     .get("/data/export.json", () => {
       const file = Bun.file(join(projectRoot, "data", "export.json"));
       return new Response(file, {
@@ -38,7 +37,7 @@ export function createApp(db: DbLike, ds: DataSource) {
         assets: distDir,
         prefix: "/",
         indexHTML: false,
-      })
+      }),
     )
     .onError(({ code, error, set, request }) => {
       if (code === "NOT_FOUND") {
