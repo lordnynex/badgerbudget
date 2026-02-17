@@ -290,6 +290,25 @@ function BudgetDetail({
     );
   }
 
+  const lineItems = currentBudget.lineItems ?? [];
+  const total = lineItems.reduce(
+    (sum, li) => sum + li.unitCost * li.quantity,
+    0
+  );
+  const categoryTotals = lineItems.reduce(
+    (acc, li) => {
+      const itemTotal = li.unitCost * li.quantity;
+      const cat = li.category || "Uncategorized";
+      acc[cat] = (acc[cat] ?? 0) + itemTotal;
+      return acc;
+    },
+    {} as Record<string, number>
+  );
+  const categories = Object.keys(categoryTotals).sort();
+
+  const formatCurrency = (n: number) =>
+    n.toLocaleString("en-US", { minimumFractionDigits: 2 });
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -322,6 +341,42 @@ function BudgetDetail({
             <CardDescription>{currentBudget.description}</CardDescription>
           )}
         </CardHeader>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">Summary</CardTitle>
+          <CardDescription>
+            Total cost and breakdown by category
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="flex items-baseline justify-between border-b pb-3">
+              <span className="text-sm font-medium text-muted-foreground">Total</span>
+              <span className="text-2xl font-bold">${formatCurrency(total)}</span>
+            </div>
+            {categories.length > 0 ? (
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-muted-foreground">By category</p>
+                <div className="rounded-md border">
+                  <table className="w-full text-sm">
+                    <tbody>
+                      {categories.map((cat) => (
+                        <tr key={cat} className="border-b last:border-0">
+                          <td className="p-2 font-medium">{cat}</td>
+                          <td className="p-2 text-right">${formatCurrency(categoryTotals[cat])}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">No line items yet. Add items below to see the breakdown.</p>
+            )}
+          </div>
+        </CardContent>
       </Card>
 
       <LineItemsTable />
