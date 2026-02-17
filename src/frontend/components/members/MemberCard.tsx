@@ -17,8 +17,8 @@ export function MemberCard({ member, onNavigate }: MemberCardProps) {
       <CardHeader className="pb-2">
         <div className="flex items-start gap-4">
           <div className="size-14 shrink-0 rounded-full overflow-hidden bg-muted flex items-center justify-center">
-            {member.photo ? (
-              <img src={member.photo} alt="" className="size-full object-cover" />
+            {(member.photo_thumbnail ?? member.photo) ? (
+              <img src={member.photo_thumbnail ?? member.photo!} alt="" className="size-full object-cover" />
             ) : (
               <User className="size-7 text-muted-foreground" />
             )}

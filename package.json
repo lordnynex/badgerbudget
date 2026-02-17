@@ -7,7 +7,8 @@
     "dev": "bun run build && bun src/index.ts",
     "start": "NODE_ENV=production bun src/index.ts",
     "build": "bun run build.ts",
-    "test": "bun test src/"
+    "test": "bun test src/",
+    "migrate": "bun src/scripts/migrate.ts"
   },
   "dependencies": {
     "@elysiajs/cors": "^1.4.1",
@@ -35,6 +36,7 @@
     "react-dom": "^19",
     "react-router-dom": "^7.13.0",
     "reflect-metadata": "^0.2.2",
+    "sharp": "^0.34.5",
     "sql.js": "^1.14.0",
     "tailwind-merge": "^3.3.1",
     "typeorm": "^0.3.28"

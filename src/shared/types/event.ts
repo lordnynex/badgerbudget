@@ -3,7 +3,7 @@ export interface EventMilestoneMember {
   milestone_id: string;
   member_id: string;
   sort_order: number;
-  member?: { id: string; name: string; photo: string | null };
+  member?: { id: string; name: string; photo: string | null; photo_thumbnail?: string | null };
 }
 
 export interface EventPlanningMilestone {
@@ -51,7 +51,7 @@ export interface EventAssignmentMember {
   assignment_id: string;
   member_id: string;
   sort_order: number;
-  member?: { id: string; name: string; photo: string | null };
+  member?: { id: string; name: string; photo: string | null; photo_thumbnail?: string | null };
 }
 
 export interface EventAssignment {

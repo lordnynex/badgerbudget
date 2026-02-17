@@ -38,6 +38,9 @@ export class Member {
   @Column({ type: "blob", nullable: true })
   photo!: Buffer | null;
 
+  @Column({ name: "photo_thumbnail", type: "blob", nullable: true })
+  photoThumbnail!: Buffer | null;
+
   @Column({ name: "created_at", type: "text", nullable: true })
   createdAt!: string | null;
 }

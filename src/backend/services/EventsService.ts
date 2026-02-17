@@ -1,6 +1,15 @@
 import type { DbLike } from "../db/dbAdapter";
 import { uuid } from "./utils";
 
+function memberRowToApi(m: Record<string, unknown>): { id: string; name: string; photo: string | null; photo_thumbnail: string | null } {
+  return {
+    id: m.id as string,
+    name: m.name as string,
+    photo: m.photo != null ? `data:image/jpeg;base64,${Buffer.from(m.photo as Uint8Array).toString("base64")}` : null,
+    photo_thumbnail: m.photo_thumbnail != null ? `data:image/jpeg;base64,${Buffer.from(m.photo_thumbnail as Uint8Array).toString("base64")}` : null,
+  };
+}
+
 export class EventsService {
   constructor(private db: DbLike) {}
 
@@ -43,15 +52,11 @@ export class EventsService {
           .all(...(milestones.map((m) => m.id) as string[]))) as Array<Record<string, unknown>>)
       : [];
     const milestoneMemberIds = [...new Set(milestoneMembers.map((mm) => mm.member_id as string))];
-    const milestoneMembersMap = new Map<string, { id: string; name: string; photo: string | null }>();
+    const milestoneMembersMap = new Map<string, { id: string; name: string; photo: string | null; photo_thumbnail: string | null }>();
     for (const mid of milestoneMemberIds) {
-      const m = (await await this.db.query("SELECT id, name, photo FROM members WHERE id = ?").get(mid)) as Record<string, unknown> | undefined;
+      const m = (await this.db.query("SELECT id, name, photo, photo_thumbnail FROM members WHERE id = ?").get(mid)) as Record<string, unknown> | undefined;
       if (m) {
-        milestoneMembersMap.set(mid, {
-          id: m.id as string,
-          name: m.name as string,
-          photo: m.photo != null ? `data:image/jpeg;base64,${Buffer.from(m.photo as Uint8Array).toString("base64")}` : null,
-        });
+        milestoneMembersMap.set(mid, memberRowToApi(m));
       }
     }
     const membersByMilestone = new Map<string, Array<Record<string, unknown>>>();
@@ -82,15 +87,11 @@ export class EventsService {
           .all(...(assignments.map((a) => a.id) as string[]))) as Array<Record<string, unknown>>)
       : [];
     const memberIds = [...new Set(assignmentMembers.map((am) => am.member_id as string))];
-    const membersMap = new Map<string, { id: string; name: string; photo: string | null }>();
+    const membersMap = new Map<string, { id: string; name: string; photo: string | null; photo_thumbnail: string | null }>();
     for (const mid of memberIds) {
-      const m = (await await this.db.query("SELECT id, name, photo FROM members WHERE id = ?").get(mid)) as Record<string, unknown> | undefined;
+      const m = (await this.db.query("SELECT id, name, photo, photo_thumbnail FROM members WHERE id = ?").get(mid)) as Record<string, unknown> | undefined;
       if (m) {
-        membersMap.set(mid, {
-          id: m.id as string,
-          name: m.name as string,
-          photo: m.photo != null ? `data:image/jpeg;base64,${Buffer.from(m.photo as Uint8Array).toString("base64")}` : null,
-        });
+        membersMap.set(mid, memberRowToApi(m));
       }
     }
     const membersByAssignment = new Map<string, Array<Record<string, unknown>>>();
@@ -292,13 +293,13 @@ export class EventsService {
       const amList = (await this.db.query("SELECT * FROM event_assignment_members WHERE assignment_id = ? ORDER BY sort_order").all(aid)) as Array<Record<string, unknown>>;
       const members = await Promise.all(
         amList.map(async (am) => {
-          const m = (await this.db.query("SELECT id, name, photo FROM members WHERE id = ?").get(am.member_id as string)) as Record<string, unknown> | undefined;
+          const m = (await this.db.query("SELECT id, name, photo, photo_thumbnail FROM members WHERE id = ?").get(am.member_id as string)) as Record<string, unknown> | undefined;
           return {
             id: am.id,
             assignment_id: am.assignment_id,
             member_id: am.member_id,
             sort_order: am.sort_order ?? 0,
-            member: m ? { id: m.id, name: m.name, photo: m.photo != null ? `data:image/jpeg;base64,${Buffer.from(m.photo as Uint8Array).toString("base64")}` : null } : undefined,
+            member: m ? memberRowToApi(m) : undefined,
           };
         })
       );

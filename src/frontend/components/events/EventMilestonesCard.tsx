@@ -233,7 +233,7 @@ export function EventMilestonesCard({
                                             key={mm.id}
                                             memberId={mm.member.id}
                                             name={mm.member.name}
-                                            photo={mm.member.photo}
+                                            photo={mm.member.photo_thumbnail ?? mm.member.photo}
                                             onRemove={() => onRemoveMember(m.id, mm.member_id)}
                                             removeContextLabel="milestone"
                                           />

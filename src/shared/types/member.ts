@@ -23,5 +23,7 @@ export interface Member {
   emergency_contact_name: string | null;
   emergency_contact_phone: string | null;
   photo: string | null;
+  /** Small optimized copy for chips/avatars; fallback to photo when null */
+  photo_thumbnail?: string | null;
   created_at?: string;
 }

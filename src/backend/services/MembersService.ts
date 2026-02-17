@@ -1,6 +1,31 @@
 import type { DbLike } from "../db/dbAdapter";
 import { ALL_MEMBERS_ID } from "@/shared/lib/constants";
 import { uuid, VALID_POSITIONS, parsePhotoToBlob } from "./utils";
+import { ImageService } from "./ImageService";
+
+function blobToDataUrl(blob: Uint8Array | Buffer | null): string | null {
+  if (blob == null) return null;
+  return `data:image/jpeg;base64,${Buffer.from(blob).toString("base64")}`;
+}
+
+function rowToMember(m: Record<string, unknown>) {
+  return {
+    id: m.id,
+    name: m.name,
+    phone_number: m.phone_number ?? null,
+    email: m.email ?? null,
+    address: m.address ?? null,
+    birthday: m.birthday ?? null,
+    member_since: m.member_since ?? null,
+    is_baby: (m.is_baby as number) === 1,
+    position: m.position ?? null,
+    emergency_contact_name: m.emergency_contact_name ?? null,
+    emergency_contact_phone: m.emergency_contact_phone ?? null,
+    photo: blobToDataUrl(m.photo as Uint8Array | null),
+    photo_thumbnail: blobToDataUrl(m.photo_thumbnail as Uint8Array | null),
+    created_at: m.created_at as string | undefined,
+  };
+}
 
 export class MembersService {
   constructor(private db: DbLike) {}
@@ -9,42 +34,13 @@ export class MembersService {
     const rows = (await this.db
       .query("SELECT * FROM members WHERE id != ? ORDER BY name")
       .all(ALL_MEMBERS_ID)) as Array<Record<string, unknown>>;
-    return rows.map((m) => ({
-      id: m.id,
-      name: m.name,
-      phone_number: m.phone_number ?? null,
-      email: m.email ?? null,
-      address: m.address ?? null,
-      birthday: m.birthday ?? null,
-      member_since: m.member_since ?? null,
-      is_baby: (m.is_baby as number) === 1,
-      position: m.position ?? null,
-      emergency_contact_name: m.emergency_contact_name ?? null,
-      emergency_contact_phone: m.emergency_contact_phone ?? null,
-      photo: m.photo != null ? `data:image/jpeg;base64,${Buffer.from(m.photo as Uint8Array).toString("base64")}` : null,
-      created_at: m.created_at as string | undefined,
-    }));
+    return rows.map(rowToMember);
   }
 
   async get(id: string) {
     const row = await this.db.query("SELECT * FROM members WHERE id = ?").get(id);
     if (!row) return null;
-    const m = row as Record<string, unknown>;
-    return {
-      id: m.id,
-      name: m.name,
-      phone_number: m.phone_number ?? null,
-      email: m.email ?? null,
-      address: m.address ?? null,
-      birthday: m.birthday ?? null,
-      member_since: m.member_since ?? null,
-      is_baby: (m.is_baby as number) === 1,
-      position: m.position ?? null,
-      emergency_contact_name: m.emergency_contact_name ?? null,
-      emergency_contact_phone: m.emergency_contact_phone ?? null,
-      photo: m.photo != null ? `data:image/jpeg;base64,${Buffer.from(m.photo as Uint8Array).toString("base64")}` : null,
-      created_at: m.created_at as string | undefined,
-    };
+    return rowToMember(row as Record<string, unknown>);
   }
 
   async create(body: {
@@ -62,8 +58,10 @@ export class MembersService {
   }) {
     const id = uuid();
     const photoBlob = body.photo ? parsePhotoToBlob(body.photo) : null;
+    const photoThumbnailBlob =
+      photoBlob ? await ImageService.createThumbnail(photoBlob) : null;
     await this.db.run(
-      `INSERT INTO members (id, name, phone_number, email, address, birthday, member_since, is_baby, position, emergency_contact_name, emergency_contact_phone, photo) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO members (id, name, phone_number, email, address, birthday, member_since, is_baby, position, emergency_contact_name, emergency_contact_phone, photo, photo_thumbnail) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         body.name,
@@ -77,6 +75,7 @@ export class MembersService {
         body.emergency_contact_name ?? null,
         body.emergency_contact_phone ?? null,
         photoBlob,
+        photoThumbnailBlob,
       ]
     );
     return this.get(id)!;
@@ -114,9 +113,13 @@ export class MembersService {
       body.photo !== undefined
         ? (body.photo === null ? null : parsePhotoToBlob(body.photo) ?? null)
         : (row.photo as Uint8Array | null);
+    const photoThumbnailBlob =
+      body.photo !== undefined
+        ? (photoBlob ? await ImageService.createThumbnail(Buffer.from(photoBlob)) : null)
+        : (row.photo_thumbnail as Uint8Array | null) ?? null;
     await this.db.run(
-      `UPDATE members SET name = ?, phone_number = ?, email = ?, address = ?, birthday = ?, member_since = ?, is_baby = ?, position = ?, emergency_contact_name = ?, emergency_contact_phone = ?, photo = ? WHERE id = ?`,
-      [name, phone_number, email, address, birthday, member_since, is_baby, position, emergency_contact_name, emergency_contact_phone, photoBlob, id]
+      `UPDATE members SET name = ?, phone_number = ?, email = ?, address = ?, birthday = ?, member_since = ?, is_baby = ?, position = ?, emergency_contact_name = ?, emergency_contact_phone = ?, photo = ?, photo_thumbnail = ? WHERE id = ?`,
+      [name, phone_number, email, address, birthday, member_since, is_baby, position, emergency_contact_name, emergency_contact_phone, photoBlob, photoThumbnailBlob, id]
     );
     return this.get(id)!;
   }
