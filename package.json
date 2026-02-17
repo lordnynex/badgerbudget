@@ -8,7 +8,8 @@
     "start": "NODE_ENV=production bun src/index.ts",
     "build": "bun run build.ts",
     "test": "bun test src/",
-    "migrate": "bun src/scripts/migrate.ts"
+    "migrate": "bun src/scripts/migrate.ts",
+    "backfill-member-photos": "bun scripts/backfill-member-photos.ts"
   },
   "dependencies": {
     "@elysiajs/cors": "^1.4.1",

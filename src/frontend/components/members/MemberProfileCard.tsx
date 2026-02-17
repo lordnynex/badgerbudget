@@ -14,14 +14,14 @@ export function MemberProfileCard({ member, onPhotoClick }: MemberProfileCardPro
       <CardHeader>
         <div className="flex items-center gap-6">
           <div
-            className={`size-24 shrink-0 rounded-full overflow-hidden bg-muted flex items-center justify-center ${member.photo ? "cursor-pointer hover:opacity-90 transition-opacity" : ""}`}
-            onClick={member.photo ? onPhotoClick : undefined}
-            role={member.photo ? "button" : undefined}
-            aria-label={member.photo ? "View full size photo" : undefined}
+            className={`size-24 shrink-0 rounded-full overflow-hidden bg-muted flex items-center justify-center ${member.photo_url ? "cursor-pointer hover:opacity-90 transition-opacity" : ""}`}
+            onClick={member.photo_url ? onPhotoClick : undefined}
+            role={member.photo_url ? "button" : undefined}
+            aria-label={member.photo_url ? "View full size photo" : undefined}
           >
-            {member.photo ? (
+            {member.photo_url ? (
               <img
-                src={member.photo}
+                src={`/api/members/${member.id}/photo?size=medium`}
                 alt={`${member.name} photo`}
                 className="size-full object-cover"
               />
@@ -33,7 +33,9 @@ export function MemberProfileCard({ member, onPhotoClick }: MemberProfileCardPro
             <CardTitle className="text-2xl flex items-center gap-2">
               {member.name}
               {member.is_baby && (
-                <Baby className="size-6 text-muted-foreground" title="Baby" />
+                <span title="Baby">
+                  <Baby className="size-6 text-muted-foreground" />
+                </span>
               )}
             </CardTitle>
             {member.position ? (

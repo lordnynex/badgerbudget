@@ -234,7 +234,7 @@ function AssignmentColumn({
                       key={am.id}
                       memberId={am.member.id}
                       name={am.member.name}
-                      photo={am.member.photo_thumbnail ?? am.member.photo}
+                      photo={am.member.photo_thumbnail_url ?? am.member.photo_url}
                       onRemove={() => onRemoveMember(role.id, am.member_id)}
                       removeContextLabel="role"
                     />

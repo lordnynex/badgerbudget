@@ -75,14 +75,27 @@ export class ImageService {
   }
 
   /**
-   * Optimize a full-size image (resize to max dimensions if larger, compress).
-   * Use when you want to limit file size of stored originals.
+   * Create a medium-sized image for profile cards (128x128).
+   */
+  static async createMedium(input: Buffer): Promise<Buffer | null> {
+    return this.resize(input, {
+      width: 128,
+      height: 128,
+      fit: "cover",
+      quality: 85,
+      format: "jpeg",
+    });
+  }
+
+  /**
+   * Optimize a full-size image (resize to max dimensions if larger, compress with mozjpeg).
+   * Use when you want to limit file size of stored originals while keeping high resolution and quality.
    */
   static async optimize(
     input: Buffer,
-    maxWidth = 1200,
-    maxHeight = 1200,
-    quality = 85
+    maxWidth = 2560,
+    maxHeight = 2560,
+    quality = 90
   ): Promise<Buffer | null> {
     try {
       const metadata = await sharp(input).metadata();

@@ -45,7 +45,7 @@ function MemberDetailContent({ id }: { id: string }) {
     setEditBirthday(member.birthday ?? "");
     if (member.member_since && /^\d{4}-\d{2}$/.test(member.member_since)) {
       const [, mo] = member.member_since.split("-");
-      setEditMemberSinceMonth(String(parseInt(mo, 10)));
+      setEditMemberSinceMonth(String(parseInt(mo ?? "1", 10)));
       setEditMemberSinceYear(member.member_since.slice(0, 4));
     } else {
       setEditMemberSinceMonth("");
@@ -55,7 +55,7 @@ function MemberDetailContent({ id }: { id: string }) {
     setEditPosition(member.position ?? "");
     setEditEmergencyName(member.emergency_contact_name ?? "");
     setEditEmergencyPhone(member.emergency_contact_phone ?? "");
-    setEditPhoto(member.photo ?? null);
+    setEditPhoto(member.photo_url ?? null);
   }, [member]);
 
   const refresh = () => invalidate.invalidateMember(id);
@@ -67,7 +67,7 @@ function MemberDetailContent({ id }: { id: string }) {
         editMemberSinceMonth && editMemberSinceYear
           ? `${editMemberSinceYear}-${editMemberSinceMonth.padStart(2, "0")}`
           : null;
-      await api.members.update(id, {
+      const updateBody: Record<string, unknown> = {
         name: editName.trim(),
         phone_number: editPhone.trim() || null,
         email: editEmail.trim() || null,
@@ -78,8 +78,11 @@ function MemberDetailContent({ id }: { id: string }) {
         position: editPosition || null,
         emergency_contact_name: editEmergencyName.trim() || null,
         emergency_contact_phone: editEmergencyPhone.trim() || null,
-        photo: editPhoto,
-      });
+      };
+      if (editPhoto === null || (editPhoto && editPhoto.startsWith("data:"))) {
+        updateBody.photo = editPhoto;
+      }
+      await api.members.update(id, updateBody);
       setEditOpen(false);
       refresh();
     } finally {
@@ -126,11 +129,11 @@ function MemberDetailContent({ id }: { id: string }) {
         </Card>
       )}
 
-      {member.photo && (
+      {member.photo_url && (
         <MemberPhotoLightbox
           open={photoLightboxOpen}
           onOpenChange={setPhotoLightboxOpen}
-          photoUrl={member.photo}
+          photoUrl={member.photo_url}
           memberName={member.name}
         />
       )}

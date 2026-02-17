@@ -3,14 +3,16 @@ import { ALL_MEMBERS_ID } from "@/shared/lib/constants";
 import { uuid, VALID_POSITIONS, parsePhotoToBlob } from "./utils";
 import { ImageService } from "./ImageService";
 
-function blobToDataUrl(blob: Uint8Array | Buffer | null): string | null {
-  if (blob == null) return null;
-  return `data:image/jpeg;base64,${Buffer.from(blob).toString("base64")}`;
-}
+export type PhotoSize = "thumbnail" | "medium" | "full";
+
+const MEMBER_COLUMNS =
+  "id, name, phone_number, email, address, birthday, member_since, is_baby, position, emergency_contact_name, emergency_contact_phone, created_at, (photo IS NOT NULL) as has_photo";
 
 function rowToMember(m: Record<string, unknown>) {
+  const id = m.id as string;
+  const hasPhoto = (m.has_photo as number) === 1;
   return {
-    id: m.id,
+    id,
     name: m.name,
     phone_number: m.phone_number ?? null,
     email: m.email ?? null,
@@ -21,8 +23,8 @@ function rowToMember(m: Record<string, unknown>) {
     position: m.position ?? null,
     emergency_contact_name: m.emergency_contact_name ?? null,
     emergency_contact_phone: m.emergency_contact_phone ?? null,
-    photo: blobToDataUrl(m.photo as Uint8Array | null),
-    photo_thumbnail: blobToDataUrl(m.photo_thumbnail as Uint8Array | null),
+    photo_url: hasPhoto ? `/api/members/${id}/photo?size=full` : null,
+    photo_thumbnail_url: hasPhoto ? `/api/members/${id}/photo?size=thumbnail` : null,
     created_at: m.created_at as string | undefined,
   };
 }
@@ -32,15 +34,42 @@ export class MembersService {
 
   async list() {
     const rows = (await this.db
-      .query("SELECT * FROM members WHERE id != ? ORDER BY name")
+      .query(`SELECT ${MEMBER_COLUMNS} FROM members WHERE id != ? ORDER BY name`)
       .all(ALL_MEMBERS_ID)) as Array<Record<string, unknown>>;
     return rows.map(rowToMember);
   }
 
   async get(id: string) {
-    const row = await this.db.query("SELECT * FROM members WHERE id = ?").get(id);
+    const row = await this.db.query(`SELECT ${MEMBER_COLUMNS} FROM members WHERE id = ?`).get(id);
     if (!row) return null;
     return rowToMember(row as Record<string, unknown>);
+  }
+
+  /**
+   * Get member photo as buffer for the given size. Returns null if member has no photo.
+   */
+  async getPhoto(id: string, size: PhotoSize): Promise<Buffer | null> {
+    const row = await this.db.query("SELECT photo, photo_thumbnail FROM members WHERE id = ?").get(id);
+    if (!row) return null;
+    const m = row as Record<string, unknown>;
+    const photoBlob = m.photo as Uint8Array | Buffer | null;
+    const thumbnailBlob = m.photo_thumbnail as Uint8Array | Buffer | null;
+
+    if (!photoBlob) return null;
+
+    const buffer = Buffer.from(photoBlob);
+
+    switch (size) {
+      case "thumbnail":
+        if (thumbnailBlob) return Buffer.from(thumbnailBlob);
+        return ImageService.createThumbnail(buffer);
+      case "medium":
+        return ImageService.createMedium(buffer);
+      case "full":
+        return buffer;
+      default:
+        return buffer;
+    }
   }
 
   async create(body: {
@@ -57,7 +86,10 @@ export class MembersService {
     photo?: string;
   }) {
     const id = uuid();
-    const photoBlob = body.photo ? parsePhotoToBlob(body.photo) : null;
+    const rawPhoto = body.photo ? parsePhotoToBlob(body.photo) : null;
+    const photoBlob = rawPhoto
+      ? (await ImageService.optimize(rawPhoto)) ?? rawPhoto
+      : null;
     const photoThumbnailBlob =
       photoBlob ? await ImageService.createThumbnail(photoBlob) : null;
     await this.db.run(
@@ -83,16 +115,16 @@ export class MembersService {
 
   async update(id: string, body: Partial<{
     name: string;
-    phone_number: string;
-    email: string;
-    address: string;
-    birthday: string;
-    member_since: string;
+    phone_number: string | null;
+    email: string | null;
+    address: string | null;
+    birthday: string | null;
+    member_since: string | null;
     is_baby: boolean;
-    position: string;
-    emergency_contact_name: string;
-    emergency_contact_phone: string;
-    photo: string;
+    position: string | null;
+    emergency_contact_name: string | null;
+    emergency_contact_phone: string | null;
+    photo: string | null;
   }>) {
     const existing = await this.db.query("SELECT * FROM members WHERE id = ?").get(id);
     if (!existing) return null;
@@ -109,10 +141,14 @@ export class MembersService {
     const position = positionRaw && VALID_POSITIONS.has(positionRaw) ? positionRaw : null;
     const emergency_contact_name = get("emergency_contact_name", null) as string | null;
     const emergency_contact_phone = get("emergency_contact_phone", null) as string | null;
-    const photoBlob =
+    const rawPhoto =
       body.photo !== undefined
         ? (body.photo === null ? null : parsePhotoToBlob(body.photo) ?? null)
         : (row.photo as Uint8Array | null);
+    const photoBlob =
+      body.photo !== undefined && rawPhoto !== null
+        ? (await ImageService.optimize(Buffer.from(rawPhoto))) ?? rawPhoto
+        : rawPhoto;
     const photoThumbnailBlob =
       body.photo !== undefined
         ? (photoBlob ? await ImageService.createThumbnail(Buffer.from(photoBlob)) : null)

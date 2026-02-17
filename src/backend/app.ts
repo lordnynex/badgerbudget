@@ -39,8 +39,13 @@ export function createApp(db: DbLike) {
         indexHTML: false,
       })
     )
-    .onError(({ code, error, set }) => {
+    .onError(({ code, error, set, request }) => {
       if (code === "NOT_FOUND") {
+        const path = new URL(request.url).pathname;
+        if (path.startsWith("/api")) {
+          set.status = 404;
+          return new Response("Not Found", { status: 404 });
+        }
         const index = Bun.file(join(distDir, "index.html"));
         if (index.size > 0) {
           set.status = 200;

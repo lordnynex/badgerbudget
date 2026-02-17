@@ -102,9 +102,9 @@ export function MemberChipPopover({
               <>
                 <div className="flex items-start gap-3 mb-4">
                   <div className="size-12 shrink-0 rounded-full overflow-hidden bg-muted flex items-center justify-center">
-                    {(member.photo_thumbnail ?? member.photo) ? (
+                    {member.photo_thumbnail_url ? (
                       <img
-                        src={member.photo_thumbnail ?? member.photo!}
+                        src={member.photo_thumbnail_url}
                         alt=""
                         className="size-full object-cover"
                       />

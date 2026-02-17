@@ -17,8 +17,8 @@ export function MemberCard({ member, onNavigate }: MemberCardProps) {
       <CardHeader className="pb-2">
         <div className="flex items-start gap-4">
           <div className="size-14 shrink-0 rounded-full overflow-hidden bg-muted flex items-center justify-center">
-            {(member.photo_thumbnail ?? member.photo) ? (
-              <img src={member.photo_thumbnail ?? member.photo!} alt="" className="size-full object-cover" />
+            {member.photo_thumbnail_url ? (
+              <img src={member.photo_thumbnail_url} alt="" className="size-full object-cover" />
             ) : (
               <User className="size-7 text-muted-foreground" />
             )}
@@ -26,7 +26,11 @@ export function MemberCard({ member, onNavigate }: MemberCardProps) {
           <div className="min-w-0 flex-1">
             <CardTitle className="text-lg truncate flex items-center gap-1.5">
               {member.name}
-              {member.is_baby && <Baby className="size-4 text-muted-foreground shrink-0" title="Baby" />}
+              {member.is_baby && (
+              <span title="Baby" className="shrink-0">
+                <Baby className="size-4 text-muted-foreground" />
+              </span>
+            )}
             </CardTitle>
             {member.position && (
               <p className="text-sm text-muted-foreground truncate">
