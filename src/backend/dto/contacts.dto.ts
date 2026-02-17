@@ -88,6 +88,16 @@ export const ContactsDto = {
   noteUpdateBody: t.Object({ content: t.String() }),
   noteParams: t.Object({ id: t.String(), noteId: t.String() }),
 
+  photoParams: t.Object({ id: t.String(), photoId: t.String() }),
+  photoUploadBody: t.Object(
+    {
+      file: t.File(),
+      type: t.Optional(t.String()),
+      set_as_profile: t.Optional(t.Union([t.Boolean(), t.String()])),
+    },
+    { additionalProperties: true }
+  ),
+
   updateBody: t.Object({
     type: t.Optional(contactType),
     status: t.Optional(contactStatus),

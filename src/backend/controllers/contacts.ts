@@ -34,6 +34,17 @@ export class ContactsController extends BaseController {
       })
       .delete("/:id/notes/:noteId", ({ params }) => this.deleteNote(params.id, params.noteId), {
         params: ContactsDto.noteParams,
+      })
+      .get("/:id/photos/:photoId", ({ params, query }) => this.getPhoto(params.id, params.photoId, query.size as string | undefined))
+      .post("/:id/photos", ({ params, body }) => this.addPhoto(params.id, body), {
+        params: ContactsDto.params,
+        body: ContactsDto.photoUploadBody,
+      })
+      .delete("/:id/photos/:photoId", ({ params }) => this.deletePhoto(params.id, params.photoId), {
+        params: ContactsDto.photoParams,
+      })
+      .post("/:id/photos/:photoId/set-profile", ({ params }) => this.setProfilePhoto(params.id, params.photoId), {
+        params: ContactsDto.photoParams,
       });
   }
 
@@ -137,5 +148,48 @@ export class ContactsController extends BaseController {
 
   private deleteNote(contactId: string, noteId: string) {
     return this.api.contacts.notes.delete(contactId, noteId).then(() => this.json({ ok: true }));
+  }
+
+  private async getPhoto(contactId: string, photoId: string, sizeParam?: string) {
+    const VALID_SIZES = ["thumbnail", "display", "full"] as const;
+    const size = sizeParam && VALID_SIZES.includes(sizeParam as (typeof VALID_SIZES)[number])
+      ? (sizeParam as (typeof VALID_SIZES)[number])
+      : "full";
+    const buffer = await this.api.contacts.getPhoto(contactId, photoId, size);
+    if (!buffer) {
+      return new Response(null, { status: 404 });
+    }
+    return new Response(new Uint8Array(buffer), {
+      headers: { "Content-Type": "image/jpeg" },
+    });
+  }
+
+  private async addPhoto(
+    contactId: string,
+    body: { file?: File; type?: string; set_as_profile?: boolean | string }
+  ) {
+    const file = body?.file;
+    if (!file || !(file instanceof File)) {
+      return this.json({ error: "No file provided" }, { status: 400 });
+    }
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const type = (body.type === "profile" ? "profile" : "contact") as "profile" | "contact";
+    const setAsProfile =
+      body.set_as_profile === true || body.set_as_profile === "true" || body.set_as_profile === "1";
+    const photo = await this.api.contacts.addPhoto(contactId, buffer, type, setAsProfile);
+    if (!photo) return this.json({ error: "Contact not found" }, { status: 404 });
+    return this.json(photo);
+  }
+
+  private deletePhoto(contactId: string, photoId: string) {
+    return this.api.contacts
+      .deletePhoto(contactId, photoId)
+      .then((ok) => (ok ? this.json({ ok: true }) : this.notFound()));
+  }
+
+  private setProfilePhoto(contactId: string, photoId: string) {
+    return this.api.contacts
+      .setProfilePhoto(contactId, photoId)
+      .then((ok) => (ok ? this.json({ ok: true }) : this.notFound()));
   }
 }

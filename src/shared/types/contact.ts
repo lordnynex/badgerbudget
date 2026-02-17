@@ -49,6 +49,22 @@ export interface ContactNote {
   created_at: string | null;
 }
 
+export type ContactPhotoType = "profile" | "contact";
+
+export interface ContactPhoto {
+  id: string;
+  contact_id: string;
+  type: ContactPhotoType;
+  sort_order: number;
+  /** URL to fetch full-size image */
+  photo_url: string;
+  /** URL to fetch thumbnail */
+  photo_thumbnail_url: string;
+  /** URL to fetch display size (for main dossier view) */
+  photo_display_url: string;
+  created_at: string | null;
+}
+
 export interface Contact {
   id: string;
   type: ContactType;
@@ -73,6 +89,7 @@ export interface Contact {
   phones?: ContactPhone[];
   addresses?: ContactAddress[];
   tags?: Tag[];
+  contact_photos?: ContactPhoto[];
 }
 
 export interface MailingListMember {

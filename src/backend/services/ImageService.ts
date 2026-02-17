@@ -88,6 +88,20 @@ export class ImageService {
   }
 
   /**
+   * Create a display-sized image for dossier/main photo (256x256).
+   * Optimized for quality at moderate filesize.
+   */
+  static async createDisplay(input: Buffer): Promise<Buffer | null> {
+    return this.resize(input, {
+      width: 256,
+      height: 256,
+      fit: "cover",
+      quality: 85,
+      format: "jpeg",
+    });
+  }
+
+  /**
    * Optimize a full-size image (resize to max dimensions if larger, compress with mozjpeg).
    * Use when you want to limit file size of stored originals while keeping high resolution and quality.
    */

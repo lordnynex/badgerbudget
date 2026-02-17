@@ -10,6 +10,7 @@ export const CommonParams = {
   idContactId: t.Object({ id: t.String(), contactId: t.String() }),
   idRecipientId: t.Object({ id: t.String(), recipientId: t.String() }),
   idItemId: t.Object({ id: t.String(), itemId: t.String() }),
+  idPhotoId: t.Object({ id: t.String(), photoId: t.String() }),
   idMidMemberId: t.Object({ id: t.String(), mid: t.String(), memberId: t.String() }),
   idAidMemberId: t.Object({ id: t.String(), aid: t.String(), memberId: t.String() }),
 };

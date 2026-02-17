@@ -7,12 +7,16 @@ import type {
   ContactPhone,
   ContactAddress,
   ContactNote,
+  ContactPhoto as ContactPhotoType,
   Tag,
   ContactSearchParams,
   ContactSearchResult,
 } from "@/shared/types/contact";
-import { Contact as ContactEntity, ContactEmail as ContactEmailEntity, ContactPhone as ContactPhoneEntity, ContactAddress as ContactAddressEntity, ContactNote as ContactNoteEntity, Tag as TagEntity, ContactTag } from "../entities";
+import { Contact as ContactEntity, ContactEmail as ContactEmailEntity, ContactPhone as ContactPhoneEntity, ContactAddress as ContactAddressEntity, ContactNote as ContactNoteEntity, ContactPhoto as ContactPhotoEntity, Tag as TagEntity, ContactTag } from "../entities";
+import { ImageService } from "./ImageService";
 import { uuid } from "./utils";
+
+export type ContactPhotoSize = "thumbnail" | "display" | "full";
 
 function entityToContact(e: ContactEntity): Contact {
   return {
@@ -71,6 +75,7 @@ export class ContactsService {
     phones: ContactPhone[];
     addresses: ContactAddress[];
     contact_notes: ContactNote[];
+    contact_photos: ContactPhotoType[];
     tags: Tag[];
   }> {
     /* Original: SELECT * FROM contact_emails WHERE contact_id = ? ORDER BY is_primary DESC, id */
@@ -102,6 +107,18 @@ export class ContactsService {
             order: { name: "ASC" },
           })
         : [];
+
+    /* SELECT * FROM contact_photos WHERE contact_id = ? ORDER BY type='profile' DESC, sort_order ASC, created_at ASC */
+    const photoEntities = await this.ds.getRepository(ContactPhotoEntity).find({
+      where: { contactId },
+      order: { sortOrder: "ASC", createdAt: "ASC" },
+    });
+    // Profile first, then by sort_order
+    const sortedPhotos = [...photoEntities].sort((a, b) => {
+      if (a.type === "profile" && b.type !== "profile") return -1;
+      if (a.type !== "profile" && b.type === "profile") return 1;
+      return a.sortOrder - b.sortOrder;
+    });
 
     return {
       emails: emails.map((e) => ({
@@ -136,8 +153,112 @@ export class ContactsService {
         content: n.content,
         created_at: n.createdAt,
       })),
+      contact_photos: sortedPhotos.map((p) => ({
+        id: p.id,
+        contact_id: p.contactId,
+        type: p.type as ContactPhotoType["type"],
+        sort_order: p.sortOrder,
+        photo_url: `/api/contacts/${contactId}/photos/${p.id}?size=full`,
+        photo_thumbnail_url: `/api/contacts/${contactId}/photos/${p.id}?size=thumbnail`,
+        photo_display_url: `/api/contacts/${contactId}/photos/${p.id}?size=display`,
+        created_at: p.createdAt,
+      })),
       tags: tagRows.map((t) => ({ id: t.id, name: t.name })),
     };
+  }
+
+  /**
+   * Get contact photo as buffer for the given size. Returns null if not found.
+   */
+  async getPhoto(contactId: string, photoId: string, size: ContactPhotoSize): Promise<Buffer | null> {
+    const photo = await this.ds.getRepository(ContactPhotoEntity).findOne({
+      where: { id: photoId, contactId },
+      select: ["photo", "photoThumbnail"],
+    });
+    if (!photo || !photo.photo) return null;
+    const buffer = Buffer.from(photo.photo);
+    const thumbnailBlob = photo.photoThumbnail;
+
+    switch (size) {
+      case "thumbnail":
+        if (thumbnailBlob) return Buffer.from(thumbnailBlob);
+        return ImageService.createThumbnail(buffer);
+      case "display":
+        return ImageService.createDisplay(buffer);
+      case "full":
+        return buffer;
+      default:
+        return buffer;
+    }
+  }
+
+  /**
+   * Add a photo to a contact. Uses ImageService to optimize and generate thumbnail.
+   */
+  async addPhoto(
+    contactId: string,
+    imageBuffer: Buffer,
+    type: "profile" | "contact" = "contact",
+    setAsProfile = false
+  ): Promise<ContactPhotoType | null> {
+    const contact = await this.ds.getRepository(ContactEntity).findOne({ where: { id: contactId } });
+    if (!contact) return null;
+
+    const optimized = await ImageService.optimize(imageBuffer, 1920, 1920, 88);
+    const photoBlob = optimized ?? imageBuffer;
+    const thumbnailBlob = await ImageService.createThumbnail(photoBlob);
+
+    const id = uuid();
+    const finalType = setAsProfile ? "profile" : type;
+    const sortOrder = setAsProfile ? 0 : 999;
+
+    if (setAsProfile) {
+      await this.db.run("UPDATE contact_photos SET type = 'contact' WHERE contact_id = ?", [contactId]);
+    }
+
+    await this.db.run(
+      "INSERT INTO contact_photos (id, contact_id, type, sort_order, photo, photo_thumbnail) VALUES (?, ?, ?, ?, ?, ?)",
+      [id, contactId, finalType, sortOrder, photoBlob, thumbnailBlob ?? photoBlob]
+    );
+
+    return {
+      id,
+      contact_id: contactId,
+      type: finalType,
+      sort_order: sortOrder,
+      photo_url: `/api/contacts/${contactId}/photos/${id}?size=full`,
+      photo_thumbnail_url: `/api/contacts/${contactId}/photos/${id}?size=thumbnail`,
+      photo_display_url: `/api/contacts/${contactId}/photos/${id}?size=display`,
+      created_at: new Date().toISOString(),
+    };
+  }
+
+  /**
+   * Delete a contact photo.
+   */
+  async deletePhoto(contactId: string, photoId: string): Promise<boolean> {
+    const result = await this.ds.getRepository(ContactPhotoEntity).delete({
+      id: photoId,
+      contactId,
+    });
+    return (result.affected ?? 0) > 0;
+  }
+
+  /**
+   * Set a photo as the profile (main) photo.
+   */
+  async setProfilePhoto(contactId: string, photoId: string): Promise<boolean> {
+    const photo = await this.ds.getRepository(ContactPhotoEntity).findOne({
+      where: { id: photoId, contactId },
+    });
+    if (!photo) return false;
+
+    await this.db.run("UPDATE contact_photos SET type = 'contact' WHERE contact_id = ?", [contactId]);
+    await this.db.run("UPDATE contact_photos SET type = 'profile', sort_order = 0 WHERE id = ? AND contact_id = ?", [
+      photoId,
+      contactId,
+    ]);
+    return true;
   }
 
   async list(params: ContactSearchParams = {}): Promise<ContactSearchResult> {
@@ -529,6 +650,7 @@ export class ContactsService {
     await this.db.run("UPDATE mailing_list_members SET contact_id = ? WHERE contact_id = ?", [targetId, sourceId]);
     await this.db.run("UPDATE mailing_batch_recipients SET contact_id = ? WHERE contact_id = ?", [targetId, sourceId]);
     await this.db.run("UPDATE contact_notes SET contact_id = ? WHERE contact_id = ?", [targetId, sourceId]);
+    await this.db.run("UPDATE contact_photos SET contact_id = ? WHERE contact_id = ?", [targetId, sourceId]);
     await this.delete(sourceId);
 
     return this.get(targetId)!;
@@ -541,8 +663,9 @@ export class ContactsService {
         "INSERT INTO contact_notes (id, contact_id, content) VALUES (?, ?, ?)",
         [id, contactId, content.trim()]
       );
-      const rows = await this.db.all("SELECT * FROM contact_notes WHERE id = ?", [id]) as Array<Record<string, unknown>>;
+      const rows = (await this.db.query("SELECT * FROM contact_notes WHERE id = ?", id).all()) as Array<Record<string, unknown>>;
       const r = rows[0];
+      if (!r) throw new Error("Failed to create note");
       return {
         id: r.id as string,
         contact_id: r.contact_id as string,
@@ -551,10 +674,10 @@ export class ContactsService {
       };
     },
     update: async (contactId: string, noteId: string, content: string): Promise<ContactNote | null> => {
-      const rows = await this.db.all("SELECT id FROM contact_notes WHERE id = ? AND contact_id = ?", [noteId, contactId]) as Array<Record<string, unknown>>;
+      const rows = (await this.db.query("SELECT id FROM contact_notes WHERE id = ? AND contact_id = ?", noteId, contactId).all()) as Array<Record<string, unknown>>;
       if (rows.length === 0) return null;
       await this.db.run("UPDATE contact_notes SET content = ? WHERE id = ? AND contact_id = ?", [content.trim(), noteId, contactId]);
-      const updated = await this.db.all("SELECT * FROM contact_notes WHERE id = ?", [noteId]) as Array<Record<string, unknown>>;
+      const updated = (await this.db.query("SELECT * FROM contact_notes WHERE id = ?", noteId).all()) as Array<Record<string, unknown>>;
       const r = updated[0];
       return r ? { id: r.id as string, contact_id: r.contact_id as string, content: r.content as string, created_at: (r.created_at as string) ?? null } : null;
     },

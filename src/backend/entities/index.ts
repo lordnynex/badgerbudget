@@ -15,6 +15,7 @@ export { ContactEmail } from "./ContactEmail";
 export { ContactPhone } from "./ContactPhone";
 export { ContactAddress } from "./ContactAddress";
 export { ContactNote } from "./ContactNote";
+export { ContactPhoto } from "./ContactPhoto";
 export { Tag } from "./Tag";
 export { ContactTag } from "./ContactTag";
 export { MailingList } from "./MailingList";

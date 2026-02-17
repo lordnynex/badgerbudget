@@ -5,8 +5,10 @@ import { Button } from "@/components/ui/button";
 import { api } from "@/data/api";
 import type { MailingList } from "@/types/contact";
 import { contactsToVCardFile } from "@/lib/vcard";
-import { ArrowLeft, Pencil, Download, Trash2, RotateCcw, Plus, Trash2Icon } from "lucide-react";
+import { ArrowLeft, Pencil, Download, Trash2, RotateCcw, Plus, Trash2Icon, User } from "lucide-react";
 import { EditContactDialog } from "./EditContactDialog";
+import { ContactPhotoCarousel } from "./ContactPhotoCarousel";
+import { ContactPhotoLightbox } from "./ContactPhotoLightbox";
 import { useContactSuspense, useInvalidateQueries } from "@/queries/hooks";
 import { useQuery } from "@tanstack/react-query";
 import { queryKeys } from "@/queries/keys";
@@ -37,6 +39,7 @@ function ContactDetailContent({ id }: { id: string }) {
   const [addingNote, setAddingNote] = useState(false);
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [editingNoteContent, setEditingNoteContent] = useState("");
+  const [headerPhotoLightboxOpen, setHeaderPhotoLightboxOpen] = useState(false);
 
   const { data: allLists = [] } = useQuery({
     queryKey: queryKeys.mailingLists,
@@ -117,7 +120,24 @@ function ContactDetailContent({ id }: { id: string }) {
     refresh();
   };
 
+  const handleAddPhoto = async (file: File, setAsProfile?: boolean) => {
+    await api.contacts.photos.add(id, file, { set_as_profile: setAsProfile });
+    refresh();
+  };
+
+  const handleDeletePhoto = async (photoId: string) => {
+    await api.contacts.photos.delete(id, photoId);
+    refresh();
+  };
+
+  const handleSetProfilePhoto = async (photoId: string) => {
+    await api.contacts.photos.setProfile(id, photoId);
+    refresh();
+  };
+
   const notes = contact.contact_notes ?? [];
+  const photos = contact.contact_photos ?? [];
+  const mainPhoto = photos.find((p) => p.type === "profile") ?? photos[0];
 
   return (
     <div className="space-y-6">
@@ -151,15 +171,38 @@ function ContactDetailContent({ id }: { id: string }) {
         </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-xl">{contact.display_name}</CardTitle>
-          <p className="text-sm text-muted-foreground">
-            {contact.type} • {contact.status}
-            {contact.organization_name && ` • ${contact.organization_name}`}
-          </p>
-        </CardHeader>
-        <CardContent className="space-y-8">
+      <div className="grid gap-6 lg:grid-cols-[1fr,auto]">
+        <Card className="h-fit">
+          <CardHeader>
+            <div className="flex items-start gap-6">
+              <div className="flex-1 min-w-0">
+                <CardTitle className="text-xl">{contact.display_name}</CardTitle>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {contact.type} • {contact.status}
+                  {contact.organization_name && ` • ${contact.organization_name}`}
+                </p>
+              </div>
+              <div
+                className={`size-32 shrink-0 rounded-lg overflow-hidden bg-muted flex items-center justify-center ${
+                  mainPhoto ? "cursor-pointer hover:opacity-90 transition-opacity" : ""
+                }`}
+                onClick={mainPhoto ? () => setHeaderPhotoLightboxOpen(true) : undefined}
+                role={mainPhoto ? "button" : undefined}
+                aria-label={mainPhoto ? "View full size photo" : undefined}
+              >
+                {mainPhoto ? (
+                  <img
+                    src={mainPhoto.photo_display_url}
+                    alt={`${contact.display_name} photo`}
+                    className="size-full object-cover"
+                  />
+                ) : (
+                  <User className="size-16 text-muted-foreground" />
+                )}
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-8">
           {/* Profile */}
           <section>
             <h3 className="text-sm font-semibold text-muted-foreground mb-3">Profile</h3>
@@ -383,8 +426,38 @@ function ContactDetailContent({ id }: { id: string }) {
               </ul>
             )}
           </section>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+
+        {/* Dossier photo panel - right side */}
+        <div className="lg:sticky lg:top-6 lg:self-start">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Photos</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ContactPhotoCarousel
+                contactId={id}
+                contactName={contact.display_name}
+                photos={photos}
+                onAddPhoto={handleAddPhoto}
+                onDeletePhoto={handleDeletePhoto}
+                onSetProfilePhoto={handleSetProfilePhoto}
+                disabled={contact.status === "deleted"}
+              />
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {mainPhoto && (
+        <ContactPhotoLightbox
+          open={headerPhotoLightboxOpen}
+          onOpenChange={setHeaderPhotoLightboxOpen}
+          photoUrl={mainPhoto.photo_url}
+          contactName={contact.display_name}
+        />
+      )}
 
       <EditContactDialog open={editOpen} onOpenChange={setEditOpen} contact={contact} onSuccess={refresh} />
 

@@ -1,5 +1,10 @@
 import { client, unwrap, buildSearchParams } from "./client";
-import type { ContactSearchParams, ContactSearchResult } from "@/types/contact";
+import type {
+  Contact,
+  ContactSearchParams,
+  ContactSearchResult,
+  ContactPhoto,
+} from "@/types/contact";
 
 export class ContactsApiClient {
   async list(params?: ContactSearchParams): Promise<ContactSearchResult> {
@@ -24,7 +29,7 @@ export class ContactsApiClient {
     return unwrap(client.api.contacts({ id }).get());
   }
 
-  create(body: Record<string, unknown>) {
+  create(body: Partial<Contact> & { display_name: string }) {
     return unwrap(client.api.contacts.post(body));
   }
 
@@ -42,7 +47,10 @@ export class ContactsApiClient {
 
   bulkUpdate(
     ids: string[],
-    updates: { tags?: unknown[]; status?: string },
+    updates: {
+      tags?: (string | { id: string; name: string })[];
+      status?: "active" | "inactive";
+    },
   ) {
     return unwrap(client.api.contacts["bulk-update"].post({ ids, ...updates }));
   }
@@ -93,6 +101,48 @@ export class ContactsApiClient {
     list: () => unwrap(client.api.contacts.tags.get()),
     create: (name: string) =>
       unwrap(client.api.contacts.tags.post({ name })),
+  };
+
+  readonly photos = {
+    add: async (
+      contactId: string,
+      file: File,
+      options?: { type?: "profile" | "contact"; set_as_profile?: boolean }
+    ): Promise<ContactPhoto> => {
+      const form = new FormData();
+      form.append("file", file);
+      if (options?.type) form.append("type", options.type);
+      if (options?.set_as_profile !== undefined)
+        form.append("set_as_profile", String(options.set_as_profile));
+      const res = await fetch(`/api/contacts/${contactId}/photos`, {
+        method: "POST",
+        body: form,
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: res.statusText }));
+        throw new Error((err as { error?: string }).error ?? "Upload failed");
+      }
+      return res.json();
+    },
+    delete: async (contactId: string, photoId: string): Promise<void> => {
+      const res = await fetch(`/api/contacts/${contactId}/photos/${photoId}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: res.statusText }));
+        throw new Error((err as { error?: string }).error ?? "Delete failed");
+      }
+    },
+    setProfile: async (contactId: string, photoId: string): Promise<void> => {
+      const res = await fetch(
+        `/api/contacts/${contactId}/photos/${photoId}/set-profile`,
+        { method: "POST" }
+      );
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: res.statusText }));
+        throw new Error((err as { error?: string }).error ?? "Set profile failed");
+      }
+    },
   };
 
   readonly notes = {
