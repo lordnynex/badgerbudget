@@ -20,7 +20,7 @@ interface MainProps {
 
 export function Main({ activeTab, onPrint, onEmail }: MainProps) {
   const navigate = useNavigate();
-  const { getInputs, getLineItems } = useAppState();
+  const { getInputs, getLineItems, selectedScenarioId } = useAppState();
   const metrics = useScenarioMetrics(getInputs(), getLineItems());
 
   return (
@@ -28,7 +28,7 @@ export function Main({ activeTab, onPrint, onEmail }: MainProps) {
       {activeTab === "events" && <EventsPanel />}
       {activeTab === "projections" && (
         <>
-          <InputsPanel readOnly onEditScenario={() => navigate("/budgeting/scenarios")} />
+          <InputsPanel readOnly onEditScenario={() => navigate(selectedScenarioId ? `/budgeting/scenarios/${selectedScenarioId}` : "/budgeting/scenarios")} />
           <section id="summary" className="scroll-mt-28">
             <SummarySection metrics={metrics} filteredMetrics={metrics} />
           </section>

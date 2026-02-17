@@ -1,10 +1,11 @@
 import { useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Pencil, Plus } from "lucide-react";
+import { ArrowLeft, Pencil, Plus } from "lucide-react";
 import { useAppState } from "@/state/AppState";
 import { useInvalidateQueries } from "@/queries/hooks";
 import { api } from "@/data/api";
@@ -18,10 +19,11 @@ import {
 import { LineItemsTable } from "./LineItemsTable";
 
 export function BudgetsPanel() {
+  const { id: budgetId } = useParams<{ id?: string }>();
+  const navigate = useNavigate();
   const {
     budgets,
     currentBudget,
-    selectBudget,
     refreshBudgets,
     refreshBudget,
   } = useAppState();
@@ -48,7 +50,7 @@ export function BudgetsPanel() {
     setCreateOpen(false);
     invalidate.invalidateBudgets();
     await refreshBudgets();
-    selectBudget(created.id);
+    navigate(`/budgeting/budget/${created.id}`);
   };
 
   const handleDelete = async (id: string) => {
@@ -56,8 +58,7 @@ export function BudgetsPanel() {
     await api.budgets.delete(id);
     invalidate.invalidateBudgets();
     await refreshBudgets();
-    const remaining = budgets.filter((b) => b.id !== id);
-    selectBudget(remaining[0]?.id ?? null);
+    navigate("/budgeting/budget");
   };
 
   const openEdit = (b: { id: string; name: string; year: number; description: string | null }) => {
@@ -83,68 +84,89 @@ export function BudgetsPanel() {
     setEditingBudget(null);
   };
 
+  if (budgetId) {
+    return (
+      <BudgetDetail
+          budgetId={budgetId}
+          onBack={() => navigate("/budgeting/budget")}
+          onEdit={openEdit}
+          onDelete={handleDelete}
+          onSaveEdit={handleSaveEdit}
+          editOpen={editOpen}
+          setEditOpen={setEditOpen}
+          editingBudget={editingBudget}
+          setEditingBudget={setEditingBudget}
+          editName={editName}
+          setEditName={setEditName}
+          editDescription={editDescription}
+          setEditDescription={setEditDescription}
+        />
+    );
+  }
+
   return (
     <>
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
+      <div className="space-y-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <CardTitle>Budgets</CardTitle>
-            <CardDescription>
+            <h1 className="text-2xl font-bold tracking-tight">Budgets</h1>
+            <p className="text-muted-foreground mt-1">
               Create and manage budgets. Each budget has its own line items.
-            </CardDescription>
+            </p>
           </div>
-          <Button onClick={() => setCreateOpen(true)} size="sm">
+          <Button onClick={() => setCreateOpen(true)}>
             <Plus className="size-4" />
             New Budget
           </Button>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            {budgets.map((b) => (
-              <div
-                key={b.id}
-                className={`flex items-center justify-between rounded-lg border p-4 transition-colors hover:bg-muted/30 ${
-                  currentBudget?.id === b.id ? "border-primary" : ""
-                }`}
-              >
-                <div
-                  className="cursor-pointer flex-1"
-                  onClick={() => selectBudget(b.id)}
-                >
-                  <p className="font-medium">{b.name} ({b.year})</p>
-                  {b.description && (
-                    <p className="text-muted-foreground mt-1 text-sm">
-                      {b.description}
-                    </p>
-                  )}
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => openEdit(b)}
-                    title="Edit budget"
-                  >
-                    <Pencil className="size-4" />
-                    Edit
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleDelete(b.id)}
-                    title="Delete budget"
-                    className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                  >
-                    Delete
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+        </div>
 
-      <LineItemsTable />
+        <Card>
+          <CardContent className="pt-6">
+            {budgets.length === 0 ? (
+              <div className="py-12 text-center text-muted-foreground">
+                No budgets yet. Create one to get started.
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {budgets.map((b) => (
+                  <div
+                    key={b.id}
+                    className="flex items-center justify-between rounded-lg border p-4 hover:bg-muted/50 cursor-pointer"
+                    onClick={() => navigate(`/budgeting/budget/${b.id}`)}
+                  >
+                    <div>
+                      <p className="font-medium">{b.name} ({b.year})</p>
+                      {b.description && (
+                        <p className="text-muted-foreground text-sm mt-1">
+                          {b.description}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openEdit(b)}
+                        title="Edit budget"
+                      >
+                        <Pencil className="size-4" />
+                        Edit
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => navigate(`/budgeting/budget/${b.id}`)}
+                      >
+                        Open
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent>
@@ -222,5 +244,120 @@ export function BudgetsPanel() {
         </DialogContent>
       </Dialog>
     </>
+  );
+}
+
+function BudgetDetail({
+  budgetId,
+  onBack,
+  onEdit,
+  onDelete,
+  onSaveEdit,
+  editOpen,
+  setEditOpen,
+  editingBudget,
+  setEditingBudget,
+  editName,
+  setEditName,
+  editDescription,
+  setEditDescription,
+}: {
+  budgetId: string;
+  onBack: () => void;
+  onEdit: (b: { id: string; name: string; year: number; description: string | null }) => void;
+  onDelete: (id: string) => void;
+  onSaveEdit: () => void;
+  editOpen: boolean;
+  setEditOpen: (open: boolean) => void;
+  editingBudget: { id: string; name: string; year: number; description: string | null } | null;
+  setEditingBudget: (b: { id: string; name: string; year: number; description: string | null } | null) => void;
+  editName: string;
+  setEditName: (s: string) => void;
+  editDescription: string;
+  setEditDescription: (s: string) => void;
+}) {
+  const { currentBudget } = useAppState();
+  const handleEditDialogChange = (open: boolean) => {
+    setEditOpen(open);
+    if (!open) setEditingBudget(null);
+  };
+
+  if (!currentBudget || currentBudget.id !== budgetId) {
+    return (
+      <div className="flex min-h-[280px] items-center justify-center p-6">
+        <p className="text-muted-foreground">Loading budget...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <Button variant="ghost" onClick={onBack}>
+          <ArrowLeft className="size-4" />
+          Back to Budgets
+        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => onEdit(currentBudget)}
+          >
+            <Pencil className="size-4" />
+            Edit
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => onDelete(currentBudget.id)}
+            className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+          >
+            Delete
+          </Button>
+        </div>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{currentBudget.name} ({currentBudget.year})</CardTitle>
+          {currentBudget.description && (
+            <CardDescription>{currentBudget.description}</CardDescription>
+          )}
+        </CardHeader>
+      </Card>
+
+      <LineItemsTable />
+
+      <Dialog open={editOpen} onOpenChange={handleEditDialogChange}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Budget</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Name</Label>
+              <Input
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                placeholder="e.g. Badger South 2025"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Description</Label>
+              <Textarea
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value)}
+                placeholder="Describe this budget..."
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={onSaveEdit}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }

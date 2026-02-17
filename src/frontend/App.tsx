@@ -123,11 +123,31 @@ function AppContent() {
                 }
               />
               <Route
+                path="budget/:id"
+                element={
+                  <IdParamGuard param="id">
+                    <Suspense fallback={<PageLoading />}>
+                      <Main activeTab="budget" onPrint={onPrint} onEmail={onEmail} />
+                    </Suspense>
+                  </IdParamGuard>
+                }
+              />
+              <Route
                 path="scenarios"
                 element={
                   <Suspense fallback={<PageLoading />}>
                     <Main activeTab="scenarios" onPrint={onPrint} onEmail={onEmail} />
                   </Suspense>
+                }
+              />
+              <Route
+                path="scenarios/:id"
+                element={
+                  <IdParamGuard param="id">
+                    <Suspense fallback={<PageLoading />}>
+                      <Main activeTab="scenarios" onPrint={onPrint} onEmail={onEmail} />
+                    </Suspense>
+                  </IdParamGuard>
                 }
               />
             </Route>

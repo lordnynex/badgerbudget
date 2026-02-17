@@ -61,6 +61,7 @@ export function BudgetingLayout({ onPrint, onEmail }: BudgetingLayoutProps) {
         <nav className="space-y-1" aria-label="Budgeting section">
           <NavLink
             to="/budgeting/budget"
+            end={false}
             className={({ isActive }) => navLinkClass({ isActive }, collapsed)}
             title={collapsed ? "Budgets" : undefined}
           >
@@ -69,6 +70,7 @@ export function BudgetingLayout({ onPrint, onEmail }: BudgetingLayoutProps) {
           </NavLink>
           <NavLink
             to="/budgeting/scenarios"
+            end={false}
             className={({ isActive }) => navLinkClass({ isActive }, collapsed)}
             title={collapsed ? "Scenarios" : undefined}
           >
