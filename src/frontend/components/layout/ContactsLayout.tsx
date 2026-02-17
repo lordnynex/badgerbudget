@@ -5,7 +5,7 @@ import { api } from "@/data/api";
 import { queryKeys } from "@/queries/keys";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Users, Mail, Plus, Mailbox, AtSign, QrCode, PanelLeftClose, PanelLeftOpen, FileText, MailPlus, Image } from "lucide-react";
+import { Users, Mail, Plus, Mailbox, AtSign, QrCode, PanelLeftClose, PanelLeftOpen, FileText, MailPlus, Image, BookOpen, Building2 } from "lucide-react";
 
 const navLinkClass = ({ isActive }: { isActive: boolean }, collapsed?: boolean) =>
   cn(
@@ -72,10 +72,18 @@ export function ContactsLayout() {
           </Button>
         </div>
         <nav className="space-y-6 py-4" aria-label="Contacts section">
-          <div>
+          <div className="space-y-0.5">
             <NavLink to="/contacts" end className={({ isActive }) => navLinkClass({ isActive }, collapsed)} title={collapsed ? "All contacts" : undefined}>
               <Users className="size-4 shrink-0" />
               {!collapsed && <span>All contacts</span>}
+            </NavLink>
+            <NavLink to="/contacts/hellenics" className={({ isActive }) => navLinkClass({ isActive }, collapsed)} title={collapsed ? "Hellenics" : undefined}>
+              <BookOpen className="size-4 shrink-0" />
+              {!collapsed && <span>Hellenics</span>}
+            </NavLink>
+            <NavLink to="/contacts/vendors" className={({ isActive }) => navLinkClass({ isActive }, collapsed)} title={collapsed ? "Vendors" : undefined}>
+              <Building2 className="size-4 shrink-0" />
+              {!collapsed && <span>Vendors</span>}
             </NavLink>
           </div>
 

@@ -81,8 +81,7 @@ function BudgetScenarioListsSync({ children }: { children: ReactNode }) {
   // On list-only or standalone pages, render children without full data sync
   const isBudgetList = location.pathname === "/budgeting/budget";
   const isScenarioList = location.pathname === "/budgeting/scenarios";
-  const isStandalone =
-    location.pathname === "/budgeting/actual-spend" || location.pathname === "/budgeting/vendors";
+  const isStandalone = location.pathname === "/budgeting/actual-spend";
   if (isBudgetList || isScenarioList || isStandalone) {
     return <>{children}</>;
   }

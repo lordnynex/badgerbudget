@@ -20,8 +20,9 @@ import { QrCodeDetailPage } from "@/components/contacts/QrCodeDetailPage";
 import { MailingPanel } from "@/components/contacts/MailingPanel";
 import { EmailPanel } from "@/components/contacts/EmailPanel";
 import { AssetsPanel } from "@/components/contacts/AssetsPanel";
+import { HellenicsPanel } from "@/components/contacts/HellenicsPanel";
 import { ActualSpendPanel } from "@/components/budget/ActualSpendPanel";
-import { VendorsPanel } from "@/components/budget/VendorsPanel";
+import { VendorsPanel } from "@/components/contacts/VendorsPanel";
 import { ContactsLayout } from "@/components/layout/ContactsLayout";
 import { EventDetailSubNav } from "@/components/layout/EventDetailSubNav";
 import { PrintView } from "@/components/export/PrintView";
@@ -165,16 +166,6 @@ function AppContent() {
                   </main>
                 }
               />
-              <Route
-                path="vendors"
-                element={
-                  <main className="space-y-6 p-4 md:p-6">
-                    <Suspense fallback={<PageLoading />}>
-                      <VendorsPanel />
-                    </Suspense>
-                  </main>
-                }
-              />
             </Route>
             <Route
               path="/contacts"
@@ -249,6 +240,22 @@ function AppContent() {
                 element={
                   <Suspense fallback={<PageLoading />}>
                     <AssetsPanel />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="hellenics"
+                element={
+                  <Suspense fallback={<PageLoading />}>
+                    <HellenicsPanel />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="vendors"
+                element={
+                  <Suspense fallback={<PageLoading />}>
+                    <VendorsPanel />
                   </Suspense>
                 }
               />

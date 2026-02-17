@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Outlet, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { Wallet, GitBranch, TrendingUp, PanelLeftClose, PanelLeftOpen, Plus, BarChart3, Building2 } from "lucide-react";
+import { Wallet, GitBranch, TrendingUp, PanelLeftClose, PanelLeftOpen, Plus, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -238,16 +238,6 @@ export function BudgetingLayout({ onPrint, onEmail }: BudgetingLayoutProps) {
           >
             <BarChart3 className="size-4 shrink-0" />
             {!collapsed && <span>Actual Spend</span>}
-          </NavLink>
-
-          {/* Vendors */}
-          <NavLink
-            to="/budgeting/vendors"
-            className={({ isActive }) => navLinkClass({ isActive }, collapsed)}
-            title={collapsed ? "Vendors" : undefined}
-          >
-            <Building2 className="size-4 shrink-0" />
-            {!collapsed && <span>Vendors</span>}
           </NavLink>
         </nav>
       </aside>
