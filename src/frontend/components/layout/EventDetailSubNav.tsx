@@ -25,14 +25,14 @@ export function EventDetailSubNav({ className }: EventDetailSubNavProps) {
       )}
     >
       <nav
-        className="flex flex-wrap items-center gap-1"
+        className="flex items-center gap-1 overflow-x-auto min-w-0 shrink"
         aria-label="Event detail page sections"
       >
         {SECTIONS.map(({ id, label }) => (
           <a
             key={id}
             href={`#${id}`}
-            className="rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            className="rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground whitespace-nowrap shrink-0"
           >
             {label}
           </a>

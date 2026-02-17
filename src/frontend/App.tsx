@@ -66,7 +66,7 @@ function AppContent() {
   return (
     <>
       {(printMode || isPrintRoute) ? (
-        <div className="min-h-screen bg-white p-8">
+        <div className="min-h-screen bg-white p-4 md:p-8">
           <PrintView state={stateForExport} metrics={metrics} />
           <div className="mt-8 flex gap-4 print:hidden">
             <Button onClick={() => window.print()}>Print</Button>

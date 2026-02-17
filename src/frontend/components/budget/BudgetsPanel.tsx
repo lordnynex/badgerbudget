@@ -359,7 +359,7 @@ function BudgetDetail({
             {categories.length > 0 ? (
               <div className="space-y-2">
                 <p className="text-sm font-medium text-muted-foreground">By category</p>
-                <div className="rounded-md border">
+                <div className="overflow-x-auto rounded-md border">
                   <table className="w-full text-sm">
                     <tbody>
                       {categories.map((cat) => (

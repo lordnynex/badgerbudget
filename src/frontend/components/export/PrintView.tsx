@@ -323,7 +323,8 @@ export function PrintView({ state, metrics }: PrintViewProps) {
         <p className="mb-4 text-sm text-gray-600 max-w-2xl">
           These are the assumptions used for all calculations in this report. Max occupancy is your venue capacity; staff count is how many people get discounted tickets. The profit target is how much money you want to make beyond covering costs. Ticket and staff prices are the options we test to see which combinations are profitable.
         </p>
-        <table className="w-full border text-sm">
+        <div className="overflow-x-auto">
+          <table className="w-full border text-sm">
           <tbody>
             <tr>
               <td className="border px-2 py-1 font-medium">Max Occupancy</td>
@@ -361,6 +362,7 @@ export function PrintView({ state, metrics }: PrintViewProps) {
             </tr>
           </tbody>
         </table>
+        </div>
       </section>
 
       {/* Budget Total */}
@@ -378,7 +380,8 @@ export function PrintView({ state, metrics }: PrintViewProps) {
         <p className="mb-4 text-sm text-gray-600 max-w-2xl">
           This is your full expense list—every item you plan to spend money on. Each row shows the item name, category, unit cost (price per item), quantity, and total (unit cost × quantity). The sum equals your Budget Total above.
         </p>
-        <table className="w-full border text-sm">
+        <div className="overflow-x-auto">
+          <table className="w-full border text-sm">
           <thead>
             <tr className="bg-gray-100">
               <th className="border p-2 text-left">Name</th>
@@ -402,6 +405,7 @@ export function PrintView({ state, metrics }: PrintViewProps) {
             ))}
           </tbody>
         </table>
+        </div>
         <p className="mt-2 font-semibold">Total: ${totalCosts.toFixed(2)}</p>
       </section>
 
@@ -515,7 +519,8 @@ export function PrintView({ state, metrics }: PrintViewProps) {
               <p className="mb-2 text-xs text-gray-600">
                 {tableMetrics[0]?.attendees} attendees
               </p>
-              <table className="w-full border text-sm">
+              <div className="overflow-x-auto">
+                <table className="w-full border text-sm">
                 <thead>
                   <tr className="bg-gray-100">
                     <th className="border p-2 text-left">Ticket Cost</th>
@@ -588,6 +593,7 @@ export function PrintView({ state, metrics }: PrintViewProps) {
                   ))}
                 </tbody>
               </table>
+              </div>
               {showCharts && (
                 <div className="mt-4 grid grid-cols-2 gap-4 print:grid-cols-2">
                   <div>

@@ -52,15 +52,15 @@ export function ProjectionsSubNav({ className, onPrint, onEmail }: ProjectionsSu
         className
       )}
     >
-      <div className="flex flex-wrap items-center gap-6">
-        <div className="flex flex-wrap items-end gap-6">
-          <div className="space-y-2">
+      <div className="flex flex-wrap items-center gap-4 sm:gap-6">
+        <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-end gap-4 sm:gap-6 min-w-0">
+          <div className="space-y-2 min-w-0 flex-1 sm:flex-initial">
             <Label className="text-xs text-muted-foreground">Budget</Label>
             <Select
               value={selectedBudgetId ?? ""}
               onValueChange={(v) => selectBudget(v || null)}
             >
-              <SelectTrigger className="h-8 w-[180px]">
+              <SelectTrigger className="h-8 w-full min-w-0 sm:w-[180px]">
                 <SelectValue placeholder="Select budget" />
               </SelectTrigger>
               <SelectContent>
@@ -72,13 +72,13 @@ export function ProjectionsSubNav({ className, onPrint, onEmail }: ProjectionsSu
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-2">
+          <div className="space-y-2 min-w-0 flex-1 sm:flex-initial">
             <Label className="text-xs text-muted-foreground">Scenario</Label>
             <Select
               value={selectedScenarioId ?? ""}
               onValueChange={(v) => selectScenario(v || null)}
             >
-              <SelectTrigger className="h-8 w-[180px]">
+              <SelectTrigger className="h-8 w-full min-w-0 sm:w-[180px]">
                 <SelectValue placeholder="Select scenario" />
               </SelectTrigger>
               <SelectContent>
@@ -92,14 +92,14 @@ export function ProjectionsSubNav({ className, onPrint, onEmail }: ProjectionsSu
           </div>
         </div>
         <nav
-          className="flex flex-wrap items-center gap-1 border-l pl-6"
+          className="flex items-center gap-1 overflow-x-auto sm:overflow-visible sm:border-l sm:pl-6 shrink-0 min-w-0"
           aria-label="Projections page sections"
         >
           {SECTIONS.map(({ id, label }) => (
             <a
               key={id}
               href={`#${id}`}
-              className="rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              className="rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground whitespace-nowrap shrink-0"
             >
               {label}
             </a>
