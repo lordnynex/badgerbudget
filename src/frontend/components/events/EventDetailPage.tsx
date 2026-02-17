@@ -126,6 +126,21 @@ function EventDetailContent({ id }: { id: string }) {
     refresh();
   };
 
+  const handleAddMemberAttendee = async (memberId: string, waiverSigned?: boolean) => {
+    await api.events.memberAttendees.add(id, { member_id: memberId, waiver_signed: waiverSigned });
+    refresh();
+  };
+
+  const handleUpdateMemberAttendeeWaiver = async (attendeeId: string, waiverSigned: boolean) => {
+    await api.events.memberAttendees.update(id, attendeeId, { waiver_signed: waiverSigned });
+    refresh();
+  };
+
+  const handleRemoveMemberAttendee = async (attendeeId: string) => {
+    await api.events.memberAttendees.delete(id, attendeeId);
+    refresh();
+  };
+
   const handleAddScheduleItem = async (body: {
     scheduled_time: string;
     label: string;
@@ -326,9 +341,13 @@ function EventDetailContent({ id }: { id: string }) {
           <RideAttendeesCard
             eventId={id}
             attendees={event.event_attendees ?? []}
+            memberAttendees={event.ride_member_attendees ?? []}
             onAdd={handleAddAttendee}
             onUpdateWaiver={handleUpdateAttendeeWaiver}
             onRemove={handleRemoveAttendee}
+            onAddMember={handleAddMemberAttendee}
+            onUpdateMemberWaiver={handleUpdateMemberAttendeeWaiver}
+            onRemoveMember={handleRemoveMemberAttendee}
           />
           <RideAssetsCard
             eventId={id}

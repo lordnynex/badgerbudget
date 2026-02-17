@@ -104,6 +104,40 @@ export class EventsApiClient {
     },
   };
 
+  readonly memberAttendees = {
+    add: async (eventId: string, body: { member_id: string; waiver_signed?: boolean }) => {
+      const res = await fetch(`/api/events/${eventId}/member-attendees`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: res.statusText }));
+        throw new Error((err as { error?: string }).error ?? "Add member attendee failed");
+      }
+      return res.json();
+    },
+    update: async (eventId: string, memberAttendeeId: string, body: { waiver_signed?: boolean }) => {
+      const res = await fetch(`/api/events/${eventId}/member-attendees/${memberAttendeeId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: res.statusText }));
+        throw new Error((err as { error?: string }).error ?? "Update member attendee failed");
+      }
+      return res.json();
+    },
+    delete: async (eventId: string, memberAttendeeId: string) => {
+      const res = await fetch(`/api/events/${eventId}/member-attendees/${memberAttendeeId}`, { method: "DELETE" });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: res.statusText }));
+        throw new Error((err as { error?: string }).error ?? "Delete member attendee failed");
+      }
+    },
+  };
+
   readonly scheduleItems = {
     create: async (eventId: string, body: { scheduled_time: string; label: string; location?: string }) => {
       const res = await fetch(`/api/events/${eventId}/schedule-items`, {

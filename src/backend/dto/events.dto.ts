@@ -18,6 +18,7 @@ export const EventsDto = {
   idVid: CommonParams.idVid,
   idPhotoId: CommonParams.idPhotoId,
   idAttendeeId: CommonParams.idAttendeeId,
+  idMemberAttendeeId: CommonParams.idMemberAttendeeId,
   idAssetId: CommonParams.idAssetId,
   idScheduleId: CommonParams.idScheduleId,
   idMidMemberId: CommonParams.idMidMemberId,
@@ -130,6 +131,7 @@ export const EventsDto = {
   }),
 
   addAttendeeBody: t.Object({ contact_id: t.String(), waiver_signed: t.Optional(t.Boolean()) }),
+  addMemberAttendeeBody: t.Object({ member_id: t.String(), waiver_signed: t.Optional(t.Boolean()) }),
   updateAttendeeBody: t.Object({ waiver_signed: t.Optional(t.Boolean()) }),
 
   createScheduleItemBody: t.Object({

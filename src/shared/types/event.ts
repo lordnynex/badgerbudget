@@ -72,6 +72,15 @@ export interface EventAttendee {
   contact?: { id: string; display_name: string };
 }
 
+export interface RideMemberAttendee {
+  id: string;
+  event_id: string;
+  member_id: string;
+  sort_order: number;
+  waiver_signed: boolean;
+  member?: { id: string; name: string; photo_thumbnail_url?: string | null };
+}
+
 export interface EventAsset {
   id: string;
   event_id: string;
@@ -128,6 +137,7 @@ export interface Event {
   created_at?: string;
   milestones?: EventPlanningMilestone[];
   event_attendees?: EventAttendee[];
+  ride_member_attendees?: RideMemberAttendee[];
   event_assets?: EventAsset[];
   ride_schedule_items?: RideScheduleItem[];
   packingCategories?: EventPackingCategory[];

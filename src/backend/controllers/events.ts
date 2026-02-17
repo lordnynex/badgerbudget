@@ -200,6 +200,17 @@ export class EventsController extends BaseController {
       .delete("/:id/attendees/:attendeeId", ({ params }) => this.attendeesDelete(params.id, params.attendeeId), {
         params: EventsDto.idAttendeeId,
       })
+      .post("/:id/member-attendees", ({ params, body }) => this.memberAttendeesAdd(params.id, body), {
+        params: EventsDto.params,
+        body: EventsDto.addMemberAttendeeBody,
+      })
+      .put("/:id/member-attendees/:memberAttendeeId", ({ params, body }) => this.memberAttendeesUpdate(params.id, params.memberAttendeeId, body), {
+        params: EventsDto.idMemberAttendeeId,
+        body: EventsDto.updateAttendeeBody,
+      })
+      .delete("/:id/member-attendees/:memberAttendeeId", ({ params }) => this.memberAttendeesDelete(params.id, params.memberAttendeeId), {
+        params: EventsDto.idMemberAttendeeId,
+      })
       .post("/:id/schedule-items", ({ params, body }) => this.scheduleItemsCreate(params.id, body), {
         params: EventsDto.params,
         body: EventsDto.createScheduleItemBody,
@@ -445,6 +456,22 @@ export class EventsController extends BaseController {
 
   private attendeesDelete(eventId: string, attendeeId: string) {
     return this.api.events.attendees.delete(eventId, attendeeId).then(() => this.json({ ok: true }));
+  }
+
+  private memberAttendeesAdd(eventId: string, body: { member_id: string; waiver_signed?: boolean }) {
+    return this.api.events.memberAttendees
+      .add(eventId, body)
+      .then((r) => (r ? this.json(r) : this.notFound()));
+  }
+
+  private memberAttendeesUpdate(eventId: string, memberAttendeeId: string, body: { waiver_signed?: boolean }) {
+    return this.api.events.memberAttendees
+      .update(eventId, memberAttendeeId, body)
+      .then((r) => (r ? this.json(r) : this.notFound()));
+  }
+
+  private memberAttendeesDelete(eventId: string, memberAttendeeId: string) {
+    return this.api.events.memberAttendees.delete(eventId, memberAttendeeId).then(() => this.json({ ok: true }));
   }
 
   private scheduleItemsCreate(eventId: string, body: { scheduled_time: string; label: string; location?: string }) {

@@ -5,6 +5,7 @@ import {
   Event,
   EventPhoto,
   EventAttendee,
+  EventRideMemberAttendee,
   EventAsset,
   RideScheduleItem,
   EventPlanningMilestone,
@@ -236,6 +237,7 @@ export class EventsService {
       pre_ride_event_id: e.preRideEventId ?? null,
       ride_cost: e.rideCost ?? null,
       event_attendees: await this.getAttendees(id),
+      ride_member_attendees: await this.getMemberAttendees(id),
       event_assets: await this.getAssets(id),
       ride_schedule_items: await this.getScheduleItems(id),
     };
@@ -257,6 +259,28 @@ export class EventsService {
           sort_order: a.sortOrder ?? 0,
           waiver_signed: a.waiverSigned === 1,
           contact: c ? { id: c.id, display_name: c.displayName } : undefined,
+        };
+      })
+    );
+  }
+
+  private async getMemberAttendees(eventId: string) {
+    const attendees = await this.ds.getRepository(EventRideMemberAttendee).find({
+      where: { eventId },
+      order: { sortOrder: "ASC" },
+    });
+    const memberRepo = this.ds.getRepository(Member);
+    return Promise.all(
+      attendees.map(async (a) => {
+        const m = await memberRepo.findOne({ where: { id: a.memberId }, select: ["id", "name", "photo", "photoThumbnail"] });
+        const memberApi = m ? memberRowToApi({ id: m.id, name: m.name, photo: m.photo, photo_thumbnail: m.photoThumbnail } as Record<string, unknown>) : undefined;
+        return {
+          id: a.id,
+          event_id: a.eventId,
+          member_id: a.memberId,
+          sort_order: a.sortOrder ?? 0,
+          waiver_signed: a.waiverSigned === 1,
+          member: memberApi ? { id: memberApi.id, name: memberApi.name, photo_thumbnail_url: memberApi.photo_thumbnail_url } : undefined,
         };
       })
     );
@@ -407,6 +431,7 @@ export class EventsService {
     await this.db.run("DELETE FROM event_volunteers WHERE event_id = ?", [id]);
     await this.db.run("DELETE FROM event_photos WHERE event_id = ?", [id]);
     await this.db.run("DELETE FROM event_attendees WHERE event_id = ?", [id]);
+    await this.db.run("DELETE FROM event_ride_member_attendees WHERE event_id = ?", [id]);
     await this.db.run("DELETE FROM event_assets WHERE event_id = ?", [id]);
     await this.db.run("DELETE FROM ride_schedule_items WHERE event_id = ?", [id]);
     await this.db.run("DELETE FROM events WHERE id = ?", [id]);
@@ -565,6 +590,38 @@ export class EventsService {
     },
     delete: async (eventId: string, attendeeId: string) => {
       await this.db.run("DELETE FROM event_attendees WHERE id = ? AND event_id = ?", [attendeeId, eventId]);
+      return { ok: true };
+    },
+  };
+
+  memberAttendees = {
+    add: async (eventId: string, body: { member_id: string; waiver_signed?: boolean }) => {
+      const event = await this.ds.getRepository(Event).findOne({ where: { id: eventId } });
+      if (!event) return null;
+      const member = await this.ds.getRepository(Member).findOne({ where: { id: body.member_id } });
+      if (!member) return null;
+      const existing = await this.ds.getRepository(EventRideMemberAttendee).findOne({ where: { eventId, memberId: body.member_id } });
+      if (existing) return null;
+      const id = uuid();
+      const maxResult = await this.ds.getRepository(EventRideMemberAttendee).createQueryBuilder("a").select("COALESCE(MAX(a.sortOrder), 0)", "m").where("a.eventId = :eventId", { eventId }).getRawOne<{ m: number }>();
+      const sortOrder = (maxResult?.m ?? 0) + 1;
+      const waiverSigned = body.waiver_signed ? 1 : 0;
+      await this.db.run(
+        "INSERT INTO event_ride_member_attendees (id, event_id, member_id, sort_order, waiver_signed) VALUES (?, ?, ?, ?, ?)",
+        [id, eventId, body.member_id, sortOrder, waiverSigned]
+      );
+      return { id, event_id: eventId, member_id: body.member_id, sort_order: sortOrder, waiver_signed: body.waiver_signed ?? false, member: { id: member.id, name: member.name } };
+    },
+    update: async (eventId: string, attendeeId: string, body: { waiver_signed?: boolean }) => {
+      const existing = await this.ds.getRepository(EventRideMemberAttendee).findOne({ where: { id: attendeeId, eventId } });
+      if (!existing) return null;
+      const waiverSigned = body.waiver_signed !== undefined ? (body.waiver_signed ? 1 : 0) : existing.waiverSigned;
+      await this.db.run("UPDATE event_ride_member_attendees SET waiver_signed = ? WHERE id = ? AND event_id = ?", [waiverSigned, attendeeId, eventId]);
+      const attendees = await this.getMemberAttendees(eventId);
+      return attendees.find((a) => a.id === attendeeId) ?? null;
+    },
+    delete: async (eventId: string, attendeeId: string) => {
+      await this.db.run("DELETE FROM event_ride_member_attendees WHERE id = ? AND event_id = ?", [attendeeId, eventId]);
       return { ok: true };
     },
   };
