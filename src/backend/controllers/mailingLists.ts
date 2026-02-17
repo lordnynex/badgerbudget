@@ -16,6 +16,9 @@ export class MailingListsController extends BaseController {
       .delete("/:id/members/:contactId", ({ params }) => this.removeMember(params.id, params.contactId), {
         params: MailingListsDto.contactParams,
       })
+      .post("/:id/members/:contactId/reinstate", ({ params }) => this.reinstateMember(params.id, params.contactId), {
+        params: MailingListsDto.contactParams,
+      })
       .get("/:id", ({ params }) => this.get(params.id), { params: MailingListsDto.params })
       .put("/:id", ({ params, body }) => this.update(params.id, body), {
         params: MailingListsDto.params,
@@ -70,5 +73,11 @@ export class MailingListsController extends BaseController {
 
   private removeMember(id: string, contactId: string) {
     return this.api.mailingLists.removeMember(id, contactId).then(() => this.json({ ok: true }));
+  }
+
+  private reinstateMember(id: string, contactId: string) {
+    return this.api.mailingLists.removeExclusion(id, contactId).then((r) =>
+      r ? this.json({ ok: true }) : this.notFound()
+    );
   }
 }

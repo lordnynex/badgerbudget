@@ -199,6 +199,16 @@ export class MailingListsService {
     return { ok: true };
   }
 
+  async removeExclusion(listId: string, contactId: string) {
+    const result = await this.ds.getRepository(MailingListMemberEntity).update(
+      { listId, contactId },
+      { suppressed: 0, suppressReason: null, unsubscribed: 0 }
+    );
+    if (!result.affected) return null;
+    await auditLog(this.db, "mailing_list_exclusion_removed", "mailing_list", listId, { contact_id: contactId });
+    return { ok: true };
+  }
+
   async addMembersBulk(listId: string, contactIds: string[], source: "manual" | "import" | "rule" = "manual") {
     for (const contactId of contactIds) {
       try {
@@ -247,31 +257,52 @@ export class MailingListsService {
       const contact = await this.contactsService.get(cid);
       if (!contact) continue;
 
-      if (contact.do_not_contact) {
-        excluded.push({ contact, reason: "Do not contact" });
-        continue;
-      }
-      if (contact.status === "inactive" || contact.status === "deleted") {
-        excluded.push({ contact, reason: "Inactive or deleted" });
-        continue;
-      }
-
-      /* Original: SELECT suppressed, suppress_reason, unsubscribed FROM mailing_list_members WHERE list_id = ? AND contact_id = ? */
+      /* Check membership - needed for canRemoveFromList on excluded items */
       const memberRow = await this.ds.getRepository(MailingListMemberEntity).findOne({
         where: { listId: id, contactId: cid },
         select: ["suppressed", "suppressReason", "unsubscribed"],
       });
+      const hasMembership = !!memberRow;
+
+      if (contact.do_not_contact) {
+        excluded.push({ contact, reason: "Do not contact", canRemoveFromList: hasMembership });
+        continue;
+      }
+      if (contact.status === "inactive" || contact.status === "deleted") {
+        excluded.push({ contact, reason: "Inactive or deleted", canRemoveFromList: hasMembership });
+        continue;
+      }
 
       if (memberRow?.suppressed) {
-        excluded.push({ contact, reason: memberRow.suppressReason ?? "Suppressed" });
+        excluded.push({ contact, reason: memberRow.suppressReason ?? "Suppressed", removable: true, canRemoveFromList: true });
         continue;
       }
       if (memberRow?.unsubscribed) {
-        excluded.push({ contact, reason: "Unsubscribed" });
+        excluded.push({ contact, reason: "Unsubscribed", removable: true, canRemoveFromList: true });
         continue;
       }
 
       included.push({ contact });
+    }
+
+    /* For static lists, include suppressed/unsubscribed members in excluded (they're not in contactIds) */
+    if (list.list_type === "static") {
+      const suppressedRows = await this.ds.getRepository(MailingListMemberEntity).find({
+        where: [{ listId: id, suppressed: 1 }, { listId: id, unsubscribed: 1 }],
+        select: ["contactId", "suppressed", "suppressReason", "unsubscribed"],
+      });
+      const seenExcluded = new Set(excluded.map((e) => e.contact.id));
+      for (const r of suppressedRows) {
+        if (seenExcluded.has(r.contactId)) continue;
+        const contact = await this.contactsService.get(r.contactId);
+        if (!contact) continue;
+        seenExcluded.add(r.contactId);
+        if (r.suppressed) {
+          excluded.push({ contact, reason: r.suppressReason ?? "Suppressed", removable: true, canRemoveFromList: true });
+        } else if (r.unsubscribed) {
+          excluded.push({ contact, reason: "Unsubscribed", removable: true, canRemoveFromList: true });
+        }
+      }
     }
 
     return {

@@ -65,4 +65,13 @@ export class MailingListsApiClient {
         .delete(),
     );
   }
+
+  reinstateMember(listId: string, contactId: string) {
+    return unwrap(
+      client.api
+        ["mailing-lists"]({ id: listId })
+        .members({ contactId })
+        .reinstate.post(),
+    );
+  }
 }

@@ -287,15 +287,54 @@ function MailingListDetail({
             {preview && preview.excluded.length > 0 && (
               <div className="mt-2 rounded-lg border p-3">
                 <p className="text-sm font-medium">Excluded ({preview.excluded.length})</p>
-                <ul className="mt-1 max-h-32 overflow-y-auto text-sm text-muted-foreground">
-                  {preview.excluded.slice(0, 10).map((e, i) => (
-                    <li key={i}>
-                      {e.contact.display_name} – {e.reason}
-                    </li>
-                  ))}
-                  {preview.excluded.length > 10 && (
-                    <li>... and {preview.excluded.length - 10} more</li>
-                  )}
+                <ul className="mt-1 max-h-48 overflow-y-auto space-y-1 text-sm text-muted-foreground">
+                  {preview.excluded.map((e, i) => {
+                    const canRemoveFromList = e.canRemoveFromList === true;
+                    const canReinstate = e.removable === true;
+                    return (
+                      <li key={`${e.contact.id}-${i}`} className="flex items-center justify-between gap-2">
+                        <span>
+                          {e.contact.display_name} – {e.reason}
+                        </span>
+                        <div className="flex items-center gap-1 shrink-0">
+                          {canReinstate && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 px-2"
+                              onClick={async () => {
+                                try {
+                                  await api.mailingLists.reinstateMember(selectedList.id, e.contact.id);
+                                  refreshList();
+                                } catch (err) {
+                                  console.error(err);
+                                }
+                              }}
+                            >
+                              Reinstate
+                            </Button>
+                          )}
+                          {canRemoveFromList && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 px-2 text-destructive hover:text-destructive"
+                              onClick={async () => {
+                                try {
+                                  await api.mailingLists.removeMember(selectedList.id, e.contact.id);
+                                  refreshList();
+                                } catch (err) {
+                                  console.error(err);
+                                }
+                              }}
+                            >
+                              <Trash2 className="size-3.5" />
+                            </Button>
+                          )}
+                        </div>
+                      </li>
+                    );
+                  })}
                 </ul>
               </div>
             )}

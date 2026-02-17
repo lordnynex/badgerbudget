@@ -137,7 +137,7 @@ export interface MailingBatch {
 
 export interface ListPreview {
   included: Array<{ contact: Contact; reason?: string }>;
-  excluded: Array<{ contact: Contact; reason: string }>;
+  excluded: Array<{ contact: Contact; reason: string; removable?: boolean; canRemoveFromList?: boolean }>;
   totalIncluded: number;
   totalExcluded: number;
 }
