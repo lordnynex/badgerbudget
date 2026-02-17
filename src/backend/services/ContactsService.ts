@@ -47,6 +47,9 @@ function entityToContact(e: ContactEntity): Contact {
     created_at: e.createdAt ?? undefined,
     updated_at: e.updatedAt ?? undefined,
     deleted_at: e.deletedAt,
+    hellenic: e.hellenic === 1,
+    deceased: e.deceased === 1,
+    deceased_year: e.deceasedYear ?? null,
   };
 }
 
@@ -70,6 +73,9 @@ function rowToContact(row: Record<string, unknown>): Contact {
     created_at: row.created_at as string | undefined,
     updated_at: row.updated_at as string | undefined,
     deleted_at: (row.deleted_at as string) ?? null,
+    hellenic: (row.hellenic as number) === 1,
+    deceased: (row.deceased as number) === 1,
+    deceased_year: (row.deceased_year as number) ?? null,
   };
 }
 
@@ -333,6 +339,12 @@ export class ContactsService {
     if (params.role) {
       qb.andWhere("c.role LIKE :role", { role: `%${params.role}%` });
     }
+    if (params.hellenic === true) {
+      qb.andWhere("c.hellenic = 1");
+    }
+    if (params.excludeDeceased === true) {
+      qb.andWhere("(c.deceased IS NULL OR c.deceased = 0)");
+    }
     if (params.q && params.q.trim()) {
       const q = `%${params.q.trim()}%`;
       qb.andWhere(
@@ -434,8 +446,11 @@ export class ContactsService {
     const type = body.type ?? "person";
     const status = body.status ?? "active";
 
+    const hellenic = body.hellenic ? 1 : 0;
+    const deceased = body.deceased ? 1 : 0;
+    const deceasedYear = body.deceased_year ?? null;
     await this.db.run(
-      `INSERT INTO contacts (id, type, status, display_name, first_name, last_name, organization_name, notes, how_we_know_them, ok_to_email, ok_to_mail, do_not_contact, club_name, role, uid) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO contacts (id, type, status, display_name, first_name, last_name, organization_name, notes, how_we_know_them, ok_to_email, ok_to_mail, do_not_contact, club_name, role, uid, hellenic, deceased, deceased_year) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         type,
@@ -452,6 +467,9 @@ export class ContactsService {
         body.club_name ?? null,
         body.role ?? null,
         uid,
+        hellenic,
+        deceased,
+        deceasedYear,
       ],
     );
 
@@ -558,9 +576,15 @@ export class ContactsService {
     const club_name =
       body.club_name !== undefined ? body.club_name : existing.clubName;
     const role = body.role !== undefined ? body.role : existing.role;
+    const hellenic =
+      body.hellenic !== undefined ? (body.hellenic ? 1 : 0) : existing.hellenic ?? 0;
+    const deceased =
+      body.deceased !== undefined ? (body.deceased ? 1 : 0) : existing.deceased ?? 0;
+    const deceased_year =
+      body.deceased_year !== undefined ? body.deceased_year : existing.deceasedYear ?? null;
 
     await this.db.run(
-      `UPDATE contacts SET display_name=?, type=?, status=?, first_name=?, last_name=?, organization_name=?, notes=?, how_we_know_them=?, ok_to_email=?, ok_to_mail=?, do_not_contact=?, club_name=?, role=?, updated_at=datetime('now') WHERE id=?`,
+      `UPDATE contacts SET display_name=?, type=?, status=?, first_name=?, last_name=?, organization_name=?, notes=?, how_we_know_them=?, ok_to_email=?, ok_to_mail=?, do_not_contact=?, club_name=?, role=?, hellenic=?, deceased=?, deceased_year=?, updated_at=datetime('now') WHERE id=?`,
       [
         display_name,
         type,
@@ -575,6 +599,9 @@ export class ContactsService {
         do_not_contact,
         club_name,
         role,
+        hellenic,
+        deceased,
+        deceased_year,
         id,
       ],
     );
@@ -769,6 +796,9 @@ export class ContactsService {
       ok_to_mail: (resolution.ok_to_mail === "source" ? source : target)
         .ok_to_mail,
       do_not_contact: source.do_not_contact || target.do_not_contact,
+      hellenic: source.hellenic || target.hellenic,
+      deceased: source.deceased || target.deceased,
+      deceased_year: source.deceased_year ?? target.deceased_year ?? null,
       club_name:
         (resolution.club_name === "source" ? source : target).club_name ??
         (resolution.club_name === "target" ? target : source).club_name,

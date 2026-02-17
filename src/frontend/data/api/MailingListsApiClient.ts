@@ -85,6 +85,12 @@ export class MailingListsApiClient {
     );
   }
 
+  addAllHellenics(listId: string) {
+    return unwrap(
+      client.api["mailing-lists"]({ id: listId }).members["add-all-hellenics"].post(),
+    );
+  }
+
   removeMember(listId: string, contactId: string) {
     return unwrap(
       client.api

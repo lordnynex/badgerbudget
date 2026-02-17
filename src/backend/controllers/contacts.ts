@@ -55,6 +55,8 @@ export class ContactsController extends BaseController {
         status: query.status as "active" | "inactive" | "deleted" | "all",
         hasPostalAddress: query.hasPostalAddress === "true" ? true : undefined,
         hasEmail: query.hasEmail === "true" ? true : undefined,
+        hellenic: query.hellenic === "true" ? true : undefined,
+        excludeDeceased: query.excludeDeceased === "true" ? true : undefined,
         tagIds: query.tagIds?.split(",").filter(Boolean),
         organization: query.organization,
         role: query.role,

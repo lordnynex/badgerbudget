@@ -55,6 +55,10 @@ export class MailingListsService {
     if (criteria.tagNotIn && criteria.tagNotIn.length > 0) {
       qb.andWhere("c.id NOT IN (SELECT contact_id FROM contact_tags WHERE tag_id IN (SELECT id FROM tags WHERE name IN (:...tagNotIn)))", { tagNotIn: criteria.tagNotIn });
     }
+    if (criteria.hellenic === true) {
+      qb.andWhere("c.hellenic = 1");
+    }
+    qb.andWhere("(c.deceased IS NULL OR c.deceased = 0)");
 
     const rows = await qb.getMany();
     return rows.map((r) => r.id);
@@ -227,10 +231,29 @@ export class MailingListsService {
   }
 
   async addAllContacts(listId: string, source: "manual" | "import" | "rule" = "manual") {
-    const rows = await this.ds.getRepository(ContactEntity).find({
-      where: { deletedAt: IsNull(), status: "active" },
-      select: ["id"],
-    });
+    const qb = this.ds
+      .getRepository(ContactEntity)
+      .createQueryBuilder("c")
+      .select("c.id")
+      .where("c.deletedAt IS NULL")
+      .andWhere("c.status = :status", { status: "active" })
+      .andWhere("(c.deceased IS NULL OR c.deceased = 0)");
+    const rows = await qb.getMany();
+    const contactIds = rows.map((r) => r.id);
+    await this.addMembersBulk(listId, contactIds, source);
+    return { ok: true, added: contactIds.length };
+  }
+
+  async addAllHellenics(listId: string, source: "manual" | "import" | "rule" = "manual") {
+    const qb = this.ds
+      .getRepository(ContactEntity)
+      .createQueryBuilder("c")
+      .select("c.id")
+      .where("c.deletedAt IS NULL")
+      .andWhere("c.status = :status", { status: "active" })
+      .andWhere("(c.deceased IS NULL OR c.deceased = 0)")
+      .andWhere("c.hellenic = 1");
+    const rows = await qb.getMany();
     const contactIds = rows.map((r) => r.id);
     await this.addMembersBulk(listId, contactIds, source);
     return { ok: true, added: contactIds.length };
@@ -276,6 +299,10 @@ export class MailingListsService {
       });
       const hasMembership = !!memberRow;
 
+      if (contact.deceased) {
+        excluded.push({ contact, reason: "Deceased", canRemoveFromList: hasMembership });
+        continue;
+      }
       if (contact.do_not_contact) {
         excluded.push({ contact, reason: "Do not contact", canRemoveFromList: hasMembership });
         continue;
@@ -411,6 +438,7 @@ export class MailingListsService {
       });
       const hasMembership = !!memberRow;
 
+      if (contact.deceased) continue;
       if (contact.do_not_contact) continue;
       if (contact.status === "inactive" || contact.status === "deleted") continue;
       const dt = list.delivery_type ?? "both";

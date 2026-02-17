@@ -85,6 +85,9 @@ export interface Contact {
   created_at?: string;
   updated_at?: string;
   deleted_at?: string | null;
+  hellenic?: boolean;
+  deceased?: boolean;
+  deceased_year?: number | null;
   emails?: ContactEmail[];
   phones?: ContactPhone[];
   addresses?: ContactAddress[];
@@ -115,6 +118,7 @@ export interface MailingListCriteria {
   hasEmail?: boolean;
   organization?: string;
   clubName?: string;
+  hellenic?: boolean;
 }
 
 export interface MailingList {
@@ -197,6 +201,8 @@ export interface ContactSearchParams {
   status?: ContactStatus | "all";
   hasPostalAddress?: boolean;
   hasEmail?: boolean;
+  hellenic?: boolean;
+  excludeDeceased?: boolean;
   tagIds?: string[];
   organization?: string;
   role?: string;

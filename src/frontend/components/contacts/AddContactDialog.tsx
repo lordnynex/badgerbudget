@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -23,9 +23,11 @@ interface AddContactDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
+  /** When true, default the Hellenic checkbox to checked (e.g. when adding from Hellenics panel) */
+  defaultHellenic?: boolean;
 }
 
-export function AddContactDialog({ open, onOpenChange, onSuccess }: AddContactDialogProps) {
+export function AddContactDialog({ open, onOpenChange, onSuccess, defaultHellenic }: AddContactDialogProps) {
   const [type, setType] = useState<Contact["type"]>("person");
   const [displayName, setDisplayName] = useState("");
   const [firstName, setFirstName] = useState("");
@@ -40,7 +42,16 @@ export function AddContactDialog({ open, onOpenChange, onSuccess }: AddContactDi
   const [postalCode, setPostalCode] = useState("");
   const [clubName, setClubName] = useState("");
   const [role, setRole] = useState("");
+  const [hellenic, setHellenic] = useState(defaultHellenic ?? false);
+  const [deceased, setDeceased] = useState(false);
+  const [deceasedYear, setDeceasedYear] = useState("");
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setHellenic(defaultHellenic ?? false);
+    }
+  }, [open, defaultHellenic]);
 
   const reset = () => {
     setType("person");
@@ -57,6 +68,9 @@ export function AddContactDialog({ open, onOpenChange, onSuccess }: AddContactDi
     setPostalCode("");
     setClubName("");
     setRole("");
+    setHellenic(defaultHellenic ?? false);
+    setDeceased(false);
+    setDeceasedYear("");
   };
 
   const handleSubmit = async () => {
@@ -72,6 +86,9 @@ export function AddContactDialog({ open, onOpenChange, onSuccess }: AddContactDi
         organization_name: type === "organization" ? orgName.trim() || null : (orgName.trim() || null),
         club_name: clubName.trim() || null,
         role: role.trim() || null,
+        hellenic,
+        deceased,
+        deceased_year: deceased && deceasedYear.trim() ? parseInt(deceasedYear, 10) : null,
         emails: primaryEmail.trim() ? [{ id: "", contact_id: "", email: primaryEmail.trim(), type: "other" as const, is_primary: true }] : [],
         phones: primaryPhone.trim() ? [{ id: "", contact_id: "", phone: primaryPhone.trim(), type: "other" as const, is_primary: true }] : [],
         addresses:
@@ -178,6 +195,37 @@ export function AddContactDialog({ open, onOpenChange, onSuccess }: AddContactDi
           <div>
             <Label>Role / title</Label>
             <Input value={role} onChange={(e) => setRole(e.target.value)} />
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="hellenic"
+              checked={hellenic}
+              onChange={(e) => setHellenic(e.target.checked)}
+              className="rounded"
+            />
+            <Label htmlFor="hellenic">Hellenic</Label>
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="deceased"
+              checked={deceased}
+              onChange={(e) => setDeceased(e.target.checked)}
+              className="rounded"
+            />
+            <Label htmlFor="deceased">Deceased</Label>
+            {deceased && (
+              <Input
+                type="number"
+                placeholder="Year (e.g. 2023)"
+                value={deceasedYear}
+                onChange={(e) => setDeceasedYear(e.target.value)}
+                className="w-24"
+                min={1900}
+                max={2100}
+              />
+            )}
           </div>
         </div>
         <DialogFooter>

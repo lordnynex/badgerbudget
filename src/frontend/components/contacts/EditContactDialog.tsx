@@ -38,6 +38,9 @@ export function EditContactDialog({ open, onOpenChange, contact, onSuccess }: Ed
   const [okToEmail, setOkToEmail] = useState<Contact["ok_to_email"]>("unknown");
   const [okToMail, setOkToMail] = useState<Contact["ok_to_mail"]>("unknown");
   const [doNotContact, setDoNotContact] = useState(false);
+  const [hellenic, setHellenic] = useState(false);
+  const [deceased, setDeceased] = useState(false);
+  const [deceasedYear, setDeceasedYear] = useState<string>("");
   const [emails, setEmails] = useState<Array<{ email: string; type: string; is_primary: boolean }>>([]);
   const [phones, setPhones] = useState<Array<{ phone: string; type: string; is_primary: boolean }>>([]);
   const [addresses, setAddresses] = useState<
@@ -67,6 +70,9 @@ export function EditContactDialog({ open, onOpenChange, contact, onSuccess }: Ed
       setOkToEmail(contact.ok_to_email);
       setOkToMail(contact.ok_to_mail);
       setDoNotContact(contact.do_not_contact);
+      setHellenic(contact.hellenic ?? false);
+      setDeceased(contact.deceased ?? false);
+      setDeceasedYear(contact.deceased_year != null ? String(contact.deceased_year) : "");
       setEmails(
         (contact.emails ?? []).map((e) => ({
           email: e.email,
@@ -115,6 +121,9 @@ export function EditContactDialog({ open, onOpenChange, contact, onSuccess }: Ed
         ok_to_email: okToEmail,
         ok_to_mail: okToMail,
         do_not_contact: doNotContact,
+        hellenic,
+        deceased,
+        deceased_year: deceased && deceasedYear.trim() ? parseInt(deceasedYear, 10) : null,
         emails: emails.filter((e) => e.email.trim()).map((e) => ({
           id: "",
           contact_id: contact.id,
@@ -315,6 +324,37 @@ export function EditContactDialog({ open, onOpenChange, contact, onSuccess }: Ed
               className="rounded"
             />
             <Label htmlFor="doNotContact">Do not contact</Label>
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="hellenic"
+              checked={hellenic}
+              onChange={(e) => setHellenic(e.target.checked)}
+              className="rounded"
+            />
+            <Label htmlFor="hellenic">Hellenic</Label>
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="deceased"
+              checked={deceased}
+              onChange={(e) => setDeceased(e.target.checked)}
+              className="rounded"
+            />
+            <Label htmlFor="deceased">Deceased</Label>
+            {deceased && (
+              <Input
+                type="number"
+                placeholder="Year (e.g. 2023)"
+                value={deceasedYear}
+                onChange={(e) => setDeceasedYear(e.target.value)}
+                className="w-24"
+                min={1900}
+                max={2100}
+              />
+            )}
           </div>
           <div>
             <Label>Tags (comma-separated)</Label>

@@ -21,6 +21,9 @@ export class MailingListsController extends BaseController {
       .post("/:id/members/add-all", ({ params }) => this.addAllMembers(params.id), {
         params: MailingListsDto.params,
       })
+      .post("/:id/members/add-all-hellenics", ({ params }) => this.addAllHellenics(params.id), {
+        params: MailingListsDto.params,
+      })
       .delete("/:id/members/:contactId", ({ params }) => this.removeMember(params.id, params.contactId), {
         params: MailingListsDto.contactParams,
       })
@@ -92,6 +95,10 @@ export class MailingListsController extends BaseController {
 
   private addAllMembers(id: string) {
     return this.api.mailingLists.addAllContacts(id, "manual").then(this.json);
+  }
+
+  private addAllHellenics(id: string) {
+    return this.api.mailingLists.addAllHellenics(id, "manual").then(this.json);
   }
 
   private removeMember(id: string, contactId: string) {

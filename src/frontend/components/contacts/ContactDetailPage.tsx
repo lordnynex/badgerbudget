@@ -358,9 +358,19 @@ function ContactDetailContent({ id }: { id: string }) {
         <Card className="h-fit">
           <CardHeader>
             <CardTitle className="text-xl">{contact.display_name}</CardTitle>
-            <p className="text-sm text-muted-foreground mt-1">
-              {contact.type} • {contact.status}
-              {contact.organization_name && ` • ${contact.organization_name}`}
+            <p className="text-sm text-muted-foreground mt-1 flex flex-wrap items-center gap-2">
+              <span>{contact.type} • {contact.status}</span>
+              {contact.hellenic && (
+                <span className="inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
+                  Hellenic
+                </span>
+              )}
+              {contact.deceased && (
+                <span className="inline-flex rounded-full bg-slate-200 px-2 py-0.5 text-xs font-medium text-slate-700 dark:bg-slate-700 dark:text-slate-300">
+                  Deceased{contact.deceased_year ? ` (${contact.deceased_year})` : ""}
+                </span>
+              )}
+              {contact.organization_name && <span>• {contact.organization_name}</span>}
             </p>
           </CardHeader>
           <CardContent className="space-y-8">

@@ -39,7 +39,7 @@ export function AddContactToMailingListDialog({ open, onOpenChange, listId, onSu
     const t = setTimeout(() => {
       setLoading(true);
       api.contacts
-        .list({ q: search || undefined, status: "active", limit: 50 })
+        .list({ q: search || undefined, status: "active", excludeDeceased: true, limit: 50 })
         .then((r) => setContacts(r.contacts))
         .finally(() => setLoading(false));
     }, 300);
@@ -77,7 +77,7 @@ export function AddContactToMailingListDialog({ open, onOpenChange, listId, onSu
         <DialogHeader>
           <DialogTitle>Add Contacts</DialogTitle>
         </DialogHeader>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button
             variant="outline"
             size="sm"
@@ -94,6 +94,23 @@ export function AddContactToMailingListDialog({ open, onOpenChange, listId, onSu
             disabled={saving}
           >
             {saving ? "Adding..." : "Add ALL contacts"}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={async () => {
+              setSaving(true);
+              try {
+                await api.mailingLists.addAllHellenics(listId);
+                onOpenChange(false);
+                onSuccess();
+              } finally {
+                setSaving(false);
+              }
+            }}
+            disabled={saving}
+          >
+            {saving ? "Adding..." : "Add all Hellenics"}
           </Button>
         </div>
         <Input

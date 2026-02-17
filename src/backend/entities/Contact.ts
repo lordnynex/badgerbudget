@@ -55,4 +55,13 @@ export class Contact {
 
   @Column({ name: "deleted_at", type: "text", nullable: true })
   deletedAt!: string | null;
+
+  @Column({ name: "hellenic", type: "integer", default: 0 })
+  hellenic!: number;
+
+  @Column({ name: "deceased", type: "integer", default: 0 })
+  deceased!: number;
+
+  @Column({ name: "deceased_year", type: "integer", nullable: true })
+  deceasedYear!: number | null;
 }
