@@ -21,8 +21,9 @@ import {
 import { api } from "@/data/api";
 import type { MailingList, ListPreview } from "@/types/contact";
 import { contactsToVCardFile } from "@/lib/vcard";
-import { ArrowLeft, Plus, Pencil, Trash2, Download, Mail, Users } from "lucide-react";
+import { ArrowLeft, Plus, Pencil, Trash2, Download, Printer, Users } from "lucide-react";
 import { AddContactToMailingListDialog } from "./AddContactToMailingListDialog";
+import { CreateMailLabelsDialog } from "./CreateMailLabelsDialog";
 import { useMailingListsSuspense, useEventsSuspense, useMailingListSuspense, useMailingListPreview, useInvalidateQueries } from "@/queries/hooks";
 import { PageLoading } from "@/components/layout/PageLoading";
 
@@ -227,17 +228,10 @@ function MailingListDetail({
   const [editDescription, setEditDescription] = useState(selectedList.description ?? "");
   const [editDeliveryType, setEditDeliveryType] = useState(selectedList.delivery_type ?? "both");
   const [addMemberOpen, setAddMemberOpen] = useState(false);
+  const [labelsDialogOpen, setLabelsDialogOpen] = useState(false);
 
   const refreshList = () => {
     invalidate.invalidateMailingList(listId);
-  };
-
-  const handleCreateBatch = async () => {
-    const batch = await api.mailingBatches.create(
-      selectedList.id,
-      `${selectedList.name} - ${new Date().toISOString().slice(0, 10)}`
-    );
-    if (batch) navigate(`/contacts/batches/${batch.id}`);
   };
 
   const handleExportVCard = () => {
@@ -282,10 +276,12 @@ function MailingListDetail({
             <Download className="size-4" />
             Export vCard
           </Button>
-          <Button onClick={handleCreateBatch} disabled={!preview || preview.totalIncluded === 0}>
-            <Mail className="size-4" />
-            Create mailing batch
-          </Button>
+          {((selectedList.delivery_type ?? "both") === "physical" || (selectedList.delivery_type ?? "both") === "both") && (
+            <Button onClick={() => setLabelsDialogOpen(true)} disabled={!preview || preview.totalIncluded === 0}>
+              <Printer className="size-4" />
+              Create Mail Labels
+            </Button>
+          )}
           <Button variant="outline" onClick={() => { setEditName(selectedList.name); setEditDescription(selectedList.description ?? ""); setEditDeliveryType(selectedList.delivery_type ?? "both"); setEditOpen(true); }}>
             <Pencil className="size-4" />
             Edit
@@ -380,6 +376,13 @@ function MailingListDetail({
         onOpenChange={setAddMemberOpen}
         listId={selectedList.id}
         onSuccess={refreshList}
+      />
+
+      <CreateMailLabelsDialog
+        open={labelsDialogOpen}
+        onOpenChange={setLabelsDialogOpen}
+        listName={selectedList.name}
+        contacts={(preview?.included ?? []).map((i) => i.contact)}
       />
 
       <Dialog open={editOpen} onOpenChange={setEditOpen}>

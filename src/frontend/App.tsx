@@ -15,7 +15,6 @@ import { MemberDetailPage } from "@/components/members/MemberDetailPage";
 import { ContactsPanel } from "@/components/contacts/ContactsPanel";
 import { ContactDetailPage } from "@/components/contacts/ContactDetailPage";
 import { MailingListsPanel } from "@/components/contacts/MailingListsPanel";
-import { MailingBatchPage } from "@/components/contacts/MailingBatchPage";
 import { ContactsLayout } from "@/components/layout/ContactsLayout";
 import { ProjectionsSubNav } from "@/components/layout/ProjectionsSubNav";
 import { EventDetailSubNav } from "@/components/layout/EventDetailSubNav";
@@ -167,16 +166,6 @@ function AppContent() {
                   <IdParamGuard param="listId">
                     <Suspense fallback={<PageLoading />}>
                       <MailingListsPanel />
-                    </Suspense>
-                  </IdParamGuard>
-                }
-              />
-              <Route
-                path="batches/:batchId"
-                element={
-                  <IdParamGuard param="batchId">
-                    <Suspense fallback={<PageLoading />}>
-                      <MailingBatchPage />
                     </Suspense>
                   </IdParamGuard>
                 }
