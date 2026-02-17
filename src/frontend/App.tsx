@@ -34,6 +34,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { X, Printer } from "lucide-react";
 import { useScenarioMetrics } from "@/hooks/useScenarioMetrics";
 import "./index.css";
 
@@ -66,10 +67,29 @@ function AppContent() {
   return (
     <>
       {(printMode || isPrintRoute) ? (
-        <div className="min-h-screen bg-white p-4 md:p-8">
+        <div className="relative min-h-screen bg-white p-4 md:p-8">
+          <div className="print:hidden fixed right-4 top-4 z-50 flex gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              className="rounded-full border-gray-300 bg-white text-gray-700 shadow-sm hover:bg-gray-100 hover:text-gray-900"
+              onClick={() => window.print()}
+              aria-label="Print"
+            >
+              <Printer className="size-5" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="rounded-full border-gray-300 bg-white text-gray-700 shadow-sm hover:bg-gray-100 hover:text-gray-900"
+              onClick={() => (isPrintRoute ? navigate("/budgeting/projections") : setPrintMode(false))}
+              aria-label="Close print view"
+            >
+              <X className="size-5" />
+            </Button>
+          </div>
           <PrintView state={stateForExport} metrics={metrics} />
           <div className="mt-8 flex gap-4 print:hidden">
-            <Button onClick={() => window.print()}>Print</Button>
             <Button variant="outline" onClick={openPrintInNewTab}>
               Open in new tab
             </Button>
