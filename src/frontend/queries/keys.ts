@@ -19,4 +19,6 @@ export const queryKeys = {
   mailingListMembers: (id: string) => ["mailingList", id, "members"] as const,
   mailingBatches: ["mailingBatches"] as const,
   mailingBatch: (id: string) => ["mailingBatch", id] as const,
+  qrCodes: ["qrCodes"] as const,
+  qrCode: (id: string) => ["qrCode", id] as const,
 } as const;

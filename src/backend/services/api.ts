@@ -7,6 +7,7 @@ import { ScenariosService } from "./ScenariosService";
 import { ContactsService } from "./ContactsService";
 import { MailingListsService } from "./MailingListsService";
 import { MailingBatchesService } from "./MailingBatchesService";
+import { QrCodesService } from "./QrCodesService";
 
 export function createApi(db: DbLike, ds: DataSource) {
   const eventsService = new EventsService(db, ds);
@@ -16,6 +17,7 @@ export function createApi(db: DbLike, ds: DataSource) {
   const contactsService = new ContactsService(db, ds);
   const mailingListsService = new MailingListsService(db, ds, contactsService);
   const mailingBatchesService = new MailingBatchesService(db, ds, mailingListsService);
+  const qrCodesService = new QrCodesService(ds);
 
   return {
     events: eventsService,
@@ -25,6 +27,7 @@ export function createApi(db: DbLike, ds: DataSource) {
     contacts: contactsService,
     mailingLists: mailingListsService,
     mailingBatches: mailingBatchesService,
+    qrCodes: qrCodesService,
   };
 }
 

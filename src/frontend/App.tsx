@@ -15,6 +15,8 @@ import { MemberDetailPage } from "@/components/members/MemberDetailPage";
 import { ContactsPanel } from "@/components/contacts/ContactsPanel";
 import { ContactDetailPage } from "@/components/contacts/ContactDetailPage";
 import { MailingListsPanel } from "@/components/contacts/MailingListsPanel";
+import { QrCodesPanel } from "@/components/contacts/QrCodesPanel";
+import { QrCodeDetailPage } from "@/components/contacts/QrCodeDetailPage";
 import { ContactsLayout } from "@/components/layout/ContactsLayout";
 import { ProjectionsSubNav } from "@/components/layout/ProjectionsSubNav";
 import { EventDetailSubNav } from "@/components/layout/EventDetailSubNav";
@@ -166,6 +168,24 @@ function AppContent() {
                   <IdParamGuard param="listId">
                     <Suspense fallback={<PageLoading />}>
                       <MailingListsPanel />
+                    </Suspense>
+                  </IdParamGuard>
+                }
+              />
+              <Route
+                path="qr-codes"
+                element={
+                  <Suspense fallback={<PageLoading />}>
+                    <QrCodesPanel />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="qr-codes/:id"
+                element={
+                  <IdParamGuard param="id">
+                    <Suspense fallback={<PageLoading />}>
+                      <QrCodeDetailPage />
                     </Suspense>
                   </IdParamGuard>
                 }

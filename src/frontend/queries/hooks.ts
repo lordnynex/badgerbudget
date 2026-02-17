@@ -145,6 +145,21 @@ export function useMailingListIncluded(id: string | null, page: number, limit: n
   });
 }
 
+// —— QR codes
+export function useQrCodesSuspense() {
+  return useSuspenseQuery({
+    queryKey: queryKeys.qrCodes,
+    queryFn: () => api.qrCodes.list(),
+  });
+}
+
+export function useQrCodeSuspense(id: string) {
+  return useSuspenseQuery({
+    queryKey: queryKeys.qrCode(id),
+    queryFn: () => api.qrCodes.get(id),
+  });
+}
+
 // —— Mailing batches
 export function useMailingBatchSuspense(id: string) {
   return useSuspenseQuery({
@@ -187,5 +202,9 @@ export function useInvalidateQueries() {
       qc.invalidateQueries({ queryKey: queryKeys.mailingBatches }),
     invalidateMailingBatch: (id: string) =>
       qc.invalidateQueries({ queryKey: queryKeys.mailingBatch(id) }),
+    invalidateQrCodes: () =>
+      qc.invalidateQueries({ queryKey: queryKeys.qrCodes }),
+    invalidateQrCode: (id: string) =>
+      qc.invalidateQueries({ queryKey: queryKeys.qrCode(id) }),
   };
 }

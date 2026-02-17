@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "@/data/api";
 import { queryKeys } from "@/queries/keys";
 import { cn } from "@/lib/utils";
-import { Users, Mail, Plus, Mailbox, AtSign } from "lucide-react";
+import { Users, Mail, Plus, Mailbox, AtSign, QrCode } from "lucide-react";
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
   cn(
@@ -157,6 +157,13 @@ export function ContactsLayout() {
                 </NavLink>
               </li>
             </ul>
+          </div>
+
+          <div>
+            <NavLink to="/contacts/qr-codes" className={navLinkClass}>
+              <QrCode className="size-4" />
+              QR Codes
+            </NavLink>
           </div>
         </nav>
       </aside>

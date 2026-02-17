@@ -26,6 +26,7 @@ import {
   MailingListMember,
   MailingBatch,
   MailingBatchRecipient,
+  QrCode,
 } from "../entities";
 import { InitialSchema1700000000000 } from "./migrations/1700000000000-InitialSchema.ts";
 import { AddMemberPhotoThumbnail1739750400000 } from "./migrations/1739750400000-AddMemberPhotoThumbnail.ts";
@@ -33,6 +34,7 @@ import { RemoveAuditLog1739900000000 } from "./migrations/1739900000000-RemoveAu
 import { AddMailingListDeliveryType1740000000000 } from "./migrations/1740000000000-AddMailingListDeliveryType.ts";
 import { AddContactNotesTable1740000001000 } from "./migrations/1740000001000-AddContactNotesTable.ts";
 import { AddContactPhotosTable1740000002000 } from "./migrations/1740000002000-AddContactPhotosTable.ts";
+import { AddQrCodesTable1740000003000 } from "./migrations/1740000003000-AddQrCodesTable.ts";
 
 const projectRoot = join(import.meta.dir, "../../..");
 const dbPath = join(projectRoot, "data", "badger.db");
@@ -43,7 +45,7 @@ const dataSourceOptions: DataSourceOptions = {
   location: dbPath,
   autoSave: true,
   synchronize: false,
-  migrations: [InitialSchema1700000000000, AddMemberPhotoThumbnail1739750400000, RemoveAuditLog1739900000000, AddMailingListDeliveryType1740000000000, AddContactNotesTable1740000001000, AddContactPhotosTable1740000002000],
+  migrations: [InitialSchema1700000000000, AddMemberPhotoThumbnail1739750400000, RemoveAuditLog1739900000000, AddMailingListDeliveryType1740000000000, AddContactNotesTable1740000001000, AddContactPhotosTable1740000002000, AddQrCodesTable1740000003000],
   migrationsRun: true,
   entities: [
     Event,
@@ -70,6 +72,7 @@ const dataSourceOptions: DataSourceOptions = {
     MailingListMember,
     MailingBatch,
     MailingBatchRecipient,
+    QrCode,
   ],
 };
 
