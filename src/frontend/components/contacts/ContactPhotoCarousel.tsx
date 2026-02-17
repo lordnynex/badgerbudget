@@ -90,6 +90,45 @@ export function ContactPhotoCarousel({
                 Set as main
               </Button>
             )}
+            {!disabled && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    className="absolute top-2 right-2 size-9 rounded-full shadow-md"
+                    onClick={(e) => e.stopPropagation()}
+                    aria-label="Photo options"
+                  >
+                    <MoreVertical className="size-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {currentPhoto.type !== "profile" && (
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onSetProfilePhoto(currentPhoto.id);
+                      }}
+                      title="The previous main photo will remain in your gallery"
+                    >
+                      <Star className="size-4 mr-2" />
+                      Set as main
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem
+                    className="text-destructive focus:text-destructive"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(currentPhoto.id);
+                    }}
+                  >
+                    <Trash2 className="size-4 mr-2" />
+                    Delete
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </>
         ) : (
           <div className="flex flex-col items-center gap-2 text-muted-foreground">
