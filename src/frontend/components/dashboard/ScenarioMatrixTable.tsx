@@ -159,7 +159,8 @@ export function ScenarioMatrixTable({ metrics, profitTarget }: ScenarioMatrixTab
 
   const attendanceLevels = Object.keys(byAttendance)
     .map(Number)
-    .sort((a, b) => a - b);
+    .sort((a, b) => a - b)
+    .filter((pct) => pct >= 50);
 
   const firstProfitableTab = String(
     attendanceLevels.find((pct) => byAttendance[pct].some((m) => m.profit >= 0)) ??
