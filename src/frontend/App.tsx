@@ -17,6 +17,8 @@ import { ContactDetailPage } from "@/components/contacts/ContactDetailPage";
 import { MailingListsPanel } from "@/components/contacts/MailingListsPanel";
 import { QrCodesPanel } from "@/components/contacts/QrCodesPanel";
 import { QrCodeDetailPage } from "@/components/contacts/QrCodeDetailPage";
+import { ActualSpendPanel } from "@/components/budget/ActualSpendPanel";
+import { VendorsPanel } from "@/components/budget/VendorsPanel";
 import { ContactsLayout } from "@/components/layout/ContactsLayout";
 import { EventDetailSubNav } from "@/components/layout/EventDetailSubNav";
 import { PrintView } from "@/components/export/PrintView";
@@ -148,6 +150,26 @@ function AppContent() {
                       <Main activeTab="scenarios" onPrint={onPrint} onEmail={onEmail} />
                     </Suspense>
                   </IdParamGuard>
+                }
+              />
+              <Route
+                path="actual-spend"
+                element={
+                  <main className="space-y-6 p-4 md:p-6">
+                    <Suspense fallback={<PageLoading />}>
+                      <ActualSpendPanel />
+                    </Suspense>
+                  </main>
+                }
+              />
+              <Route
+                path="vendors"
+                element={
+                  <main className="space-y-6 p-4 md:p-6">
+                    <Suspense fallback={<PageLoading />}>
+                      <VendorsPanel />
+                    </Suspense>
+                  </main>
                 }
               />
             </Route>

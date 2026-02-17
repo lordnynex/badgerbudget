@@ -78,10 +78,12 @@ function BudgetScenarioListsSync({ children }: { children: ReactNode }) {
   const budgetId = urlBudgetId ?? paramBudgetId ?? selectedBudgetId ?? budgets[0]?.id ?? null;
   const scenarioId = urlScenarioId ?? paramScenarioId ?? selectedScenarioId ?? scenarios[0]?.id ?? null;
 
-  // On list-only pages, render children without full data sync (lists are already synced)
+  // On list-only or standalone pages, render children without full data sync
   const isBudgetList = location.pathname === "/budgeting/budget";
   const isScenarioList = location.pathname === "/budgeting/scenarios";
-  if (isBudgetList || isScenarioList) {
+  const isStandalone =
+    location.pathname === "/budgeting/actual-spend" || location.pathname === "/budgeting/vendors";
+  if (isBudgetList || isScenarioList || isStandalone) {
     return <>{children}</>;
   }
 
