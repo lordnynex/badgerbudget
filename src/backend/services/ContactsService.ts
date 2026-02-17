@@ -6,6 +6,7 @@ import type {
   ContactEmail,
   ContactPhone,
   ContactAddress,
+  ContactEmergencyContact,
   ContactNote,
   ContactPhoto as ContactPhotoType,
   Tag,
@@ -17,6 +18,7 @@ import {
   ContactEmail as ContactEmailEntity,
   ContactPhone as ContactPhoneEntity,
   ContactAddress as ContactAddressEntity,
+  ContactEmergencyContact as ContactEmergencyContactEntity,
   ContactNote as ContactNoteEntity,
   ContactPhoto as ContactPhotoEntity,
   Tag as TagEntity,
@@ -89,6 +91,7 @@ export class ContactsService {
     emails: ContactEmail[];
     phones: ContactPhone[];
     addresses: ContactAddress[];
+    emergency_contacts: ContactEmergencyContact[];
     contact_notes: ContactNote[];
     contact_photos: ContactPhotoType[];
     tags: Tag[];
@@ -124,6 +127,12 @@ export class ContactsService {
             order: { name: "ASC" },
           })
         : [];
+
+    /* SELECT * FROM contact_emergency_contacts WHERE contact_id = ? ORDER BY id */
+    const emergencyContacts = await this.ds.getRepository(ContactEmergencyContactEntity).find({
+      where: { contactId },
+      order: { id: "ASC" },
+    });
 
     /* SELECT * FROM contact_photos WHERE contact_id = ? ORDER BY type='profile' DESC, sort_order ASC, created_at ASC */
     const photoEntities = await this.ds.getRepository(ContactPhotoEntity).find({
@@ -163,6 +172,14 @@ export class ContactsService {
         country: a.country,
         type: (a.type as ContactAddress["type"]) ?? "home",
         is_primary_mailing: a.isPrimaryMailing === 1,
+      })),
+      emergency_contacts: emergencyContacts.map((ec) => ({
+        id: ec.id,
+        contact_id: ec.contactId,
+        name: ec.name,
+        phone: ec.phone,
+        email: ec.email,
+        relationship: ec.relationship,
       })),
       contact_notes: notes.map((n) => ({
         id: n.id,
@@ -511,6 +528,23 @@ export class ContactsService {
         );
       }
     }
+    if (body.emergency_contacts?.length) {
+      for (const ec of body.emergency_contacts) {
+        if (!ec?.name?.trim() || !ec?.phone?.trim()) continue;
+        const ecid = uuid();
+        await this.db.run(
+          "INSERT INTO contact_emergency_contacts (id, contact_id, name, phone, email, relationship) VALUES (?, ?, ?, ?, ?, ?)",
+          [
+            ecid,
+            id,
+            String(ec.name).trim(),
+            String(ec.phone).trim(),
+            ec.email?.trim() || null,
+            ec.relationship?.trim() || null,
+          ],
+        );
+      }
+    }
     if (body.tags?.length) {
       for (const t of body.tags) {
         let tagId = typeof t === "string" ? null : t.id;
@@ -667,6 +701,26 @@ export class ContactsService {
             a.country ?? "US",
             a.type ?? "home",
             a.is_primary_mailing ? 1 : 0,
+          ],
+        );
+      }
+    }
+    if (body.emergency_contacts !== undefined) {
+      await this.db.run("DELETE FROM contact_emergency_contacts WHERE contact_id = ?", [id]);
+      const validEmergencyContacts = body.emergency_contacts.filter(
+        (ec) => ec?.name?.trim() && ec?.phone?.trim(),
+      );
+      for (const ec of validEmergencyContacts) {
+        const ecid = uuid();
+        await this.db.run(
+          "INSERT INTO contact_emergency_contacts (id, contact_id, name, phone, email, relationship) VALUES (?, ?, ?, ?, ?, ?)",
+          [
+            ecid,
+            id,
+            String(ec.name).trim(),
+            String(ec.phone).trim(),
+            ec.email?.trim() || null,
+            ec.relationship?.trim() || null,
           ],
         );
       }

@@ -19,6 +19,7 @@ import {
   ContactPhone,
   ContactAddress,
   ContactNote,
+  ContactEmergencyContact,
   ContactPhoto,
   Tag,
   ContactTag,
@@ -36,6 +37,7 @@ import { AddContactNotesTable1740000001000 } from "./migrations/1740000001000-Ad
 import { AddContactPhotosTable1740000002000 } from "./migrations/1740000002000-AddContactPhotosTable.ts";
 import { AddQrCodesTable1740000003000 } from "./migrations/1740000003000-AddQrCodesTable.ts";
 import { AddContactHellenicDeceased1740000004000 } from "./migrations/1740000004000-AddContactHellenicDeceased.ts";
+import { AddContactEmergencyContactsTable1740000005000 } from "./migrations/1740000005000-AddContactEmergencyContactsTable.ts";
 
 const projectRoot = join(import.meta.dir, "../../..");
 const dbPath = join(projectRoot, "data", "badger.db");
@@ -46,7 +48,7 @@ const dataSourceOptions: DataSourceOptions = {
   location: dbPath,
   autoSave: true,
   synchronize: false,
-  migrations: [InitialSchema1700000000000, AddMemberPhotoThumbnail1739750400000, RemoveAuditLog1739900000000, AddMailingListDeliveryType1740000000000, AddContactNotesTable1740000001000, AddContactPhotosTable1740000002000, AddQrCodesTable1740000003000, AddContactHellenicDeceased1740000004000],
+  migrations: [InitialSchema1700000000000, AddMemberPhotoThumbnail1739750400000, RemoveAuditLog1739900000000, AddMailingListDeliveryType1740000000000, AddContactNotesTable1740000001000, AddContactPhotosTable1740000002000, AddQrCodesTable1740000003000, AddContactHellenicDeceased1740000004000, AddContactEmergencyContactsTable1740000005000],
   migrationsRun: true,
   entities: [
     Event,
@@ -66,6 +68,7 @@ const dataSourceOptions: DataSourceOptions = {
     ContactPhone,
     ContactAddress,
     ContactNote,
+    ContactEmergencyContact,
     ContactPhoto,
     Tag,
     ContactTag,

@@ -49,6 +49,15 @@ export interface ContactNote {
   created_at: string | null;
 }
 
+export interface ContactEmergencyContact {
+  id: string;
+  contact_id: string;
+  name: string;
+  phone: string;
+  email: string | null;
+  relationship: string | null;
+}
+
 export type ContactPhotoType = "profile" | "contact";
 
 export interface ContactPhoto {
@@ -91,6 +100,7 @@ export interface Contact {
   emails?: ContactEmail[];
   phones?: ContactPhone[];
   addresses?: ContactAddress[];
+  emergency_contacts?: ContactEmergencyContact[];
   tags?: Tag[];
   contact_photos?: ContactPhoto[];
 }

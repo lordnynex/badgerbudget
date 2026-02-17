@@ -8,9 +8,10 @@ import type {
   ContactEmail,
   ContactPhone,
   ContactAddress,
+  ContactEmergencyContact,
 } from "@/types/contact";
 import { contactsToVCardFileAsync } from "@/lib/vcard";
-import { ArrowLeft, Pencil, Download, Trash2, RotateCcw, Plus, Trash2Icon, User, X } from "lucide-react";
+import { ArrowLeft, Pencil, Download, Trash2, RotateCcw, Plus, Trash2Icon, User, X, AlertCircle } from "lucide-react";
 import { EditContactDialog } from "./EditContactDialog";
 import { ContactPhotoCarousel } from "./ContactPhotoCarousel";
 import { ContactPhotoLightbox } from "./ContactPhotoLightbox";
@@ -77,6 +78,21 @@ function ContactDetailContent({ id }: { id: string }) {
     country: "US",
     type: "home",
     is_primary_mailing: false,
+  });
+
+  const [editingEmergencyContactId, setEditingEmergencyContactId] = useState<string | null>(null);
+  const [editingEmergencyContactDraft, setEditingEmergencyContactDraft] = useState<{
+    name: string;
+    phone: string;
+    email: string;
+    relationship: string;
+  }>({ name: "", phone: "", email: "", relationship: "" });
+  const [addingEmergencyContact, setAddingEmergencyContact] = useState(false);
+  const [newEmergencyContactDraft, setNewEmergencyContactDraft] = useState({
+    name: "",
+    phone: "",
+    email: "",
+    relationship: "",
   });
 
   const [savingContactField, setSavingContactField] = useState(false);
@@ -195,6 +211,14 @@ function ContactDetailContent({ id }: { id: string }) {
     country: (a.country ?? "US").trim() || "US",
     type: ((a.type ?? "home") as "home" | "work" | "postal" | "other"),
     is_primary_mailing: !!(a.is_primary_mailing ?? false),
+  });
+  const toEmergencyContactPayload = (
+    ec: ContactEmergencyContact | { name?: string; phone?: string; email?: string; relationship?: string }
+  ) => ({
+    name: String(ec.name ?? "").trim(),
+    phone: String(ec.phone ?? "").trim(),
+    email: (ec.email ?? "").trim() || null,
+    relationship: (ec.relationship ?? "").trim() || null,
   });
 
   const saveEmails = async (emails: Array<{ email: string; type: string; is_primary: boolean }>) => {
@@ -316,6 +340,51 @@ function ContactDetailContent({ id }: { id: string }) {
     if (!confirm("Remove this address?")) return;
     const next = (contact.addresses ?? []).filter((a) => a.id !== addressId).map(toAddressPayload);
     saveAddresses(next);
+  };
+
+  const saveEmergencyContacts = async (
+    emergencyContacts: Array<{ name: string; phone: string; email: string | null; relationship: string | null }>
+  ) => {
+    setSavingContactField(true);
+    setContactFieldError(null);
+    try {
+      const valid = emergencyContacts.filter((ec) => (ec.name ?? "").trim() && (ec.phone ?? "").trim());
+      const updated = await api.contacts.update(id, {
+        emergency_contacts: valid.map(toEmergencyContactPayload),
+      });
+      if (updated) invalidate.setContactData(id, updated);
+      setEditingEmergencyContactId(null);
+      setAddingEmergencyContact(false);
+      setNewEmergencyContactDraft({ name: "", phone: "", email: "", relationship: "" });
+    } catch (err) {
+      setContactFieldError(err instanceof Error ? err.message : "Failed to save emergency contact");
+    } finally {
+      setSavingContactField(false);
+    }
+  };
+
+  const handleSaveEmergencyContact = () => {
+    const current = contact.emergency_contacts ?? [];
+    const idx = current.findIndex((ec) => ec.id === editingEmergencyContactId);
+    if (idx < 0) return;
+    const next = [...current];
+    next[idx] = { ...next[idx]!, ...editingEmergencyContactDraft };
+    saveEmergencyContacts(next.map(toEmergencyContactPayload));
+  };
+
+  const handleAddEmergencyContact = () => {
+    const d = newEmergencyContactDraft;
+    if (!d.name.trim() || !d.phone.trim()) return;
+    const current = (contact.emergency_contacts ?? []).map(toEmergencyContactPayload);
+    saveEmergencyContacts([...current, toEmergencyContactPayload(d)]);
+  };
+
+  const handleDeleteEmergencyContact = (ecId: string) => {
+    if (!confirm("Remove this emergency contact?")) return;
+    const next = (contact.emergency_contacts ?? [])
+      .filter((ec) => ec.id !== ecId)
+      .map(toEmergencyContactPayload);
+    saveEmergencyContacts(next);
   };
 
   const notes = contact.contact_notes ?? [];
@@ -873,6 +942,193 @@ function ContactDetailContent({ id }: { id: string }) {
                 )}
               </div>
             </div>
+          </section>
+
+          {/* Emergency Contacts */}
+          <section>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
+                <AlertCircle className="size-4" />
+                Emergency Contacts
+              </h3>
+              {contact.status !== "deleted" && !addingEmergencyContact && (
+                <Button variant="outline" size="sm" onClick={() => setAddingEmergencyContact(true)}>
+                  <Plus className="size-4" />
+                  Add emergency contact
+                </Button>
+              )}
+            </div>
+            {(contact.emergency_contacts ?? []).length === 0 && !addingEmergencyContact ? (
+              <p className="text-muted-foreground text-sm">No emergency contacts.</p>
+            ) : (
+              <div className="space-y-4">
+                {(contact.emergency_contacts ?? []).map((ec) => (
+                  <div key={ec.id} className="rounded-lg border p-4">
+                    {editingEmergencyContactId === ec.id ? (
+                      <div className="space-y-3">
+                        <Input
+                          value={editingEmergencyContactDraft.name}
+                          onChange={(e) =>
+                            setEditingEmergencyContactDraft((d) => ({ ...d, name: e.target.value }))
+                          }
+                          placeholder="Name"
+                        />
+                        <Input
+                          value={editingEmergencyContactDraft.phone}
+                          onChange={(e) =>
+                            setEditingEmergencyContactDraft((d) => ({ ...d, phone: e.target.value }))
+                          }
+                          placeholder="Phone"
+                        />
+                        <Input
+                          type="email"
+                          value={editingEmergencyContactDraft.email}
+                          onChange={(e) =>
+                            setEditingEmergencyContactDraft((d) => ({ ...d, email: e.target.value }))
+                          }
+                          placeholder="Email (optional)"
+                        />
+                        <Input
+                          value={editingEmergencyContactDraft.relationship}
+                          onChange={(e) =>
+                            setEditingEmergencyContactDraft((d) => ({ ...d, relationship: e.target.value }))
+                          }
+                          placeholder="Relationship (optional)"
+                        />
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            onClick={handleSaveEmergencyContact}
+                            disabled={savingContactField || !editingEmergencyContactDraft.name.trim() || !editingEmergencyContactDraft.phone.trim()}
+                          >
+                            {savingContactField ? "Saving..." : "Save"}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => {
+                              setEditingEmergencyContactId(null);
+                              setEditingEmergencyContactDraft({ name: "", phone: "", email: "", relationship: "" });
+                              setContactFieldError(null);
+                            }}
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <p className="font-medium">{ec.name}</p>
+                          {ec.relationship && (
+                            <p className="text-sm text-muted-foreground">{ec.relationship}</p>
+                          )}
+                          <a
+                            href={`tel:${ec.phone}`}
+                            className="text-primary hover:underline text-sm flex items-center gap-1 mt-1"
+                          >
+                            {ec.phone}
+                          </a>
+                          {ec.email && (
+                            <a
+                              href={`mailto:${ec.email}`}
+                              className="text-primary hover:underline text-sm block"
+                            >
+                              {ec.email}
+                            </a>
+                          )}
+                        </div>
+                        {contact.status !== "deleted" && (
+                          <div className="flex gap-1 shrink-0">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="size-8"
+                              onClick={() => {
+                                setEditingEmergencyContactId(ec.id);
+                                setEditingEmergencyContactDraft({
+                                  name: ec.name,
+                                  phone: ec.phone,
+                                  email: ec.email ?? "",
+                                  relationship: ec.relationship ?? "",
+                                });
+                              }}
+                            >
+                              <Pencil className="size-3.5" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="size-8 text-destructive hover:text-destructive"
+                              onClick={() => handleDeleteEmergencyContact(ec.id)}
+                            >
+                              <Trash2Icon className="size-3.5" />
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))}
+                {addingEmergencyContact && (
+                  <div className="rounded-lg border border-dashed p-4 space-y-3">
+                    <Input
+                      value={newEmergencyContactDraft.name}
+                      onChange={(e) =>
+                        setNewEmergencyContactDraft((d) => ({ ...d, name: e.target.value }))
+                      }
+                      placeholder="Name"
+                    />
+                    <Input
+                      value={newEmergencyContactDraft.phone}
+                      onChange={(e) =>
+                        setNewEmergencyContactDraft((d) => ({ ...d, phone: e.target.value }))
+                      }
+                      placeholder="Phone"
+                    />
+                    <Input
+                      type="email"
+                      value={newEmergencyContactDraft.email}
+                      onChange={(e) =>
+                        setNewEmergencyContactDraft((d) => ({ ...d, email: e.target.value }))
+                      }
+                      placeholder="Email (optional)"
+                    />
+                    <Input
+                      value={newEmergencyContactDraft.relationship}
+                      onChange={(e) =>
+                        setNewEmergencyContactDraft((d) => ({ ...d, relationship: e.target.value }))
+                      }
+                      placeholder="Relationship (optional)"
+                    />
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        onClick={handleAddEmergencyContact}
+                        disabled={
+                          savingContactField ||
+                          !newEmergencyContactDraft.name.trim() ||
+                          !newEmergencyContactDraft.phone.trim()
+                        }
+                      >
+                        {savingContactField ? "Adding..." : "Add"}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          setAddingEmergencyContact(false);
+                          setNewEmergencyContactDraft({ name: "", phone: "", email: "", relationship: "" });
+                          setContactFieldError(null);
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </section>
 
           {/* How we know them */}

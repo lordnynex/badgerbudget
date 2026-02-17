@@ -65,6 +65,13 @@ const contactAddressItem = t.Object({
   is_primary_mailing: t.Optional(t.Boolean()),
 });
 
+const contactEmergencyContactItem = t.Object({
+  name: t.String(),
+  phone: t.String(),
+  email: t.Optional(t.Union([t.String(), t.Null()])),
+  relationship: t.Optional(t.Union([t.String(), t.Null()])),
+});
+
 const contactCreateItem = t.Object(
   {
     display_name: t.String(),
@@ -87,6 +94,7 @@ const contactCreateItem = t.Object(
     emails: t.Optional(t.Array(contactEmailItem)),
     phones: t.Optional(t.Array(contactPhoneItem)),
     addresses: t.Optional(t.Array(contactAddressItem)),
+    emergency_contacts: t.Optional(t.Array(contactEmergencyContactItem)),
     tags: t.Optional(t.Array(tagSchema)),
   },
   { additionalProperties: true },
@@ -177,6 +185,7 @@ export const ContactsDto = {
       emails: t.Optional(t.Array(contactEmailItem)),
       phones: t.Optional(t.Array(contactPhoneItem)),
       addresses: t.Optional(t.Array(contactAddressItem)),
+      emergency_contacts: t.Optional(t.Array(contactEmergencyContactItem)),
       tags: t.Optional(t.Array(tagSchema)),
     },
     { additionalProperties: true },
