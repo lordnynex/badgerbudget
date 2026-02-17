@@ -451,7 +451,15 @@ function ContactDetailContent({ id }: { id: string }) {
           <CardHeader>
             <CardTitle className="text-xl">{contact.display_name}</CardTitle>
             <p className="text-sm text-muted-foreground mt-1 flex flex-wrap items-center gap-2">
-              <span>{contact.type} • {contact.status}</span>
+              <span>{contact.type}</span>
+              <span>•</span>
+              {contact.status === "active" ? (
+                <span className="inline-flex rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                  Active
+                </span>
+              ) : (
+                <span>{contact.status}</span>
+              )}
               {contact.hellenic && (
                 <span className="inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
                   Hellenic
