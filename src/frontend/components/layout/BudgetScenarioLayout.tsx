@@ -42,7 +42,7 @@ function BudgetScenarioListsSync({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (urlBudgetId && budgets.some((b) => b.id === urlBudgetId)) {
       dispatch({ type: "SET_SELECTED_BUDGET", payload: urlBudgetId });
-    } else if (paramBudgetId && budgets.some((b) => b.id === paramBudgetId) && selectedBudgetId !== paramBudgetId) {
+    } else if (paramBudgetId && budgets.some((b) => b.id === paramBudgetId) && selectedBudgetId == null) {
       dispatch({ type: "SET_SELECTED_BUDGET", payload: paramBudgetId });
     } else if (budgets.length && selectedBudgetId == null) {
       const first = budgets[0];
@@ -53,7 +53,7 @@ function BudgetScenarioListsSync({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (urlScenarioId && scenarios.some((s) => s.id === urlScenarioId)) {
       dispatch({ type: "SET_SELECTED_SCENARIO", payload: urlScenarioId });
-    } else if (paramScenarioId && scenarios.some((s) => s.id === paramScenarioId) && selectedScenarioId !== paramScenarioId) {
+    } else if (paramScenarioId && scenarios.some((s) => s.id === paramScenarioId) && selectedScenarioId == null) {
       dispatch({ type: "SET_SELECTED_SCENARIO", payload: paramScenarioId });
     } else if (scenarios.length && selectedScenarioId == null) {
       const first = scenarios[0];
@@ -75,8 +75,10 @@ function BudgetScenarioListsSync({ children }: { children: ReactNode }) {
     }, { replace: true });
   }, [isProjections, selectedBudgetId, selectedScenarioId, setSearchParams]);
 
-  const budgetId = urlBudgetId ?? paramBudgetId ?? selectedBudgetId ?? budgets[0]?.id ?? null;
-  const scenarioId = urlScenarioId ?? paramScenarioId ?? selectedScenarioId ?? scenarios[0]?.id ?? null;
+  // Prefer selectedBudgetId/selectedScenarioId over URL params so dropdown changes update immediately.
+  // URL params are for initial load (shared links); AppState selection reflects user interaction.
+  const budgetId = urlBudgetId ?? selectedBudgetId ?? paramBudgetId ?? budgets[0]?.id ?? null;
+  const scenarioId = urlScenarioId ?? selectedScenarioId ?? paramScenarioId ?? scenarios[0]?.id ?? null;
 
   // On list-only or standalone pages, render children without full data sync
   const isBudgetList = location.pathname === "/budgeting/budget";
