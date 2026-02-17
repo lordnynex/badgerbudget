@@ -205,18 +205,6 @@ export function ContactsLayout() {
               </div>
             )}
 
-                <ul className="space-y-0.5">
-                  <li>
-                    <NavLink
-                      to="/contacts/lists"
-                      end
-                      className={listLinkClass}
-                    >
-                      <Plus className="size-4 shrink-0" />
-                      Add new list
-                    </NavLink>
-                  </li>
-                </ul>
               </>
             )}
           </div>
@@ -415,19 +403,6 @@ export function ContactsLayout() {
                         </ul>
                       </div>
                     )}
-                    <ul className="space-y-0.5">
-                      <li>
-                        <NavLink
-                          to="/contacts/lists"
-                          end
-                          className={listLinkClassExpanded}
-                          onClick={() => setMobileNavOpen(false)}
-                        >
-                          <Plus className="size-4 shrink-0" />
-                          Add new list
-                        </NavLink>
-                      </li>
-                    </ul>
                   </div>
 
                   <div>
