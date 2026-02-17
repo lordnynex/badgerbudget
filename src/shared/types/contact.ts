@@ -87,6 +87,7 @@ export interface Contact {
   how_we_know_them: string | null;
   ok_to_email: ConsentStatus;
   ok_to_mail: ConsentStatus;
+  ok_to_sms: ConsentStatus;
   do_not_contact: boolean;
   club_name: string | null;
   role: string | null;

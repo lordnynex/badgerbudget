@@ -9,10 +9,11 @@ import type {
   ContactPhone,
   ContactAddress,
   ContactEmergencyContact,
+  ConsentStatus,
 } from "@/types/contact";
 import { contactsToVCardFileAsync } from "@/lib/vcard";
 import { formatPhoneNumber, isValidPhoneNumber, normalizePhoneForStorage } from "@/lib/phone";
-import { ArrowLeft, Pencil, Download, Trash2, RotateCcw, Plus, Trash2Icon, User, X, AlertCircle } from "lucide-react";
+import { ArrowLeft, Pencil, Download, Trash2, RotateCcw, Plus, Trash2Icon, User, X, AlertCircle, Check } from "lucide-react";
 import { EditContactDialog } from "./EditContactDialog";
 import { ContactPhotoCarousel } from "./ContactPhotoCarousel";
 import { ContactPhotoLightbox } from "./ContactPhotoLightbox";
@@ -98,6 +99,7 @@ function ContactDetailContent({ id }: { id: string }) {
 
   const [savingContactField, setSavingContactField] = useState(false);
   const [contactFieldError, setContactFieldError] = useState<string | null>(null);
+  const [consentSavedField, setConsentSavedField] = useState<"email" | "mail" | "sms" | null>(null);
 
   const { data: allLists = [] } = useQuery({
     queryKey: queryKeys.mailingLists,
@@ -255,6 +257,29 @@ function ContactDetailContent({ id }: { id: string }) {
       setNewPhoneDraft({ phone: "", type: "other", is_primary: false });
     } catch (err) {
       setContactFieldError(err instanceof Error ? err.message : "Failed to save phone number");
+    } finally {
+      setSavingContactField(false);
+    }
+  };
+
+  const saveConsent = async (
+    field: "ok_to_email" | "ok_to_mail" | "ok_to_sms",
+    value: ConsentStatus
+  ) => {
+    setSavingContactField(true);
+    setContactFieldError(null);
+    setConsentSavedField(null);
+    try {
+      const updated = await api.contacts.update(id, { [field]: value });
+      if (updated) {
+        invalidate.setContactData(id, updated);
+        const feedbackKey =
+          field === "ok_to_email" ? "email" : field === "ok_to_mail" ? "mail" : "sms";
+        setConsentSavedField(feedbackKey);
+        setTimeout(() => setConsentSavedField(null), 2000);
+      }
+    } catch (err) {
+      setContactFieldError(err instanceof Error ? err.message : "Failed to save consent");
     } finally {
       setSavingContactField(false);
     }
@@ -499,12 +524,92 @@ function ContactDetailContent({ id }: { id: string }) {
                 <p className="text-sm font-medium text-muted-foreground">Role / title</p>
                 <p>{contact.role ?? "—"}</p>
               </div>
-              <div>
+              <div className="space-y-3">
                 <p className="text-sm font-medium text-muted-foreground">Consent</p>
-                <p>
-                  Email: {contact.ok_to_email} • Mail: {contact.ok_to_mail}
-                  {contact.do_not_contact && " • Do not contact"}
-                </p>
+                <div className="space-y-2">
+                  {contact.status !== "deleted" ? (
+                    <>
+                      <div className="flex items-center gap-2">
+                        <Label className="text-sm font-normal w-20 shrink-0">Email</Label>
+                        <Select
+                          value={contact.ok_to_email ?? "unknown"}
+                          onValueChange={(v) => saveConsent("ok_to_email", v as ConsentStatus)}
+                          disabled={savingContactField}
+                        >
+                          <SelectTrigger className="h-8 w-[120px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="yes">Yes</SelectItem>
+                            <SelectItem value="no">No</SelectItem>
+                            <SelectItem value="unknown">Unknown</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        {consentSavedField === "email" && (
+                          <span className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
+                            <Check className="size-3" />
+                            Saved
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Label className="text-sm font-normal w-20 shrink-0">Mail</Label>
+                        <Select
+                          value={contact.ok_to_mail ?? "unknown"}
+                          onValueChange={(v) => saveConsent("ok_to_mail", v as ConsentStatus)}
+                          disabled={savingContactField}
+                        >
+                          <SelectTrigger className="h-8 w-[120px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="yes">Yes</SelectItem>
+                            <SelectItem value="no">No</SelectItem>
+                            <SelectItem value="unknown">Unknown</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        {consentSavedField === "mail" && (
+                          <span className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
+                            <Check className="size-3" />
+                            Saved
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Label className="text-sm font-normal w-20 shrink-0">SMS</Label>
+                        <Select
+                          value={contact.ok_to_sms ?? "unknown"}
+                          onValueChange={(v) => saveConsent("ok_to_sms", v as ConsentStatus)}
+                          disabled={savingContactField}
+                        >
+                          <SelectTrigger className="h-8 w-[120px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="yes">Yes</SelectItem>
+                            <SelectItem value="no">No</SelectItem>
+                            <SelectItem value="unknown">Unknown</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        {consentSavedField === "sms" && (
+                          <span className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
+                            <Check className="size-3" />
+                            Saved
+                          </span>
+                        )}
+                      </div>
+                    </>
+                  ) : (
+                    <div className="space-y-1 text-sm">
+                      <p>Email: {contact.ok_to_email ?? "unknown"}</p>
+                      <p>Mail: {contact.ok_to_mail ?? "unknown"}</p>
+                      <p>SMS: {contact.ok_to_sms ?? "unknown"}</p>
+                    </div>
+                  )}
+                  {contact.do_not_contact && (
+                    <p className="text-sm text-muted-foreground">Do not contact</p>
+                  )}
+                </div>
               </div>
             </div>
             {(contact.tags ?? []).length > 0 && (

@@ -74,6 +74,7 @@ describe("vCard export round-trip", () => {
       how_we_know_them: null,
       ok_to_email: "yes" as const,
       ok_to_mail: "yes" as const,
+      ok_to_sms: "unknown" as const,
       do_not_contact: false,
       club_name: null,
       role: null,

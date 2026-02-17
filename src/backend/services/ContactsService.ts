@@ -42,6 +42,7 @@ function entityToContact(e: ContactEntity): Contact {
     how_we_know_them: e.howWeKnowThem,
     ok_to_email: (e.okToEmail as Contact["ok_to_email"]) ?? "unknown",
     ok_to_mail: (e.okToMail as Contact["ok_to_mail"]) ?? "unknown",
+    ok_to_sms: (e.okToSms as Contact["ok_to_sms"]) ?? "unknown",
     do_not_contact: e.doNotContact === 1,
     club_name: e.clubName,
     role: e.role,
@@ -68,6 +69,7 @@ function rowToContact(row: Record<string, unknown>): Contact {
     how_we_know_them: (row.how_we_know_them as string) ?? null,
     ok_to_email: (row.ok_to_email as Contact["ok_to_email"]) ?? "unknown",
     ok_to_mail: (row.ok_to_mail as Contact["ok_to_mail"]) ?? "unknown",
+    ok_to_sms: (row.ok_to_sms as Contact["ok_to_sms"]) ?? "unknown",
     do_not_contact: (row.do_not_contact as number) === 1,
     club_name: (row.club_name as string) ?? null,
     role: (row.role as string) ?? null,
@@ -467,7 +469,7 @@ export class ContactsService {
     const deceased = body.deceased ? 1 : 0;
     const deceasedYear = body.deceased_year ?? null;
     await this.db.run(
-      `INSERT INTO contacts (id, type, status, display_name, first_name, last_name, organization_name, notes, how_we_know_them, ok_to_email, ok_to_mail, do_not_contact, club_name, role, uid, hellenic, deceased, deceased_year) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO contacts (id, type, status, display_name, first_name, last_name, organization_name, notes, how_we_know_them, ok_to_email, ok_to_mail, ok_to_sms, do_not_contact, club_name, role, uid, hellenic, deceased, deceased_year) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         type,
@@ -480,6 +482,7 @@ export class ContactsService {
         body.how_we_know_them ?? null,
         body.ok_to_email ?? "unknown",
         body.ok_to_mail ?? "unknown",
+        body.ok_to_sms ?? "unknown",
         body.do_not_contact ? 1 : 0,
         body.club_name ?? null,
         body.role ?? null,
@@ -605,6 +608,8 @@ export class ContactsService {
       existing.okToEmail) as Contact["ok_to_email"];
     const ok_to_mail = (body.ok_to_mail ??
       existing.okToMail) as Contact["ok_to_mail"];
+    const ok_to_sms = (body.ok_to_sms ??
+      existing.okToSms) as Contact["ok_to_sms"];
     const do_not_contact =
       (body.do_not_contact ?? existing.doNotContact === 1) ? 1 : 0;
     const club_name =
@@ -618,7 +623,7 @@ export class ContactsService {
       body.deceased_year !== undefined ? body.deceased_year : existing.deceasedYear ?? null;
 
     await this.db.run(
-      `UPDATE contacts SET display_name=?, type=?, status=?, first_name=?, last_name=?, organization_name=?, notes=?, how_we_know_them=?, ok_to_email=?, ok_to_mail=?, do_not_contact=?, club_name=?, role=?, hellenic=?, deceased=?, deceased_year=?, updated_at=datetime('now') WHERE id=?`,
+      `UPDATE contacts SET display_name=?, type=?, status=?, first_name=?, last_name=?, organization_name=?, notes=?, how_we_know_them=?, ok_to_email=?, ok_to_mail=?, ok_to_sms=?, do_not_contact=?, club_name=?, role=?, hellenic=?, deceased=?, deceased_year=?, updated_at=datetime('now') WHERE id=?`,
       [
         display_name,
         type,
@@ -630,6 +635,7 @@ export class ContactsService {
         how_we_know_them,
         ok_to_email,
         ok_to_mail,
+        ok_to_sms,
         do_not_contact,
         club_name,
         role,
@@ -849,6 +855,7 @@ export class ContactsService {
         .ok_to_email,
       ok_to_mail: (resolution.ok_to_mail === "source" ? source : target)
         .ok_to_mail,
+      ok_to_sms: ((resolution.ok_to_sms === "source" ? source : target).ok_to_sms as Contact["ok_to_sms"]) ?? "unknown",
       do_not_contact: source.do_not_contact || target.do_not_contact,
       hellenic: source.hellenic || target.hellenic,
       deceased: source.deceased || target.deceased,

@@ -35,6 +35,7 @@ function recipientToContact(r: MailingBatchRecipient): Parameters<typeof contact
     how_we_know_them: null,
     ok_to_email: "unknown",
     ok_to_mail: "unknown",
+    ok_to_sms: "unknown",
     do_not_contact: false,
     club_name: null,
     role: null,

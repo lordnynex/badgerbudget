@@ -38,6 +38,7 @@ export function EditContactDialog({ open, onOpenChange, contact, onSuccess }: Ed
   const [role, setRole] = useState("");
   const [okToEmail, setOkToEmail] = useState<Contact["ok_to_email"]>("unknown");
   const [okToMail, setOkToMail] = useState<Contact["ok_to_mail"]>("unknown");
+  const [okToSms, setOkToSms] = useState<Contact["ok_to_sms"]>("unknown");
   const [doNotContact, setDoNotContact] = useState(false);
   const [hellenic, setHellenic] = useState(false);
   const [deceased, setDeceased] = useState(false);
@@ -72,6 +73,7 @@ export function EditContactDialog({ open, onOpenChange, contact, onSuccess }: Ed
       setRole(contact.role ?? "");
       setOkToEmail(contact.ok_to_email);
       setOkToMail(contact.ok_to_mail);
+      setOkToSms(contact.ok_to_sms ?? "unknown");
       setDoNotContact(contact.do_not_contact);
       setHellenic(contact.hellenic ?? false);
       setDeceased(contact.deceased ?? false);
@@ -130,6 +132,7 @@ export function EditContactDialog({ open, onOpenChange, contact, onSuccess }: Ed
         role: role.trim() || null,
         ok_to_email: okToEmail,
         ok_to_mail: okToMail,
+        ok_to_sms: okToSms,
         do_not_contact: doNotContact,
         hellenic,
         deceased,
@@ -300,32 +303,48 @@ export function EditContactDialog({ open, onOpenChange, contact, onSuccess }: Ed
             <Label>Role / title</Label>
             <Input value={role} onChange={(e) => setRole(e.target.value)} />
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label>OK to email</Label>
-              <Select value={okToEmail} onValueChange={(v) => setOkToEmail(v as Contact["ok_to_email"])}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="yes">Yes</SelectItem>
-                  <SelectItem value="no">No</SelectItem>
-                  <SelectItem value="unknown">Unknown</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>OK to mail</Label>
-              <Select value={okToMail} onValueChange={(v) => setOkToMail(v as Contact["ok_to_mail"])}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="yes">Yes</SelectItem>
-                  <SelectItem value="no">No</SelectItem>
-                  <SelectItem value="unknown">Unknown</SelectItem>
-                </SelectContent>
-              </Select>
+          <div className="space-y-3">
+            <Label>Consent</Label>
+            <div className="space-y-2">
+              <div>
+                <Label className="text-muted-foreground text-sm">OK to email</Label>
+                <Select value={okToEmail} onValueChange={(v) => setOkToEmail(v as Contact["ok_to_email"])}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="yes">Yes</SelectItem>
+                    <SelectItem value="no">No</SelectItem>
+                    <SelectItem value="unknown">Unknown</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-muted-foreground text-sm">OK to mail</Label>
+                <Select value={okToMail} onValueChange={(v) => setOkToMail(v as Contact["ok_to_mail"])}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="yes">Yes</SelectItem>
+                    <SelectItem value="no">No</SelectItem>
+                    <SelectItem value="unknown">Unknown</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-muted-foreground text-sm">OK to SMS</Label>
+                <Select value={okToSms} onValueChange={(v) => setOkToSms(v as Contact["ok_to_sms"])}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="yes">Yes</SelectItem>
+                    <SelectItem value="no">No</SelectItem>
+                    <SelectItem value="unknown">Unknown</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
           <div className="flex items-center gap-2">

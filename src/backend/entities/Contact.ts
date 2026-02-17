@@ -35,6 +35,9 @@ export class Contact {
   @Column({ name: "ok_to_mail", type: "text", default: "unknown" })
   okToMail!: string;
 
+  @Column({ name: "ok_to_sms", type: "text", default: "unknown" })
+  okToSms!: string;
+
   @Column({ name: "do_not_contact", type: "integer", default: 0 })
   doNotContact!: number;
 
