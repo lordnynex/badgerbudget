@@ -15,6 +15,7 @@ import { contactsToVCardFileAsync } from "@/lib/vcard";
 import { BookOpen, Plus, Search, Download, List } from "lucide-react";
 import { AddContactDialog } from "./AddContactDialog";
 import { AddToMailingListDialog } from "./AddToMailingListDialog";
+import { ContactDirectoryTable } from "./ContactDirectoryTable";
 import { useContactsSuspense, useInvalidateQueries } from "@/queries/hooks";
 import type { ContactSearchParams } from "@/types/contact";
 
@@ -164,47 +165,16 @@ export function HellenicsPanel() {
               No Hellenics found. Mark contacts as Hellenic in their profile to include them here.
             </div>
           ) : (
-            <div className="mt-4 overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b">
-                    <th className="w-10 px-2 py-2 text-left">
-                      <input
-                        type="checkbox"
-                        checked={selectedIds.size === contacts.length && contacts.length > 0}
-                        onChange={toggleSelectAll}
-                        className="rounded"
-                      />
-                    </th>
-                    <th className="px-2 py-2 text-left font-medium">Name</th>
-                    <th className="px-2 py-2 text-left font-medium">Organization</th>
-                    <th className="px-2 py-2 text-left font-medium">Email</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {contacts.map((c) => (
-                    <tr
-                      key={c.id}
-                      className="border-b hover:bg-muted/50 cursor-pointer"
-                      onClick={() => navigate(`/contacts/${c.id}`)}
-                    >
-                      <td className="px-2 py-2" onClick={(e) => e.stopPropagation()}>
-                        <input
-                          type="checkbox"
-                          checked={selectedIds.has(c.id)}
-                          onChange={() => toggleSelect(c.id)}
-                          className="rounded"
-                        />
-                      </td>
-                      <td className="px-2 py-2 font-medium">{c.display_name}</td>
-                      <td className="px-2 py-2 text-muted-foreground">{c.organization_name ?? "—"}</td>
-                      <td className="px-2 py-2 text-muted-foreground">
-                        {c.emails?.[0]?.email ?? "—"}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="mt-4">
+              <ContactDirectoryTable
+                rows={contacts.map((c) => ({ contact: c }))}
+                columns={["checkbox", "name", "phone", "address", "email"]}
+                selectable
+                selectedIds={selectedIds}
+                onToggleSelect={toggleSelect}
+                onToggleSelectAll={toggleSelectAll}
+                onRowClick={(c) => navigate(`/contacts/${c.id}`)}
+              />
             </div>
           )}
 

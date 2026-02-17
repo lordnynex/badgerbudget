@@ -20,7 +20,8 @@ import { ImportContactsDialog } from "./ImportContactsDialog";
 import { AddToMailingListDialog } from "./AddToMailingListDialog";
 import { ContactsExportDropdown } from "./ContactsExportDropdown";
 import { downloadContactsCsv, downloadContactsPdf } from "./contactUtils";
-import { useContactsSuspense, useContactTags, useInvalidateQueries } from "@/queries/hooks";
+import { ContactDirectoryTable } from "./ContactDirectoryTable";
+import { useContactsSuspense, useInvalidateQueries } from "@/queries/hooks";
 
 function useDebounce<T>(value: T, delay: number): T {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -60,7 +61,6 @@ export function ContactsPanel() {
   };
 
   const { data: result } = useContactsSuspense(params);
-  const { data: tags = [] } = useContactTags();
   const contacts = result.contacts;
   const total = result.total;
 
@@ -257,73 +257,16 @@ export function ContactsPanel() {
               No contacts found. Add one or import from vCard/CSV.
             </div>
           ) : (
-            <div className="mt-4 overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b">
-                    <th className="w-10 px-2 py-2 text-left">
-                      <input
-                        type="checkbox"
-                        checked={selectedIds.size === contacts.length && contacts.length > 0}
-                        onChange={toggleSelectAll}
-                        className="rounded"
-                      />
-                    </th>
-                    <th className="px-2 py-2 text-left font-medium">Name</th>
-                    <th className="px-2 py-2 text-left font-medium">Organization</th>
-                    <th className="px-2 py-2 text-left font-medium">Email</th>
-                    <th className="px-2 py-2 text-left font-medium">Tags</th>
-                    <th className="px-2 py-2 text-left font-medium">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {contacts.map((c) => (
-                    <tr
-                      key={c.id}
-                      className="border-b hover:bg-muted/50 cursor-pointer"
-                      onClick={() => navigate(`/contacts/${c.id}`)}
-                    >
-                      <td className="px-2 py-2" onClick={(e) => e.stopPropagation()}>
-                        <input
-                          type="checkbox"
-                          checked={selectedIds.has(c.id)}
-                          onChange={() => toggleSelect(c.id)}
-                          className="rounded"
-                        />
-                      </td>
-                      <td className="px-2 py-2 font-medium">{c.display_name}</td>
-                      <td className="px-2 py-2 text-muted-foreground">{c.organization_name ?? "—"}</td>
-                      <td className="px-2 py-2 text-muted-foreground">
-                        {c.emails?.[0]?.email ?? "—"}
-                      </td>
-                      <td className="px-2 py-2">
-                        <div className="flex flex-wrap gap-1">
-                          {(c.tags ?? []).slice(0, 3).map((t) => (
-                            <span
-                              key={t.id}
-                              className="inline-flex items-center rounded bg-muted px-1.5 py-0.5 text-xs"
-                            >
-                              {t.name}
-                            </span>
-                          ))}
-                          {(c.tags ?? []).length > 3 && (
-                            <span className="text-muted-foreground text-xs">+{(c.tags ?? []).length - 3}</span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-2 py-2">
-                        <span
-                          className={`inline-flex rounded px-1.5 py-0.5 text-xs ${
-                            c.status === "active" ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" : "bg-muted"
-                          }`}
-                        >
-                          {c.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="mt-4">
+              <ContactDirectoryTable
+                rows={contacts.map((c) => ({ contact: c }))}
+                columns={["checkbox", "name", "phone", "address", "email", "tags", "status"]}
+                selectable
+                selectedIds={selectedIds}
+                onToggleSelect={toggleSelect}
+                onToggleSelectAll={toggleSelectAll}
+                onRowClick={(c) => navigate(`/contacts/${c.id}`)}
+              />
             </div>
           )}
 

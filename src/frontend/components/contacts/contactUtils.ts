@@ -2,7 +2,7 @@ import type { Contact, ContactAddress } from "@/types/contact";
 import { jsPDF } from "jspdf";
 import { formatPhoneNumber } from "@/lib/phone";
 
-function formatAddress(addr: ContactAddress | undefined): string {
+export function formatAddress(addr: ContactAddress | undefined): string {
   if (!addr) return "";
   const parts = [
     addr.address_line1,
@@ -14,7 +14,7 @@ function formatAddress(addr: ContactAddress | undefined): string {
   return parts.join(" ");
 }
 
-function getPrimaryAddress(contact: Contact): ContactAddress | undefined {
+export function getPrimaryAddress(contact: Contact): ContactAddress | undefined {
   const addrs = contact.addresses ?? [];
   return addrs.find((a) => a.is_primary_mailing) ?? addrs[0];
 }

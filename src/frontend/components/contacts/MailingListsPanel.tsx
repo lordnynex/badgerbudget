@@ -23,6 +23,7 @@ import type { MailingList, ListPreview } from "@/types/contact";
 import { contactsToVCardFileAsync } from "@/lib/vcard";
 import { ArrowLeft, Plus, Pencil, Trash2, Download, Printer, Users, MapPin, Copy, ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { AddContactToMailingListDialog } from "./AddContactToMailingListDialog";
+import { ContactDirectoryTable } from "./ContactDirectoryTable";
 import { CreateMailLabelsDialog } from "./CreateMailLabelsDialog";
 import { useMailingListsSuspense, useEventsSuspense, useMailingListSuspense, useMailingListPreview, useMailingListStats, useMailingListIncluded, useInvalidateQueries } from "@/queries/hooks";
 import { PageLoading } from "@/components/layout/PageLoading";
@@ -515,40 +516,35 @@ function MailingListDetail({
                 </p>
               ) : (
                 <>
-                  <ul className="divide-y">
-                    {includedPage.contacts.map(({ contact, canRemoveFromList }) => (
-                      <li
-                        key={contact.id}
-                        className="flex items-center justify-between py-3 first:pt-0 last:pb-0"
-                      >
-                        <button
-                          type="button"
-                          className="text-left hover:underline text-primary"
-                          onClick={() => navigate(`/contacts/${contact.id}`)}
+                  <ContactDirectoryTable
+                    rows={includedPage.contacts.map(({ contact, canRemoveFromList }) => ({
+                      contact,
+                      canRemoveFromList,
+                    }))}
+                    columns={["name", "phone", "address", "email", "actions"]}
+                    onRowClick={(c) => navigate(`/contacts/${c.id}`)}
+                    renderRowActions={({ contact, canRemoveFromList }) =>
+                      canRemoveFromList ? (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive hover:text-destructive shrink-0"
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            if (!confirm(`Remove ${contact.display_name} from this list?`)) return;
+                            try {
+                              await api.mailingLists.removeMember(selectedList.id, contact.id);
+                              refreshList();
+                            } catch (err) {
+                              console.error(err);
+                            }
+                          }}
                         >
-                          {contact.display_name}
-                        </button>
-                        {canRemoveFromList && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-destructive hover:text-destructive shrink-0"
-                            onClick={async () => {
-                              if (!confirm(`Remove ${contact.display_name} from this list?`)) return;
-                              try {
-                                await api.mailingLists.removeMember(selectedList.id, contact.id);
-                                refreshList();
-                              } catch (err) {
-                                console.error(err);
-                              }
-                            }}
-                          >
-                            <Trash2 className="size-4" />
-                          </Button>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
+                          <Trash2 className="size-4" />
+                        </Button>
+                      ) : null
+                    }
+                  />
                   {includedPage.total > membersLimit && (
                     <div className="flex items-center justify-between pt-4 mt-4 border-t">
                       <p className="text-sm text-muted-foreground">
