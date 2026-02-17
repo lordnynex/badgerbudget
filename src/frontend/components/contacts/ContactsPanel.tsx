@@ -175,7 +175,7 @@ export function ContactsPanel() {
 
       <Card>
         <CardContent className="pt-6">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-4">
+          <div className="sticky top-14 z-10 -mx-6 -mt-6 flex flex-col gap-4 border-b border-border/50 bg-card px-6 pt-6 pb-4 sm:flex-row sm:items-center sm:gap-4">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
               <Input
