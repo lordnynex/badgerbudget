@@ -23,7 +23,18 @@ export class ContactsController extends BaseController {
         body: ContactsDto.updateBody,
       })
       .delete("/:id", ({ params }) => this.delete(params.id), { params: ContactsDto.params })
-      .post("/:id/restore", ({ params }) => this.restore(params.id), { params: ContactsDto.params });
+      .post("/:id/restore", ({ params }) => this.restore(params.id), { params: ContactsDto.params })
+      .post("/:id/notes", ({ params, body }) => this.createNote(params.id, body), {
+        params: ContactsDto.params,
+        body: ContactsDto.noteCreateBody,
+      })
+      .put("/:id/notes/:noteId", ({ params, body }) => this.updateNote(params.id, params.noteId, body), {
+        params: ContactsDto.noteParams,
+        body: ContactsDto.noteUpdateBody,
+      })
+      .delete("/:id/notes/:noteId", ({ params }) => this.deleteNote(params.id, params.noteId), {
+        params: ContactsDto.noteParams,
+      });
   }
 
   private list(query: Record<string, string | undefined>) {
@@ -114,5 +125,17 @@ export class ContactsController extends BaseController {
 
   private restore(id: string) {
     return this.api.contacts.restore(id).then((c) => (c ? this.json(c) : this.notFound()));
+  }
+
+  private createNote(contactId: string, body: { content: string }) {
+    return this.api.contacts.notes.create(contactId, body.content).then(this.json);
+  }
+
+  private updateNote(contactId: string, noteId: string, body: { content: string }) {
+    return this.api.contacts.notes.update(contactId, noteId, body.content).then((n) => (n ? this.json(n) : this.notFound()));
+  }
+
+  private deleteNote(contactId: string, noteId: string) {
+    return this.api.contacts.notes.delete(contactId, noteId).then(() => this.json({ ok: true }));
   }
 }

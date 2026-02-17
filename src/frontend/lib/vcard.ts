@@ -65,8 +65,11 @@ export function contactToVCard4(c: Contact, options?: { includeNotes?: boolean; 
     }
   }
 
-  if (opts.includeNotes && c.notes) {
-    lines.push(`NOTE:${escapeVCardValue(c.notes.slice(0, 2000))}`);
+  const notesText = (c.contact_notes?.length
+    ? c.contact_notes.map((n) => n.content).join("\n\n")
+    : c.notes) ?? "";
+  if (opts.includeNotes && notesText) {
+    lines.push(`NOTE:${escapeVCardValue(notesText.slice(0, 2000))}`);
   }
 
   if (c.tags?.length) {

@@ -42,6 +42,13 @@ export interface Tag {
   name: string;
 }
 
+export interface ContactNote {
+  id: string;
+  contact_id: string;
+  content: string;
+  created_at: string | null;
+}
+
 export interface Contact {
   id: string;
   type: ContactType;
@@ -50,7 +57,8 @@ export interface Contact {
   first_name: string | null;
   last_name: string | null;
   organization_name: string | null;
-  notes: string | null;
+  notes: string | null; // deprecated - use contact_notes
+  contact_notes?: ContactNote[];
   how_we_know_them: string | null;
   ok_to_email: ConsentStatus;
   ok_to_mail: ConsentStatus;

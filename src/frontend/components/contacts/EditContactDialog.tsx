@@ -32,7 +32,6 @@ export function EditContactDialog({ open, onOpenChange, contact, onSuccess }: Ed
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [orgName, setOrgName] = useState("");
-  const [notes, setNotes] = useState("");
   const [howWeKnow, setHowWeKnow] = useState("");
   const [clubName, setClubName] = useState("");
   const [role, setRole] = useState("");
@@ -62,7 +61,6 @@ export function EditContactDialog({ open, onOpenChange, contact, onSuccess }: Ed
       setFirstName(contact.first_name ?? "");
       setLastName(contact.last_name ?? "");
       setOrgName(contact.organization_name ?? "");
-      setNotes(contact.notes ?? "");
       setHowWeKnow(contact.how_we_know_them ?? "");
       setClubName(contact.club_name ?? "");
       setRole(contact.role ?? "");
@@ -111,7 +109,6 @@ export function EditContactDialog({ open, onOpenChange, contact, onSuccess }: Ed
         first_name: firstName.trim() || null,
         last_name: lastName.trim() || null,
         organization_name: orgName.trim() || null,
-        notes: notes.trim() || null,
         how_we_know_them: howWeKnow.trim() || null,
         club_name: clubName.trim() || null,
         role: role.trim() || null,
@@ -326,10 +323,6 @@ export function EditContactDialog({ open, onOpenChange, contact, onSuccess }: Ed
               onChange={(e) => setTagNames(e.target.value.split(",").map((s) => s.trim()).filter(Boolean) as string[])}
               placeholder="Vendor, Club, VIP"
             />
-          </div>
-          <div>
-            <Label>Notes</Label>
-            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
           </div>
           <div>
             <Label>How we know them</Label>

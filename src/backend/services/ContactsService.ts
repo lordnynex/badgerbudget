@@ -6,11 +6,12 @@ import type {
   ContactEmail,
   ContactPhone,
   ContactAddress,
+  ContactNote,
   Tag,
   ContactSearchParams,
   ContactSearchResult,
 } from "@/shared/types/contact";
-import { Contact as ContactEntity, ContactEmail as ContactEmailEntity, ContactPhone as ContactPhoneEntity, ContactAddress as ContactAddressEntity, Tag as TagEntity, ContactTag } from "../entities";
+import { Contact as ContactEntity, ContactEmail as ContactEmailEntity, ContactPhone as ContactPhoneEntity, ContactAddress as ContactAddressEntity, ContactNote as ContactNoteEntity, Tag as TagEntity, ContactTag } from "../entities";
 import { uuid } from "./utils";
 
 function entityToContact(e: ContactEntity): Contact {
@@ -69,6 +70,7 @@ export class ContactsService {
     emails: ContactEmail[];
     phones: ContactPhone[];
     addresses: ContactAddress[];
+    contact_notes: ContactNote[];
     tags: Tag[];
   }> {
     /* Original: SELECT * FROM contact_emails WHERE contact_id = ? ORDER BY is_primary DESC, id */
@@ -85,6 +87,11 @@ export class ContactsService {
     const addresses = await this.ds.getRepository(ContactAddressEntity).find({
       where: { contactId },
       order: { isPrimaryMailing: "DESC", id: "ASC" },
+    });
+    /* SELECT * FROM contact_notes WHERE contact_id = ? ORDER BY created_at DESC */
+    const notes = await this.ds.getRepository(ContactNoteEntity).find({
+      where: { contactId },
+      order: { createdAt: "DESC" },
     });
     /* Original: SELECT t.id, t.name FROM tags t JOIN contact_tags ct ON t.id = ct.tag_id WHERE ct.contact_id = ? */
     const contactTags = await this.ds.getRepository(ContactTag).find({ where: { contactId } });
@@ -122,6 +129,12 @@ export class ContactsService {
         country: a.country,
         type: (a.type as ContactAddress["type"]) ?? "home",
         is_primary_mailing: a.isPrimaryMailing === 1,
+      })),
+      contact_notes: notes.map((n) => ({
+        id: n.id,
+        contact_id: n.contactId,
+        content: n.content,
+        created_at: n.createdAt,
       })),
       tags: tagRows.map((t) => ({ id: t.id, name: t.name })),
     };
@@ -165,7 +178,7 @@ export class ContactsService {
     if (params.q && params.q.trim()) {
       const q = `%${params.q.trim()}%`;
       qb.andWhere(
-        `(c.displayName LIKE :q OR c.firstName LIKE :q OR c.lastName LIKE :q OR c.organizationName LIKE :q OR c.notes LIKE :q OR c.clubName LIKE :q OR c.role LIKE :q OR EXISTS (SELECT 1 FROM contact_emails ce WHERE ce.contact_id = c.id AND ce.email LIKE :q) OR EXISTS (SELECT 1 FROM contact_phones cp WHERE cp.contact_id = c.id AND cp.phone LIKE :q) OR EXISTS (SELECT 1 FROM contact_addresses ca WHERE ca.contact_id = c.id AND (ca.city LIKE :q OR ca.state LIKE :q)) OR EXISTS (SELECT 1 FROM contact_tags ct JOIN tags t ON t.id = ct.tag_id WHERE ct.contact_id = c.id AND t.name LIKE :q))`,
+        `(c.displayName LIKE :q OR c.firstName LIKE :q OR c.lastName LIKE :q OR c.organizationName LIKE :q OR c.notes LIKE :q OR c.clubName LIKE :q OR c.role LIKE :q OR EXISTS (SELECT 1 FROM contact_emails ce WHERE ce.contact_id = c.id AND ce.email LIKE :q) OR EXISTS (SELECT 1 FROM contact_phones cp WHERE cp.contact_id = c.id AND cp.phone LIKE :q) OR EXISTS (SELECT 1 FROM contact_addresses ca WHERE ca.contact_id = c.id AND (ca.city LIKE :q OR ca.state LIKE :q)) OR EXISTS (SELECT 1 FROM contact_tags ct JOIN tags t ON t.id = ct.tag_id WHERE ct.contact_id = c.id AND t.name LIKE :q) OR EXISTS (SELECT 1 FROM contact_notes cn WHERE cn.contact_id = c.id AND cn.content LIKE :q))`,
         { q }
       );
     }
@@ -489,7 +502,7 @@ export class ContactsService {
       first_name: (resolution.first_name === "source" ? source : target).first_name ?? (resolution.first_name === "target" ? target : source).first_name,
       last_name: (resolution.last_name === "source" ? source : target).last_name ?? (resolution.last_name === "target" ? target : source).last_name,
       organization_name: (resolution.organization_name === "source" ? source : target).organization_name ?? (resolution.organization_name === "target" ? target : source).organization_name,
-      notes: [source.notes, target.notes].filter(Boolean).join("\n\n") || null,
+      notes: undefined, // contact_notes are merged separately
       ok_to_email: (resolution.ok_to_email === "source" ? source : target).ok_to_email,
       ok_to_mail: (resolution.ok_to_mail === "source" ? source : target).ok_to_mail,
       do_not_contact: source.do_not_contact || target.do_not_contact,
@@ -515,10 +528,41 @@ export class ContactsService {
 
     await this.db.run("UPDATE mailing_list_members SET contact_id = ? WHERE contact_id = ?", [targetId, sourceId]);
     await this.db.run("UPDATE mailing_batch_recipients SET contact_id = ? WHERE contact_id = ?", [targetId, sourceId]);
+    await this.db.run("UPDATE contact_notes SET contact_id = ? WHERE contact_id = ?", [targetId, sourceId]);
     await this.delete(sourceId);
 
     return this.get(targetId)!;
   }
+
+  notes = {
+    create: async (contactId: string, content: string): Promise<ContactNote> => {
+      const id = uuid();
+      await this.db.run(
+        "INSERT INTO contact_notes (id, contact_id, content) VALUES (?, ?, ?)",
+        [id, contactId, content.trim()]
+      );
+      const rows = await this.db.all("SELECT * FROM contact_notes WHERE id = ?", [id]) as Array<Record<string, unknown>>;
+      const r = rows[0];
+      return {
+        id: r.id as string,
+        contact_id: r.contact_id as string,
+        content: r.content as string,
+        created_at: (r.created_at as string) ?? null,
+      };
+    },
+    update: async (contactId: string, noteId: string, content: string): Promise<ContactNote | null> => {
+      const rows = await this.db.all("SELECT id FROM contact_notes WHERE id = ? AND contact_id = ?", [noteId, contactId]) as Array<Record<string, unknown>>;
+      if (rows.length === 0) return null;
+      await this.db.run("UPDATE contact_notes SET content = ? WHERE id = ? AND contact_id = ?", [content.trim(), noteId, contactId]);
+      const updated = await this.db.all("SELECT * FROM contact_notes WHERE id = ?", [noteId]) as Array<Record<string, unknown>>;
+      const r = updated[0];
+      return r ? { id: r.id as string, contact_id: r.contact_id as string, content: r.content as string, created_at: (r.created_at as string) ?? null } : null;
+    },
+    delete: async (contactId: string, noteId: string): Promise<boolean> => {
+      const result = await this.db.run("DELETE FROM contact_notes WHERE id = ? AND contact_id = ?", [noteId, contactId]);
+      return true;
+    },
+  };
 
   tags = {
     list: async (): Promise<Tag[]> => {

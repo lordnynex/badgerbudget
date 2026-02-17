@@ -18,6 +18,7 @@ import {
   ContactEmail,
   ContactPhone,
   ContactAddress,
+  ContactNote,
   Tag,
   ContactTag,
   MailingList,
@@ -29,6 +30,7 @@ import { InitialSchema1700000000000 } from "./migrations/1700000000000-InitialSc
 import { AddMemberPhotoThumbnail1739750400000 } from "./migrations/1739750400000-AddMemberPhotoThumbnail.ts";
 import { RemoveAuditLog1739900000000 } from "./migrations/1739900000000-RemoveAuditLog.ts";
 import { AddMailingListDeliveryType1740000000000 } from "./migrations/1740000000000-AddMailingListDeliveryType.ts";
+import { AddContactNotesTable1740000001000 } from "./migrations/1740000001000-AddContactNotesTable.ts";
 
 const projectRoot = join(import.meta.dir, "../../..");
 const dbPath = join(projectRoot, "data", "badger.db");
@@ -39,7 +41,7 @@ const dataSourceOptions: DataSourceOptions = {
   location: dbPath,
   autoSave: true,
   synchronize: false,
-  migrations: [InitialSchema1700000000000, AddMemberPhotoThumbnail1739750400000, RemoveAuditLog1739900000000, AddMailingListDeliveryType1740000000000],
+  migrations: [InitialSchema1700000000000, AddMemberPhotoThumbnail1739750400000, RemoveAuditLog1739900000000, AddMailingListDeliveryType1740000000000, AddContactNotesTable1740000001000],
   migrationsRun: true,
   entities: [
     Event,
@@ -57,9 +59,10 @@ const dataSourceOptions: DataSourceOptions = {
     Contact,
     ContactEmail,
     ContactPhone,
-    ContactAddress,
-    Tag,
-    ContactTag,
+  ContactAddress,
+  ContactNote,
+  Tag,
+  ContactTag,
     MailingList,
     MailingListMember,
     MailingBatch,

@@ -1,0 +1,16 @@
+import { Entity, PrimaryColumn, Column } from "typeorm";
+
+@Entity("contact_notes")
+export class ContactNote {
+  @PrimaryColumn()
+  id!: string;
+
+  @Column({ name: "contact_id" })
+  contactId!: string;
+
+  @Column({ type: "text" })
+  content!: string;
+
+  @Column({ name: "created_at", type: "text", nullable: true })
+  createdAt!: string | null;
+}

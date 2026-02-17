@@ -94,4 +94,39 @@ export class ContactsApiClient {
     create: (name: string) =>
       unwrap(client.api.contacts.tags.post({ name })),
   };
+
+  readonly notes = {
+    create: async (contactId: string, content: string) => {
+      const res = await fetch(`/api/contacts/${contactId}/notes`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: res.statusText }));
+        throw new Error((err as { error?: string }).error ?? "Request failed");
+      }
+      return res.json();
+    },
+    update: async (contactId: string, noteId: string, content: string) => {
+      const res = await fetch(`/api/contacts/${contactId}/notes/${noteId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: res.statusText }));
+        throw new Error((err as { error?: string }).error ?? "Request failed");
+      }
+      return res.json();
+    },
+    delete: async (contactId: string, noteId: string) => {
+      const res = await fetch(`/api/contacts/${contactId}/notes/${noteId}`, { method: "DELETE" });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: res.statusText }));
+        throw new Error((err as { error?: string }).error ?? "Request failed");
+      }
+      return res.json();
+    },
+  };
 }

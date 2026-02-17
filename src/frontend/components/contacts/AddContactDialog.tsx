@@ -9,7 +9,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -39,7 +38,6 @@ export function AddContactDialog({ open, onOpenChange, onSuccess }: AddContactDi
   const [city, setCity] = useState("");
   const [state, setState] = useState("");
   const [postalCode, setPostalCode] = useState("");
-  const [notes, setNotes] = useState("");
   const [clubName, setClubName] = useState("");
   const [role, setRole] = useState("");
   const [saving, setSaving] = useState(false);
@@ -57,7 +55,6 @@ export function AddContactDialog({ open, onOpenChange, onSuccess }: AddContactDi
     setCity("");
     setState("");
     setPostalCode("");
-    setNotes("");
     setClubName("");
     setRole("");
   };
@@ -73,7 +70,6 @@ export function AddContactDialog({ open, onOpenChange, onSuccess }: AddContactDi
         first_name: type === "person" ? firstName.trim() || null : null,
         last_name: type === "person" ? lastName.trim() || null : null,
         organization_name: type === "organization" ? orgName.trim() || null : (orgName.trim() || null),
-        notes: notes.trim() || null,
         club_name: clubName.trim() || null,
         role: role.trim() || null,
         emails: primaryEmail.trim() ? [{ id: "", contact_id: "", email: primaryEmail.trim(), type: "other" as const, is_primary: true }] : [],
@@ -182,10 +178,6 @@ export function AddContactDialog({ open, onOpenChange, onSuccess }: AddContactDi
           <div>
             <Label>Role / title</Label>
             <Input value={role} onChange={(e) => setRole(e.target.value)} />
-          </div>
-          <div>
-            <Label>Notes</Label>
-            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />
           </div>
         </div>
         <DialogFooter>

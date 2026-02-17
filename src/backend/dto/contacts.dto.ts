@@ -84,6 +84,10 @@ export const ContactsDto = {
 
   tagCreateBody: t.Object({ name: t.String() }),
 
+  noteCreateBody: t.Object({ content: t.String() }),
+  noteUpdateBody: t.Object({ content: t.String() }),
+  noteParams: t.Object({ id: t.String(), noteId: t.String() }),
+
   updateBody: t.Object({
     type: t.Optional(contactType),
     status: t.Optional(contactStatus),
