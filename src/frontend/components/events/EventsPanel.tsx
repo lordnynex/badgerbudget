@@ -1,20 +1,62 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useEventsSuspense } from "@/queries/hooks";
-import { Calendar, ChevronRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useEventsSuspense, useInvalidateQueries } from "@/queries/hooks";
+import { EVENT_TYPE_LABELS } from "@/lib/event-constants";
+import { Calendar, ChevronRight, BarChart3, Plus } from "lucide-react";
+import { AddEventDialog } from "./AddEventDialog";
+import type { EventType } from "@/types/event";
 
-export function EventsPanel() {
+interface EventsPanelProps {
+  type?: EventType;
+}
+
+export function EventsPanel({ type }: EventsPanelProps) {
   const navigate = useNavigate();
-  const { data: events } = useEventsSuspense();
+  const invalidate = useInvalidateQueries();
+  const [addOpen, setAddOpen] = useState(false);
+  const { data: events } = useEventsSuspense(type);
+
+  const title = type ? EVENT_TYPE_LABELS[type] : "Events";
+  const description = type
+    ? `${title} events. Click an event to view details.`
+    : "Badger events across years. Click an event to view details, plan milestones, manage volunteers, and more.";
+
+  const handleCreateSuccess = (eventId: string) => {
+    invalidate.invalidateEvents();
+    navigate(`/events/${eventId}`);
+  };
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Events</h1>
-        <p className="text-muted-foreground mt-1">
-          Badger events across years. Click an event to view details, plan milestones, manage volunteers, and more.
-        </p>
+      {type === "rides" && (
+        <Card className="border-dashed">
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <BarChart3 className="size-12 text-muted-foreground/50 mb-4" />
+            <p className="text-center text-muted-foreground">
+              Historical attendance graphs will be available here.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
+          <p className="text-muted-foreground mt-1">{description}</p>
+        </div>
+        <Button onClick={() => setAddOpen(true)}>
+          <Plus className="size-4 mr-2" />
+          Create event
+        </Button>
       </div>
+
+      <AddEventDialog
+        open={addOpen}
+        onOpenChange={setAddOpen}
+        onSuccess={handleCreateSuccess}
+        defaultEventType={type ?? "badger"}
+      />
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {events.map((e) => (
           <Card

@@ -62,10 +62,10 @@ export function useScenarioSuspense(id: string) {
 }
 
 // —— Events
-export function useEventsSuspense() {
+export function useEventsSuspense(type?: string) {
   return useSuspenseQuery({
-    queryKey: queryKeys.events,
-    queryFn: () => api.events.list(),
+    queryKey: queryKeys.events(type),
+    queryFn: () => api.events.list(type ? { type } : undefined),
   });
 }
 
@@ -196,7 +196,7 @@ export function useInvalidateQueries() {
     invalidateScenario: (id: string) =>
       qc.invalidateQueries({ queryKey: queryKeys.scenario(id) }),
     invalidateEvents: () =>
-      qc.invalidateQueries({ queryKey: queryKeys.events }),
+      qc.invalidateQueries({ queryKey: queryKeys.events() }),
     invalidateEvent: (id: string) =>
       qc.invalidateQueries({ queryKey: queryKeys.event(id) }),
     invalidateMembers: () =>

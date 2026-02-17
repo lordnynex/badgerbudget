@@ -3,7 +3,8 @@ export const queryKeys = {
   budget: (id: string) => ["budget", id] as const,
   scenarios: ["scenarios"] as const,
   scenario: (id: string) => ["scenario", id] as const,
-  events: ["events"] as const,
+  events: (type?: string) =>
+    (type ? (["events", type] as const) : (["events"] as const)),
   event: (id: string) => ["event", id] as const,
   members: ["members"] as const,
   member: (id: string) => ["member", id] as const,

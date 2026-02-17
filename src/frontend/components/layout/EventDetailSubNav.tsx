@@ -1,26 +1,37 @@
 import { Button } from "@/components/ui/button";
 import { ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { EventType } from "@/types/event";
 
-const SECTIONS = [
-  { id: "event-details", label: "Details" },
-  { id: "location", label: "Location" },
-  { id: "milestones", label: "Milestones" },
-  { id: "assignments", label: "Assignments" },
-  { id: "packing", label: "Packing" },
-  { id: "volunteers", label: "Volunteers" },
-  { id: "notes", label: "Notes" },
+const ALL_SECTIONS = [
+  { id: "event-details", label: "Details", rides: true },
+  { id: "ride-info", label: "Ride info", rides: true },
+  { id: "ride-schedule", label: "Schedule", rides: true },
+  { id: "location", label: "Location", rides: true },
+  { id: "milestones", label: "Milestones", rides: false },
+  { id: "assignments", label: "Assignments", rides: false },
+  { id: "packing", label: "Packing", rides: false },
+  { id: "volunteers", label: "Volunteers", rides: false },
+  { id: "ride-attendees", label: "Attendees", rides: true },
+  { id: "ride-assets", label: "Flyers", rides: true },
+  { id: "event-photos", label: "Event photos", rides: true },
+  { id: "notes", label: "Notes", rides: true },
 ] as const;
 
 interface EventDetailSubNavProps {
   className?: string;
+  eventType?: EventType;
 }
 
-export function EventDetailSubNav({ className }: EventDetailSubNavProps) {
+export function EventDetailSubNav({ className, eventType }: EventDetailSubNavProps) {
+  const sections = eventType === "rides"
+    ? ALL_SECTIONS.filter((s) => s.rides)
+    : ALL_SECTIONS;
+
   return (
     <div
       className={cn(
-        "flex flex-wrap items-center justify-between gap-4 border-b bg-background/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/60",
+        "sticky top-14 z-30 flex flex-wrap items-center justify-between gap-4 border-b bg-background/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/60",
         className
       )}
     >
@@ -28,7 +39,7 @@ export function EventDetailSubNav({ className }: EventDetailSubNavProps) {
         className="flex items-center gap-1 overflow-x-auto min-w-0 shrink"
         aria-label="Event detail page sections"
       >
-        {SECTIONS.map(({ id, label }) => (
+        {sections.map(({ id, label }) => (
           <a
             key={id}
             href={`#${id}`}

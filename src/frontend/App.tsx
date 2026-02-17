@@ -24,7 +24,7 @@ import { HellenicsPanel } from "@/components/contacts/HellenicsPanel";
 import { ActualSpendPanel } from "@/components/budget/ActualSpendPanel";
 import { VendorsPanel } from "@/components/contacts/VendorsPanel";
 import { ContactsLayout } from "@/components/layout/ContactsLayout";
-import { EventDetailSubNav } from "@/components/layout/EventDetailSubNav";
+import { EventsLayout } from "@/components/layout/EventsLayout";
 import { PrintView } from "@/components/export/PrintView";
 import { EmailView } from "@/components/export/EmailView";
 import {
@@ -102,9 +102,6 @@ function AppContent() {
         <>
           <div className="sticky top-0 z-40 bg-background">
             <Header />
-            {location.pathname.startsWith("/events/") && location.pathname !== "/events" && (
-              <EventDetailSubNav />
-            )}
           </div>
           <Routes>
             <Route path="/" element={<HomePage />} />
@@ -112,24 +109,61 @@ function AppContent() {
               path="/events"
               element={
                 <main className="space-y-6 p-4 md:p-6">
+                  <EventsLayout />
+                </main>
+              }
+            >
+              <Route
+                index
+                element={
                   <Suspense fallback={<PageLoading />}>
                     <EventsPage />
                   </Suspense>
-                </main>
-              }
-            />
-            <Route
-              path="/events/:id"
-              element={
-                <main className="space-y-6 p-4 md:p-6">
+                }
+              />
+              <Route
+                path="badger"
+                element={
+                  <Suspense fallback={<PageLoading />}>
+                    <EventsPage type="badger" />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="anniversary"
+                element={
+                  <Suspense fallback={<PageLoading />}>
+                    <EventsPage type="anniversary" />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="pioneer-run"
+                element={
+                  <Suspense fallback={<PageLoading />}>
+                    <EventsPage type="pioneer_run" />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="rides"
+                element={
+                  <Suspense fallback={<PageLoading />}>
+                    <EventsPage type="rides" />
+                  </Suspense>
+                }
+              />
+              <Route
+                path=":id"
+                element={
                   <IdParamGuard>
                     <Suspense fallback={<PageLoading />}>
                       <EventDetailPage />
                     </Suspense>
                   </IdParamGuard>
-                </main>
-              }
-            />
+                }
+              />
+            </Route>
             <Route path="budgeting" element={<BudgetingLayout onPrint={onPrint} onEmail={onEmail} />}>
               <Route index element={<Navigate to="projections" replace />} />
               <Route
@@ -330,9 +364,9 @@ function AppContent() {
   );
 }
 
-/** Events page: loads only events list (suspense). */
-function EventsPage() {
-  return <Main activeTab="events" onPrint={() => {}} onEmail={() => {}} />;
+/** Events page: loads events list (suspense), optionally filtered by type. */
+function EventsPage({ type }: { type?: "badger" | "anniversary" | "pioneer_run" | "rides" }) {
+  return <EventsPanel type={type} />;
 }
 
 function App() {

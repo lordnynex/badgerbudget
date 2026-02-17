@@ -12,9 +12,15 @@ import { EventMilestonesCard } from "./EventMilestonesCard";
 import { EventAssignmentsCard } from "./EventAssignmentsCard";
 import { EventPackingCard } from "./EventPackingCard";
 import { EventVolunteersCard } from "./EventVolunteersCard";
+import { EventPhotosCard } from "./EventPhotosCard";
 import { EventNotesCard } from "./EventNotesCard";
+import { RideInfoCard } from "./RideInfoCard";
+import { RideScheduleCard } from "./RideScheduleCard";
+import { RideAttendeesCard } from "./RideAttendeesCard";
+import { RideAssetsCard } from "./RideAssetsCard";
 import { EditEventDialog } from "./EditEventDialog";
-import { ArrowLeft, Pencil } from "lucide-react";
+import { EventDetailSubNav } from "@/components/layout/EventDetailSubNav";
+import { ArrowLeft, Pencil, Trash2 } from "lucide-react";
 
 export function EventDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -44,6 +50,12 @@ function EventDetailContent({ id }: { id: string }) {
   const [editBudgetId, setEditBudgetId] = useState<string>("");
   const [editScenarioId, setEditScenarioId] = useState<string>("");
   const [editPlanningNotes, setEditPlanningNotes] = useState("");
+  const [editEventType, setEditEventType] = useState<string>("badger");
+  const [editStartLocation, setEditStartLocation] = useState("");
+  const [editEndLocation, setEditEndLocation] = useState("");
+  const [editFacebookEventUrl, setEditFacebookEventUrl] = useState("");
+  const [editPreRideEventId, setEditPreRideEventId] = useState("");
+  const [editRideCost, setEditRideCost] = useState<string>("");
 
   useEffect(() => {
     setEditName(event.name);
@@ -60,6 +72,12 @@ function EventDetailContent({ id }: { id: string }) {
     setEditBudgetId(event.budget_id ?? "");
     setEditScenarioId(event.scenario_id ?? "");
     setEditPlanningNotes(event.planning_notes ?? "");
+    setEditEventType(event.event_type ?? "badger");
+    setEditStartLocation(event.start_location ?? "");
+    setEditEndLocation(event.end_location ?? "");
+    setEditFacebookEventUrl(event.facebook_event_url ?? "");
+    setEditPreRideEventId(event.pre_ride_event_id ?? "");
+    setEditRideCost(event.ride_cost != null ? String(event.ride_cost) : "");
   }, [event]);
 
   const refresh = async () => {
@@ -82,8 +100,61 @@ function EventDetailContent({ id }: { id: string }) {
       budget_id: editBudgetId || undefined,
       scenario_id: editScenarioId || undefined,
       planning_notes: editPlanningNotes || undefined,
+      event_type: editEventType as "badger" | "anniversary" | "pioneer_run" | "rides",
+      start_location: editStartLocation || undefined,
+      end_location: editEndLocation || undefined,
+      facebook_event_url: editFacebookEventUrl || undefined,
+      pre_ride_event_id: editPreRideEventId || undefined,
+      ride_cost: editRideCost === "" ? undefined : parseFloat(editRideCost),
     });
     setEditOpen(false);
+    refresh();
+  };
+
+  const handleAddAttendee = async (contactId: string, waiverSigned?: boolean) => {
+    await api.events.attendees.add(id, { contact_id: contactId, waiver_signed: waiverSigned });
+    refresh();
+  };
+
+  const handleUpdateAttendeeWaiver = async (attendeeId: string, waiverSigned: boolean) => {
+    await api.events.attendees.update(id, attendeeId, { waiver_signed: waiverSigned });
+    refresh();
+  };
+
+  const handleRemoveAttendee = async (attendeeId: string) => {
+    await api.events.attendees.delete(id, attendeeId);
+    refresh();
+  };
+
+  const handleAddScheduleItem = async (body: {
+    scheduled_time: string;
+    label: string;
+    location?: string;
+  }) => {
+    await api.events.scheduleItems.create(id, body);
+    refresh();
+  };
+
+  const handleUpdateScheduleItem = async (
+    scheduleId: string,
+    body: { scheduled_time?: string; label?: string; location?: string | null }
+  ) => {
+    await api.events.scheduleItems.update(id, scheduleId, body);
+    refresh();
+  };
+
+  const handleDeleteScheduleItem = async (scheduleId: string) => {
+    await api.events.scheduleItems.delete(id, scheduleId);
+    refresh();
+  };
+
+  const handleAddAsset = async (file: File) => {
+    await api.events.assets.add(id, file);
+    refresh();
+  };
+
+  const handleDeleteAsset = async (assetId: string) => {
+    await api.events.assets.delete(id, assetId);
     refresh();
   };
 
@@ -188,12 +259,29 @@ function EventDetailContent({ id }: { id: string }) {
     refresh();
   };
 
+  const handleAddPhoto = async (file: File) => {
+    await api.events.photos.add(id, file);
+    refresh();
+  };
+
+  const handleDeletePhoto = async (photoId: string) => {
+    await api.events.photos.delete(id, photoId);
+    refresh();
+  };
+
+  const handleDeleteEvent = async () => {
+    if (!confirm(`Delete "${event.name}"? This cannot be undone.`)) return;
+    await api.events.delete(id);
+    navigate(event.event_type === "rides" ? "/events/rides" : "/events");
+  };
+
   const mapEmbedUrl = event.event_location_embed ?? getMapEmbedUrl(event.event_location);
   const budgetName = budgets.find((b) => b.id === event.budget_id)?.name;
   const scenarioName = scenarios.find((s) => s.id === event.scenario_id)?.name;
 
   return (
     <div className="space-y-6">
+      <EventDetailSubNav eventType={event.event_type} />
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" onClick={() => navigate("/events")}>
           <ArrowLeft className="size-4" />
@@ -204,10 +292,16 @@ function EventDetailContent({ id }: { id: string }) {
             <p className="text-muted-foreground text-sm">{event.year}</p>
           )}
         </div>
-        <Button onClick={() => setEditOpen(true)}>
-          <Pencil className="size-4" />
-          Edit Event
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={handleDeleteEvent} className="text-destructive hover:text-destructive">
+            <Trash2 className="size-4" />
+            Delete
+          </Button>
+          <Button onClick={() => setEditOpen(true)}>
+            <Pencil className="size-4" />
+            Edit Event
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
@@ -216,41 +310,77 @@ function EventDetailContent({ id }: { id: string }) {
           budgetName={budgetName}
           scenarioName={scenarioName}
         />
+        {event.event_type === "rides" && <RideInfoCard event={event} />}
         {mapEmbedUrl && <EventLocationCard mapEmbedUrl={mapEmbedUrl} />}
       </div>
 
-      <EventMilestonesCard
-        event={event}
-        onRefresh={refresh}
-        onToggleComplete={handleToggleMilestoneComplete}
-        onDelete={handleDeleteMilestone}
-        onAdd={handleAddMilestone}
-        onEdit={handleEditMilestone}
-        onAddMember={handleAddMemberToMilestone}
-        onRemoveMember={handleRemoveMemberFromMilestone}
-      />
+      {event.event_type === "rides" && (
+        <>
+          <RideScheduleCard
+            eventId={id}
+            items={event.ride_schedule_items ?? []}
+            onAdd={handleAddScheduleItem}
+            onUpdate={handleUpdateScheduleItem}
+            onDelete={handleDeleteScheduleItem}
+          />
+          <RideAttendeesCard
+            eventId={id}
+            attendees={event.event_attendees ?? []}
+            onAdd={handleAddAttendee}
+            onUpdateWaiver={handleUpdateAttendeeWaiver}
+            onRemove={handleRemoveAttendee}
+          />
+          <RideAssetsCard
+            eventId={id}
+            eventName={event.name}
+            assets={event.event_assets ?? []}
+            onAdd={handleAddAsset}
+            onDelete={handleDeleteAsset}
+          />
+        </>
+      )}
 
-      <EventAssignmentsCard
-        event={event}
-        onCreateRole={handleCreateRole}
-        onDeleteRole={handleDeleteRole}
-        onAddMember={handleAddMemberToRole}
-        onRemoveMember={handleRemoveMemberFromRole}
-      />
+      {event.event_type !== "rides" && (
+        <>
+          <EventMilestonesCard
+            event={event}
+            onRefresh={refresh}
+            onToggleComplete={handleToggleMilestoneComplete}
+            onDelete={handleDeleteMilestone}
+            onAdd={handleAddMilestone}
+            onEdit={handleEditMilestone}
+            onAddMember={handleAddMemberToMilestone}
+            onRemoveMember={handleRemoveMemberFromMilestone}
+          />
+          <EventAssignmentsCard
+            event={event}
+            onCreateRole={handleCreateRole}
+            onDeleteRole={handleDeleteRole}
+            onAddMember={handleAddMemberToRole}
+            onRemoveMember={handleRemoveMemberFromRole}
+          />
+          <EventPackingCard
+            event={event}
+            onAddCategory={handleAddPackingCategory}
+            onAddItem={handleAddPackingItem}
+            onEditItem={handleEditPackingItem}
+            onToggleLoaded={handleTogglePackingLoaded}
+            onDeleteItem={handleDeletePackingItem}
+          />
+          <EventVolunteersCard
+            event={event}
+            onDelete={handleDeleteVolunteer}
+            onAdd={handleAddVolunteer}
+          />
+        </>
+      )}
 
-      <EventPackingCard
-        event={event}
-        onAddCategory={handleAddPackingCategory}
-        onAddItem={handleAddPackingItem}
-        onEditItem={handleEditPackingItem}
-        onToggleLoaded={handleTogglePackingLoaded}
-        onDeleteItem={handleDeletePackingItem}
-      />
-
-      <EventVolunteersCard
-        event={event}
-        onDelete={handleDeleteVolunteer}
-        onAdd={handleAddVolunteer}
+      <EventPhotosCard
+        eventId={id}
+        eventName={event.name}
+        photos={event.event_photos ?? []}
+        onAddPhoto={handleAddPhoto}
+        onDeletePhoto={handleDeletePhoto}
       />
 
       <EventNotesCard planningNotes={event.planning_notes} />
@@ -286,6 +416,18 @@ function EventDetailContent({ id }: { id: string }) {
         setEditScenarioId={setEditScenarioId}
         editPlanningNotes={editPlanningNotes}
         setEditPlanningNotes={setEditPlanningNotes}
+        editEventType={editEventType}
+        setEditEventType={setEditEventType}
+        editStartLocation={editStartLocation}
+        setEditStartLocation={setEditStartLocation}
+        editEndLocation={editEndLocation}
+        setEditEndLocation={setEditEndLocation}
+        editFacebookEventUrl={editFacebookEventUrl}
+        setEditFacebookEventUrl={setEditFacebookEventUrl}
+        editPreRideEventId={editPreRideEventId}
+        setEditPreRideEventId={setEditPreRideEventId}
+        editRideCost={editRideCost}
+        setEditRideCost={setEditRideCost}
         budgets={budgets}
         scenarios={scenarios}
         onSave={handleSaveEdit}

@@ -1,4 +1,8 @@
 export { Event } from "./Event";
+export { EventPhoto } from "./EventPhoto";
+export { EventAttendee } from "./EventAttendee";
+export { EventAsset } from "./EventAsset";
+export { RideScheduleItem } from "./RideScheduleItem";
 export { EventPlanningMilestone } from "./EventPlanningMilestone";
 export { EventMilestoneMember } from "./EventMilestoneMember";
 export { EventPackingCategory } from "./EventPackingCategory";

@@ -3,6 +3,10 @@ import type { DataSource } from "typeorm";
 import type { DbLike } from "../db/dbAdapter";
 import {
   Event,
+  EventPhoto,
+  EventAttendee,
+  EventAsset,
+  RideScheduleItem,
   EventPlanningMilestone,
   EventMilestoneMember,
   EventPackingCategory,
@@ -11,8 +15,10 @@ import {
   EventAssignment,
   EventAssignmentMember,
   Member,
+  Contact,
 } from "../entities";
 import { uuid, memberRowToApi } from "./utils";
+import { ImageService } from "./ImageService";
 
 function memberEntityToApi(m: Member) {
   return memberRowToApi({
@@ -29,11 +35,16 @@ export class EventsService {
     private ds: DataSource
   ) {}
 
-  async list() {
+  async list(type?: string) {
     /* Original: SELECT * FROM events ORDER BY year DESC, name */
-    const entities = await this.ds.getRepository(Event).find({
+    const repo = this.ds.getRepository(Event);
+    const findOptions: Parameters<typeof repo.find>[0] = {
       order: { year: "DESC", name: "ASC" },
-    });
+    };
+    if (type) {
+      findOptions.where = { eventType: type };
+    }
+    const entities = await repo.find(findOptions);
     return entities.map((e) => ({
       id: e.id,
       name: e.name,
@@ -50,6 +61,7 @@ export class EventsService {
       budget_id: e.budgetId ?? null,
       scenario_id: e.scenarioId ?? null,
       planning_notes: e.planningNotes ?? null,
+      event_type: e.eventType ?? "badger",
       created_at: e.createdAt ?? undefined,
     }));
   }
@@ -123,6 +135,10 @@ export class EventsService {
       list.push(am);
       membersByAssignment.set(am.assignmentId, list);
     }
+    const eventPhotos = await this.ds.getRepository(EventPhoto).find({
+      where: { eventId: id },
+      order: { sortOrder: "ASC", createdAt: "ASC" },
+    });
     return {
       id: e.id,
       name: e.name,
@@ -139,6 +155,7 @@ export class EventsService {
       budget_id: e.budgetId ?? null,
       scenario_id: e.scenarioId ?? null,
       planning_notes: e.planningNotes ?? null,
+      event_type: (e.eventType ?? "badger") as "badger" | "anniversary" | "pioneer_run" | "rides",
       created_at: e.createdAt ?? undefined,
       milestones: milestones.map((m) => {
         const month = m.month;
@@ -204,11 +221,81 @@ export class EventsService {
           })),
         };
       }),
+      event_photos: eventPhotos.map((p) => ({
+        id: p.id,
+        event_id: p.eventId,
+        sort_order: p.sortOrder ?? 0,
+        photo_url: `/api/events/${id}/photos/${p.id}?size=full`,
+        photo_thumbnail_url: `/api/events/${id}/photos/${p.id}?size=thumbnail`,
+        photo_display_url: `/api/events/${id}/photos/${p.id}?size=display`,
+        created_at: p.createdAt ?? undefined,
+      })),
+      start_location: e.startLocation ?? null,
+      end_location: e.endLocation ?? null,
+      facebook_event_url: e.facebookEventUrl ?? null,
+      pre_ride_event_id: e.preRideEventId ?? null,
+      ride_cost: e.rideCost ?? null,
+      event_attendees: await this.getAttendees(id),
+      event_assets: await this.getAssets(id),
+      ride_schedule_items: await this.getScheduleItems(id),
     };
+  }
+
+  private async getAttendees(eventId: string) {
+    const attendees = await this.ds.getRepository(EventAttendee).find({
+      where: { eventId },
+      order: { sortOrder: "ASC" },
+    });
+    const contactRepo = this.ds.getRepository(Contact);
+    return Promise.all(
+      attendees.map(async (a) => {
+        const c = await contactRepo.findOne({ where: { id: a.contactId }, select: ["id", "displayName"] });
+        return {
+          id: a.id,
+          event_id: a.eventId,
+          contact_id: a.contactId,
+          sort_order: a.sortOrder ?? 0,
+          waiver_signed: a.waiverSigned === 1,
+          contact: c ? { id: c.id, display_name: c.displayName } : undefined,
+        };
+      })
+    );
+  }
+
+  private async getAssets(eventId: string) {
+    const assets = await this.ds.getRepository(EventAsset).find({
+      where: { eventId },
+      order: { sortOrder: "ASC" },
+    });
+    return assets.map((a) => ({
+      id: a.id,
+      event_id: a.eventId,
+      sort_order: a.sortOrder ?? 0,
+      photo_url: `/api/events/${eventId}/assets/${a.id}?size=full`,
+      photo_thumbnail_url: `/api/events/${eventId}/assets/${a.id}?size=thumbnail`,
+      photo_display_url: `/api/events/${eventId}/assets/${a.id}?size=display`,
+      created_at: a.createdAt ?? undefined,
+    }));
+  }
+
+  private async getScheduleItems(eventId: string) {
+    const items = await this.ds.getRepository(RideScheduleItem).find({
+      where: { eventId },
+      order: { sortOrder: "ASC" },
+    });
+    return items.map((s) => ({
+      id: s.id,
+      event_id: s.eventId,
+      scheduled_time: s.scheduledTime,
+      label: s.label,
+      location: s.location ?? null,
+      sort_order: s.sortOrder ?? 0,
+    }));
   }
 
   async create(body: {
     name: string;
+    event_type?: "badger" | "anniversary" | "pioneer_run" | "rides";
     description?: string;
     year?: number;
     event_date?: string;
@@ -222,13 +309,20 @@ export class EventsService {
     budget_id?: string;
     scenario_id?: string;
     planning_notes?: string;
+    start_location?: string;
+    end_location?: string;
+    facebook_event_url?: string;
+    pre_ride_event_id?: string;
+    ride_cost?: number;
   }) {
     const id = uuid();
+    const eventType = body.event_type ?? "badger";
     await this.db.run(
-      `INSERT INTO events (id, name, description, year, event_date, event_url, event_location, event_location_embed, ga_ticket_cost, day_pass_cost, ga_tickets_sold, day_passes_sold, budget_id, scenario_id, planning_notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO events (id, name, event_type, description, year, event_date, event_url, event_location, event_location_embed, ga_ticket_cost, day_pass_cost, ga_tickets_sold, day_passes_sold, budget_id, scenario_id, planning_notes, start_location, end_location, facebook_event_url, pre_ride_event_id, ride_cost) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         body.name,
+        eventType,
         body.description ?? null,
         body.year ?? null,
         body.event_date ?? null,
@@ -242,6 +336,11 @@ export class EventsService {
         body.budget_id ?? null,
         body.scenario_id ?? null,
         body.planning_notes ?? null,
+        body.start_location ?? null,
+        body.end_location ?? null,
+        body.facebook_event_url ?? null,
+        body.pre_ride_event_id ?? null,
+        body.ride_cost ?? null,
       ]
     );
     return this.get(id)!;
@@ -249,6 +348,7 @@ export class EventsService {
 
   async update(id: string, body: Partial<{
     name: string;
+    event_type: string;
     description: string;
     year: number;
     event_date: string;
@@ -262,11 +362,17 @@ export class EventsService {
     budget_id: string;
     scenario_id: string;
     planning_notes: string;
+    start_location: string;
+    end_location: string;
+    facebook_event_url: string;
+    pre_ride_event_id: string;
+    ride_cost: number;
   }>) {
     /* Original: SELECT * FROM events WHERE id = ? */
     const existing = await this.ds.getRepository(Event).findOne({ where: { id } });
     if (!existing) return null;
     const name = body.name ?? existing.name;
+    const event_type = body.event_type !== undefined ? body.event_type : existing.eventType;
     const description = body.description !== undefined ? body.description : existing.description;
     const year = body.year !== undefined ? body.year : existing.year;
     const event_date = body.event_date !== undefined ? body.event_date : existing.eventDate;
@@ -280,9 +386,14 @@ export class EventsService {
     const budget_id = body.budget_id !== undefined ? body.budget_id : existing.budgetId;
     const scenario_id = body.scenario_id !== undefined ? body.scenario_id : existing.scenarioId;
     const planning_notes = body.planning_notes !== undefined ? body.planning_notes : existing.planningNotes;
+    const start_location = body.start_location !== undefined ? body.start_location : existing.startLocation;
+    const end_location = body.end_location !== undefined ? body.end_location : existing.endLocation;
+    const facebook_event_url = body.facebook_event_url !== undefined ? body.facebook_event_url : existing.facebookEventUrl;
+    const pre_ride_event_id = body.pre_ride_event_id !== undefined ? body.pre_ride_event_id : existing.preRideEventId;
+    const ride_cost = body.ride_cost !== undefined ? body.ride_cost : existing.rideCost;
     await this.db.run(
-      `UPDATE events SET name = ?, description = ?, year = ?, event_date = ?, event_url = ?, event_location = ?, event_location_embed = ?, ga_ticket_cost = ?, day_pass_cost = ?, ga_tickets_sold = ?, day_passes_sold = ?, budget_id = ?, scenario_id = ?, planning_notes = ? WHERE id = ?`,
-      [name, description, year, event_date, event_url, event_location, event_location_embed, ga_ticket_cost, day_pass_cost, ga_tickets_sold, day_passes_sold, budget_id, scenario_id, planning_notes, id]
+      `UPDATE events SET name = ?, event_type = ?, description = ?, year = ?, event_date = ?, event_url = ?, event_location = ?, event_location_embed = ?, ga_ticket_cost = ?, day_pass_cost = ?, ga_tickets_sold = ?, day_passes_sold = ?, budget_id = ?, scenario_id = ?, planning_notes = ?, start_location = ?, end_location = ?, facebook_event_url = ?, pre_ride_event_id = ?, ride_cost = ? WHERE id = ?`,
+      [name, event_type, description, year, event_date, event_url, event_location, event_location_embed, ga_ticket_cost, day_pass_cost, ga_tickets_sold, day_passes_sold, budget_id, scenario_id, planning_notes, start_location, end_location, facebook_event_url, pre_ride_event_id, ride_cost, id]
     );
     return this.get(id)!;
   }
@@ -294,9 +405,201 @@ export class EventsService {
     await this.db.run("DELETE FROM event_packing_items WHERE event_id = ?", [id]);
     await this.db.run("DELETE FROM event_packing_categories WHERE event_id = ?", [id]);
     await this.db.run("DELETE FROM event_volunteers WHERE event_id = ?", [id]);
+    await this.db.run("DELETE FROM event_photos WHERE event_id = ?", [id]);
+    await this.db.run("DELETE FROM event_attendees WHERE event_id = ?", [id]);
+    await this.db.run("DELETE FROM event_assets WHERE event_id = ?", [id]);
+    await this.db.run("DELETE FROM ride_schedule_items WHERE event_id = ?", [id]);
     await this.db.run("DELETE FROM events WHERE id = ?", [id]);
     return { ok: true };
   }
+
+  async getPhoto(eventId: string, photoId: string, size: "thumbnail" | "display" | "full"): Promise<Buffer | null> {
+    const photo = await this.ds.getRepository(EventPhoto).findOne({
+      where: { id: photoId, eventId },
+      select: ["photo", "photoThumbnail"],
+    });
+    if (!photo || !photo.photo) return null;
+    const buffer = Buffer.from(photo.photo);
+    const thumbnailBlob = photo.photoThumbnail;
+
+    switch (size) {
+      case "thumbnail":
+        if (thumbnailBlob) return Buffer.from(thumbnailBlob);
+        return ImageService.createThumbnail(buffer);
+      case "display":
+        return ImageService.createDisplay(buffer);
+      case "full":
+        return buffer;
+      default:
+        return buffer;
+    }
+  }
+
+  async addPhoto(eventId: string, imageBuffer: Buffer): Promise<{
+    id: string;
+    event_id: string;
+    sort_order: number;
+    photo_url: string;
+    photo_thumbnail_url: string;
+    photo_display_url: string;
+    created_at: string;
+  } | null> {
+    const event = await this.ds.getRepository(Event).findOne({ where: { id: eventId } });
+    if (!event) return null;
+
+    const optimized = await ImageService.optimize(imageBuffer, 1920, 1920, 88);
+    const photoBlob = optimized ?? imageBuffer;
+    const thumbnailBlob = await ImageService.createThumbnail(photoBlob);
+
+    const id = uuid();
+    const maxResult = await this.ds.getRepository(EventPhoto).createQueryBuilder("p").select("COALESCE(MAX(p.sortOrder), 0)", "m").where("p.eventId = :eventId", { eventId }).getRawOne<{ m: number }>();
+    const sortOrder = (maxResult?.m ?? 0) + 1;
+
+    await this.db.run(
+      "INSERT INTO event_photos (id, event_id, sort_order, photo, photo_thumbnail) VALUES (?, ?, ?, ?, ?)",
+      [id, eventId, sortOrder, photoBlob, thumbnailBlob ?? photoBlob]
+    );
+
+    return {
+      id,
+      event_id: eventId,
+      sort_order: sortOrder,
+      photo_url: `/api/events/${eventId}/photos/${id}?size=full`,
+      photo_thumbnail_url: `/api/events/${eventId}/photos/${id}?size=thumbnail`,
+      photo_display_url: `/api/events/${eventId}/photos/${id}?size=display`,
+      created_at: new Date().toISOString(),
+    };
+  }
+
+  async deletePhoto(eventId: string, photoId: string): Promise<boolean> {
+    const result = await this.ds.getRepository(EventPhoto).delete({
+      id: photoId,
+      eventId,
+    });
+    return (result.affected ?? 0) > 0;
+  }
+
+  async getAsset(eventId: string, assetId: string, size: "thumbnail" | "display" | "full"): Promise<Buffer | null> {
+    const asset = await this.ds.getRepository(EventAsset).findOne({
+      where: { id: assetId, eventId },
+      select: ["photo", "photoThumbnail"],
+    });
+    if (!asset || !asset.photo) return null;
+    const buffer = Buffer.from(asset.photo);
+    const thumbnailBlob = asset.photoThumbnail;
+    switch (size) {
+      case "thumbnail":
+        if (thumbnailBlob) return Buffer.from(thumbnailBlob);
+        return ImageService.createThumbnail(buffer);
+      case "display":
+        return ImageService.createDisplay(buffer);
+      case "full":
+        return buffer;
+      default:
+        return buffer;
+    }
+  }
+
+  async addAsset(eventId: string, imageBuffer: Buffer): Promise<{
+    id: string;
+    event_id: string;
+    sort_order: number;
+    photo_url: string;
+    photo_thumbnail_url: string;
+    photo_display_url: string;
+    created_at: string;
+  } | null> {
+    const event = await this.ds.getRepository(Event).findOne({ where: { id: eventId } });
+    if (!event) return null;
+    const optimized = await ImageService.optimize(imageBuffer, 1920, 1920, 88);
+    const photoBlob = optimized ?? imageBuffer;
+    const thumbnailBlob = await ImageService.createThumbnail(photoBlob);
+    const id = uuid();
+    const maxResult = await this.ds.getRepository(EventAsset).createQueryBuilder("a").select("COALESCE(MAX(a.sortOrder), 0)", "m").where("a.eventId = :eventId", { eventId }).getRawOne<{ m: number }>();
+    const sortOrder = (maxResult?.m ?? 0) + 1;
+    await this.db.run(
+      "INSERT INTO event_assets (id, event_id, sort_order, photo, photo_thumbnail) VALUES (?, ?, ?, ?, ?)",
+      [id, eventId, sortOrder, photoBlob, thumbnailBlob ?? photoBlob]
+    );
+    return {
+      id,
+      event_id: eventId,
+      sort_order: sortOrder,
+      photo_url: `/api/events/${eventId}/assets/${id}?size=full`,
+      photo_thumbnail_url: `/api/events/${eventId}/assets/${id}?size=thumbnail`,
+      photo_display_url: `/api/events/${eventId}/assets/${id}?size=display`,
+      created_at: new Date().toISOString(),
+    };
+  }
+
+  async deleteAsset(eventId: string, assetId: string): Promise<boolean> {
+    const result = await this.ds.getRepository(EventAsset).delete({ id: assetId, eventId });
+    return (result.affected ?? 0) > 0;
+  }
+
+  attendees = {
+    add: async (eventId: string, body: { contact_id: string; waiver_signed?: boolean }) => {
+      const event = await this.ds.getRepository(Event).findOne({ where: { id: eventId } });
+      if (!event) return null;
+      const contact = await this.ds.getRepository(Contact).findOne({ where: { id: body.contact_id } });
+      if (!contact) return null;
+      const existing = await this.ds.getRepository(EventAttendee).findOne({ where: { eventId, contactId: body.contact_id } });
+      if (existing) return null;
+      const id = uuid();
+      const maxResult = await this.ds.getRepository(EventAttendee).createQueryBuilder("a").select("COALESCE(MAX(a.sortOrder), 0)", "m").where("a.eventId = :eventId", { eventId }).getRawOne<{ m: number }>();
+      const sortOrder = (maxResult?.m ?? 0) + 1;
+      const waiverSigned = body.waiver_signed ? 1 : 0;
+      await this.db.run(
+        "INSERT INTO event_attendees (id, event_id, contact_id, sort_order, waiver_signed) VALUES (?, ?, ?, ?, ?)",
+        [id, eventId, body.contact_id, sortOrder, waiverSigned]
+      );
+      return { id, event_id: eventId, contact_id: body.contact_id, sort_order: sortOrder, waiver_signed: body.waiver_signed ?? false, contact: { id: contact.id, display_name: contact.displayName } };
+    },
+    update: async (eventId: string, attendeeId: string, body: { waiver_signed?: boolean }) => {
+      const existing = await this.ds.getRepository(EventAttendee).findOne({ where: { id: attendeeId, eventId } });
+      if (!existing) return null;
+      const waiverSigned = body.waiver_signed !== undefined ? (body.waiver_signed ? 1 : 0) : existing.waiverSigned;
+      await this.db.run("UPDATE event_attendees SET waiver_signed = ? WHERE id = ? AND event_id = ?", [waiverSigned, attendeeId, eventId]);
+      const attendees = await this.getAttendees(eventId);
+      return attendees.find((a) => a.id === attendeeId) ?? null;
+    },
+    delete: async (eventId: string, attendeeId: string) => {
+      await this.db.run("DELETE FROM event_attendees WHERE id = ? AND event_id = ?", [attendeeId, eventId]);
+      return { ok: true };
+    },
+  };
+
+  scheduleItems = {
+    create: async (eventId: string, body: { scheduled_time: string; label: string; location?: string }) => {
+      const event = await this.ds.getRepository(Event).findOne({ where: { id: eventId } });
+      if (!event) return null;
+      const id = uuid();
+      const maxResult = await this.ds.getRepository(RideScheduleItem).createQueryBuilder("s").select("COALESCE(MAX(s.sortOrder), 0)", "m").where("s.eventId = :eventId", { eventId }).getRawOne<{ m: number }>();
+      const sortOrder = (maxResult?.m ?? 0) + 1;
+      await this.db.run(
+        "INSERT INTO ride_schedule_items (id, event_id, scheduled_time, label, location, sort_order) VALUES (?, ?, ?, ?, ?, ?)",
+        [id, eventId, body.scheduled_time, body.label, body.location ?? null, sortOrder]
+      );
+      return { id, event_id: eventId, scheduled_time: body.scheduled_time, label: body.label, location: body.location ?? null, sort_order: sortOrder };
+    },
+    update: async (eventId: string, scheduleId: string, body: { scheduled_time?: string; label?: string; location?: string | null }) => {
+      const existing = await this.ds.getRepository(RideScheduleItem).findOne({ where: { id: scheduleId, eventId } });
+      if (!existing) return null;
+      const scheduled_time = body.scheduled_time ?? existing.scheduledTime;
+      const label = body.label ?? existing.label;
+      const location = body.location !== undefined ? body.location : existing.location;
+      await this.db.run(
+        "UPDATE ride_schedule_items SET scheduled_time = ?, label = ?, location = ? WHERE id = ? AND event_id = ?",
+        [scheduled_time, label, location, scheduleId, eventId]
+      );
+      const items = await this.getScheduleItems(eventId);
+      return items.find((s) => s.id === scheduleId) ?? null;
+    },
+    delete: async (eventId: string, scheduleId: string) => {
+      await this.db.run("DELETE FROM ride_schedule_items WHERE id = ? AND event_id = ?", [scheduleId, eventId]);
+      return { ok: true };
+    },
+  };
 
   assignments = {
     create: async (eventId: string, body: { name: string; category: "planning" | "during" }) => {

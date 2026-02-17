@@ -5,7 +5,7 @@ import { EventsDto } from "../dto/events.dto";
 export class EventsController extends BaseController {
   init() {
     return new Elysia({ prefix: "/events" })
-      .get("/", () => this.list())
+      .get("/", ({ query }) => this.list(query.type))
       .post("/", ({ body }) => this.create(body), {
         body: EventsDto.createBody,
       })
@@ -172,11 +172,49 @@ export class EventsController extends BaseController {
         {
           params: EventsDto.idVid,
         },
-      );
+      )
+      .get("/:id/photos/:photoId", ({ params, query }) => this.getPhoto(params.id, params.photoId, query.size as string | undefined))
+      .post("/:id/photos", ({ params, body }) => this.addPhoto(params.id, body), {
+        params: EventsDto.params,
+        body: EventsDto.photoUploadBody,
+      })
+      .delete("/:id/photos/:photoId", ({ params }) => this.deletePhoto(params.id, params.photoId), {
+        params: EventsDto.idPhotoId,
+      })
+      .get("/:id/assets/:assetId", ({ params, query }) => this.getAsset(params.id, params.assetId, query.size as string | undefined))
+      .post("/:id/assets", ({ params, body }) => this.addAsset(params.id, body), {
+        params: EventsDto.params,
+        body: EventsDto.photoUploadBody,
+      })
+      .delete("/:id/assets/:assetId", ({ params }) => this.deleteAsset(params.id, params.assetId), {
+        params: EventsDto.idAssetId,
+      })
+      .post("/:id/attendees", ({ params, body }) => this.attendeesAdd(params.id, body), {
+        params: EventsDto.params,
+        body: EventsDto.addAttendeeBody,
+      })
+      .put("/:id/attendees/:attendeeId", ({ params, body }) => this.attendeesUpdate(params.id, params.attendeeId, body), {
+        params: EventsDto.idAttendeeId,
+        body: EventsDto.updateAttendeeBody,
+      })
+      .delete("/:id/attendees/:attendeeId", ({ params }) => this.attendeesDelete(params.id, params.attendeeId), {
+        params: EventsDto.idAttendeeId,
+      })
+      .post("/:id/schedule-items", ({ params, body }) => this.scheduleItemsCreate(params.id, body), {
+        params: EventsDto.params,
+        body: EventsDto.createScheduleItemBody,
+      })
+      .put("/:id/schedule-items/:scheduleId", ({ params, body }) => this.scheduleItemsUpdate(params.id, params.scheduleId, body), {
+        params: EventsDto.idScheduleId,
+        body: EventsDto.updateScheduleItemBody,
+      })
+      .delete("/:id/schedule-items/:scheduleId", ({ params }) => this.scheduleItemsDelete(params.id, params.scheduleId), {
+        params: EventsDto.idScheduleId,
+      });
   }
 
-  private list() {
-    return this.api.events.list().then(this.json);
+  private list(type?: string) {
+    return this.api.events.list(type).then(this.json);
   }
 
   private get(id: string) {
@@ -330,5 +368,102 @@ export class EventsController extends BaseController {
     return this.api.events.volunteers
       .delete(id, vid)
       .then(() => this.json({ ok: true }));
+  }
+
+  private async getPhoto(eventId: string, photoId: string, sizeParam?: string) {
+    const VALID_SIZES = ["thumbnail", "display", "full"] as const;
+    const size =
+      sizeParam && VALID_SIZES.includes(sizeParam as (typeof VALID_SIZES)[number])
+        ? (sizeParam as (typeof VALID_SIZES)[number])
+        : "full";
+    const buffer = await this.api.events.getPhoto(eventId, photoId, size);
+    if (!buffer) {
+      return new Response(null, { status: 404 });
+    }
+    return new Response(new Uint8Array(buffer), {
+      headers: { "Content-Type": "image/jpeg" },
+    });
+  }
+
+  private async addPhoto(
+    eventId: string,
+    body: { file?: File }
+  ) {
+    const file = body?.file;
+    if (!file || !(file instanceof File)) {
+      return this.json({ error: "No file provided" }, { status: 400 });
+    }
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const photo = await this.api.events.addPhoto(eventId, buffer);
+    if (!photo) return this.json({ error: "Event not found" }, { status: 404 });
+    return this.json(photo);
+  }
+
+  private deletePhoto(eventId: string, photoId: string) {
+    return this.api.events
+      .deletePhoto(eventId, photoId)
+      .then((ok) => (ok ? this.json({ ok: true }) : this.notFound()));
+  }
+
+  private async getAsset(eventId: string, assetId: string, sizeParam?: string) {
+    const VALID_SIZES = ["thumbnail", "display", "full"] as const;
+    const size =
+      sizeParam && VALID_SIZES.includes(sizeParam as (typeof VALID_SIZES)[number])
+        ? (sizeParam as (typeof VALID_SIZES)[number])
+        : "full";
+    const buffer = await this.api.events.getAsset(eventId, assetId, size);
+    if (!buffer) return new Response(null, { status: 404 });
+    return new Response(new Uint8Array(buffer), { headers: { "Content-Type": "image/jpeg" } });
+  }
+
+  private async addAsset(eventId: string, body: { file?: File }) {
+    const file = body?.file;
+    if (!file || !(file instanceof File)) return this.json({ error: "No file provided" }, { status: 400 });
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const asset = await this.api.events.addAsset(eventId, buffer);
+    if (!asset) return this.json({ error: "Event not found" }, { status: 404 });
+    return this.json(asset);
+  }
+
+  private deleteAsset(eventId: string, assetId: string) {
+    return this.api.events
+      .deleteAsset(eventId, assetId)
+      .then((ok) => (ok ? this.json({ ok: true }) : this.notFound()));
+  }
+
+  private attendeesAdd(eventId: string, body: { contact_id: string; waiver_signed?: boolean }) {
+    return this.api.events.attendees
+      .add(eventId, body)
+      .then((r) => (r ? this.json(r) : this.notFound()));
+  }
+
+  private attendeesUpdate(eventId: string, attendeeId: string, body: { waiver_signed?: boolean }) {
+    return this.api.events.attendees
+      .update(eventId, attendeeId, body)
+      .then((r) => (r ? this.json(r) : this.notFound()));
+  }
+
+  private attendeesDelete(eventId: string, attendeeId: string) {
+    return this.api.events.attendees.delete(eventId, attendeeId).then(() => this.json({ ok: true }));
+  }
+
+  private scheduleItemsCreate(eventId: string, body: { scheduled_time: string; label: string; location?: string }) {
+    return this.api.events.scheduleItems
+      .create(eventId, body)
+      .then((r) => (r ? this.json(r) : this.notFound()));
+  }
+
+  private scheduleItemsUpdate(
+    eventId: string,
+    scheduleId: string,
+    body: { scheduled_time?: string; label?: string; location?: string | null }
+  ) {
+    return this.api.events.scheduleItems
+      .update(eventId, scheduleId, body)
+      .then((r) => (r ? this.json(r) : this.notFound()));
+  }
+
+  private scheduleItemsDelete(eventId: string, scheduleId: string) {
+    return this.api.events.scheduleItems.delete(eventId, scheduleId).then(() => this.json({ ok: true }));
   }
 }

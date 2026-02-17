@@ -2,6 +2,12 @@ import { t } from "elysia";
 import { CommonParams } from "./common";
 
 const assignmentCategory = t.Union([t.Literal("planning"), t.Literal("during")]);
+const eventType = t.Union([
+  t.Literal("badger"),
+  t.Literal("anniversary"),
+  t.Literal("pioneer_run"),
+  t.Literal("rides"),
+]);
 
 export const EventsDto = {
   params: CommonParams.id,
@@ -10,12 +16,24 @@ export const EventsDto = {
   idPid: CommonParams.idPid,
   idAid: CommonParams.idAid,
   idVid: CommonParams.idVid,
+  idPhotoId: CommonParams.idPhotoId,
+  idAttendeeId: CommonParams.idAttendeeId,
+  idAssetId: CommonParams.idAssetId,
+  idScheduleId: CommonParams.idScheduleId,
   idMidMemberId: CommonParams.idMidMemberId,
   idAidMemberId: CommonParams.idAidMemberId,
 
+  photoUploadBody: t.Object({ file: t.File() }),
+
   createBody: t.Object({
     name: t.String(),
+    event_type: t.Optional(eventType),
     description: t.Optional(t.String()),
+    start_location: t.Optional(t.String()),
+    end_location: t.Optional(t.String()),
+    facebook_event_url: t.Optional(t.String()),
+    pre_ride_event_id: t.Optional(t.String()),
+    ride_cost: t.Optional(t.Number()),
     year: t.Optional(t.Number()),
     event_date: t.Optional(t.String()),
     event_url: t.Optional(t.String()),
@@ -32,7 +50,13 @@ export const EventsDto = {
 
   updateBody: t.Object({
     name: t.Optional(t.String()),
+    event_type: t.Optional(t.Union([eventType, t.Null()])),
     description: t.Optional(t.Union([t.String(), t.Null()])),
+    start_location: t.Optional(t.Union([t.String(), t.Null()])),
+    end_location: t.Optional(t.Union([t.String(), t.Null()])),
+    facebook_event_url: t.Optional(t.Union([t.String(), t.Null()])),
+    pre_ride_event_id: t.Optional(t.Union([t.String(), t.Null()])),
+    ride_cost: t.Optional(t.Union([t.Number(), t.Null()])),
     year: t.Optional(t.Union([t.Number(), t.Null()])),
     event_date: t.Optional(t.Union([t.String(), t.Null()])),
     event_url: t.Optional(t.Union([t.String(), t.Null()])),
@@ -103,5 +127,19 @@ export const EventsDto = {
   updateVolunteerBody: t.Object({
     name: t.Optional(t.String()),
     department: t.Optional(t.String()),
+  }),
+
+  addAttendeeBody: t.Object({ contact_id: t.String(), waiver_signed: t.Optional(t.Boolean()) }),
+  updateAttendeeBody: t.Object({ waiver_signed: t.Optional(t.Boolean()) }),
+
+  createScheduleItemBody: t.Object({
+    scheduled_time: t.String(),
+    label: t.String(),
+    location: t.Optional(t.String()),
+  }),
+  updateScheduleItemBody: t.Object({
+    scheduled_time: t.Optional(t.String()),
+    label: t.Optional(t.String()),
+    location: t.Optional(t.Union([t.String(), t.Null()])),
   }),
 };

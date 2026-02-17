@@ -59,6 +59,18 @@ interface EditEventDialogProps {
   setEditScenarioId: (v: string) => void;
   editPlanningNotes: string;
   setEditPlanningNotes: (v: string) => void;
+  editEventType: string;
+  setEditEventType: (v: string) => void;
+  editStartLocation: string;
+  setEditStartLocation: (v: string) => void;
+  editEndLocation: string;
+  setEditEndLocation: (v: string) => void;
+  editFacebookEventUrl: string;
+  setEditFacebookEventUrl: (v: string) => void;
+  editPreRideEventId: string;
+  setEditPreRideEventId: (v: string) => void;
+  editRideCost: string;
+  setEditRideCost: (v: string) => void;
   budgets: BudgetSummary[];
   scenarios: ScenarioSummary[];
   onSave: () => Promise<void>;
@@ -95,6 +107,18 @@ export function EditEventDialog({
   setEditScenarioId,
   editPlanningNotes,
   setEditPlanningNotes,
+  editEventType,
+  setEditEventType,
+  editStartLocation,
+  setEditStartLocation,
+  editEndLocation,
+  setEditEndLocation,
+  editFacebookEventUrl,
+  setEditFacebookEventUrl,
+  editPreRideEventId,
+  setEditPreRideEventId,
+  editRideCost,
+  setEditRideCost,
   budgets,
   scenarios,
   onSave,
@@ -118,6 +142,22 @@ export function EditEventDialog({
               <Input value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Event name" />
             </div>
             <div className="space-y-2 min-w-0">
+              <Label>Event type</Label>
+              <Select value={editEventType} onValueChange={setEditEventType}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="badger">Badger</SelectItem>
+                  <SelectItem value="anniversary">Anniversary</SelectItem>
+                  <SelectItem value="pioneer_run">Pioneer Run</SelectItem>
+                  <SelectItem value="rides">Rides</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2 min-w-0">
+            <div className="space-y-2 min-w-0">
               <Label>Year</Label>
               <Input
                 type="number"
@@ -126,12 +166,6 @@ export function EditEventDialog({
                 placeholder="2025"
               />
             </div>
-          </div>
-          <div className="space-y-2">
-            <Label>Description</Label>
-            <Textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} rows={2} />
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2 min-w-0">
             <div className="space-y-2 min-w-0">
               <Label>Event Date</Label>
               <Input
@@ -140,10 +174,14 @@ export function EditEventDialog({
                 onChange={(e) => setEditEventDate(e.target.value)}
               />
             </div>
-            <div className="space-y-2">
-              <Label>Event URL</Label>
-              <Input value={editEventUrl} onChange={(e) => setEditEventUrl(e.target.value)} placeholder="https://..." />
-            </div>
+          </div>
+          <div className="space-y-2">
+            <Label>Description</Label>
+            <Textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} rows={2} />
+          </div>
+          <div className="space-y-2 min-w-0">
+            <Label>Event URL</Label>
+            <Input value={editEventUrl} onChange={(e) => setEditEventUrl(e.target.value)} placeholder="https://..." />
           </div>
           <div className="space-y-2 min-w-0">
             <Label>Event Location (Google Maps link)</Label>
@@ -237,6 +275,55 @@ export function EditEventDialog({
               </Select>
             </div>
           </div>
+          {(editEventType === "rides" || editStartLocation || editEndLocation || editFacebookEventUrl || editRideCost) && (
+            <div className="space-y-4 rounded-lg border p-4">
+              <p className="text-sm font-medium">Ride details</p>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Start location</Label>
+                  <Input
+                    value={editStartLocation}
+                    onChange={(e) => setEditStartLocation(e.target.value)}
+                    placeholder="Meet location"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>End location</Label>
+                  <Input
+                    value={editEndLocation}
+                    onChange={(e) => setEditEndLocation(e.target.value)}
+                    placeholder="Final destination"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Facebook event URL</Label>
+                <Input
+                  value={editFacebookEventUrl}
+                  onChange={(e) => setEditFacebookEventUrl(e.target.value)}
+                  placeholder="https://facebook.com/events/..."
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Ride cost ($)</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={editRideCost}
+                  onChange={(e) => setEditRideCost(e.target.value)}
+                  placeholder="0 or leave empty for free"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Pre-ride event ID</Label>
+                <Input
+                  value={editPreRideEventId}
+                  onChange={(e) => setEditPreRideEventId(e.target.value)}
+                  placeholder="Event ID of pre-ride (optional)"
+                />
+              </div>
+            </div>
+          )}
           <div className="space-y-2">
             <Label>Planning Notes</Label>
             <Textarea

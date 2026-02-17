@@ -49,4 +49,22 @@ export class Event {
 
   @Column({ name: "planning_notes", type: "text", nullable: true })
   planningNotes!: string | null;
+
+  @Column({ name: "event_type", type: "text", default: "badger" })
+  eventType!: string;
+
+  @Column({ name: "start_location", type: "text", nullable: true })
+  startLocation!: string | null;
+
+  @Column({ name: "end_location", type: "text", nullable: true })
+  endLocation!: string | null;
+
+  @Column({ name: "facebook_event_url", type: "text", nullable: true })
+  facebookEventUrl!: string | null;
+
+  @Column({ name: "pre_ride_event_id", type: "text", nullable: true })
+  preRideEventId!: string | null;
+
+  @Column({ name: "ride_cost", type: "real", nullable: true })
+  rideCost!: number | null;
 }

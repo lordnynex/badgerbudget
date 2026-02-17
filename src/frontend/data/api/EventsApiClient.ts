@@ -1,8 +1,12 @@
 import { client, unwrap } from "./client";
 
 export class EventsApiClient {
-  list() {
-    return unwrap(client.api.events.get());
+  list(options?: { type?: string }) {
+    return unwrap(
+      client.api.events.get(
+        options?.type ? { query: { type: options.type } } : undefined
+      )
+    );
   }
 
   get(id: string) {
@@ -20,6 +24,123 @@ export class EventsApiClient {
   delete(id: string) {
     return unwrap(client.api.events({ id }).delete());
   }
+
+  readonly photos = {
+    add: async (eventId: string, file: File) => {
+      const form = new FormData();
+      form.append("file", file);
+      const res = await fetch(`/api/events/${eventId}/photos`, {
+        method: "POST",
+        body: form,
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: res.statusText }));
+        throw new Error((err as { error?: string }).error ?? "Upload failed");
+      }
+      return res.json();
+    },
+    delete: async (eventId: string, photoId: string) => {
+      const res = await fetch(`/api/events/${eventId}/photos/${photoId}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: res.statusText }));
+        throw new Error((err as { error?: string }).error ?? "Delete failed");
+      }
+    },
+  };
+
+  readonly assets = {
+    add: async (eventId: string, file: File) => {
+      const form = new FormData();
+      form.append("file", file);
+      const res = await fetch(`/api/events/${eventId}/assets`, { method: "POST", body: form });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: res.statusText }));
+        throw new Error((err as { error?: string }).error ?? "Upload failed");
+      }
+      return res.json();
+    },
+    delete: async (eventId: string, assetId: string) => {
+      const res = await fetch(`/api/events/${eventId}/assets/${assetId}`, { method: "DELETE" });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: res.statusText }));
+        throw new Error((err as { error?: string }).error ?? "Delete failed");
+      }
+    },
+  };
+
+  readonly attendees = {
+    add: async (eventId: string, body: { contact_id: string; waiver_signed?: boolean }) => {
+      const res = await fetch(`/api/events/${eventId}/attendees`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: res.statusText }));
+        throw new Error((err as { error?: string }).error ?? "Add attendee failed");
+      }
+      return res.json();
+    },
+    update: async (eventId: string, attendeeId: string, body: { waiver_signed?: boolean }) => {
+      const res = await fetch(`/api/events/${eventId}/attendees/${attendeeId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: res.statusText }));
+        throw new Error((err as { error?: string }).error ?? "Update attendee failed");
+      }
+      return res.json();
+    },
+    delete: async (eventId: string, attendeeId: string) => {
+      const res = await fetch(`/api/events/${eventId}/attendees/${attendeeId}`, { method: "DELETE" });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: res.statusText }));
+        throw new Error((err as { error?: string }).error ?? "Delete attendee failed");
+      }
+    },
+  };
+
+  readonly scheduleItems = {
+    create: async (eventId: string, body: { scheduled_time: string; label: string; location?: string }) => {
+      const res = await fetch(`/api/events/${eventId}/schedule-items`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: res.statusText }));
+        throw new Error((err as { error?: string }).error ?? "Create schedule item failed");
+      }
+      return res.json();
+    },
+    update: async (
+      eventId: string,
+      scheduleId: string,
+      body: { scheduled_time?: string; label?: string; location?: string | null }
+    ) => {
+      const res = await fetch(`/api/events/${eventId}/schedule-items/${scheduleId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: res.statusText }));
+        throw new Error((err as { error?: string }).error ?? "Update schedule item failed");
+      }
+      return res.json();
+    },
+    delete: async (eventId: string, scheduleId: string) => {
+      const res = await fetch(`/api/events/${eventId}/schedule-items/${scheduleId}`, { method: "DELETE" });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: res.statusText }));
+        throw new Error((err as { error?: string }).error ?? "Delete schedule item failed");
+      }
+    },
+  };
 
   readonly milestones = {
     create: (

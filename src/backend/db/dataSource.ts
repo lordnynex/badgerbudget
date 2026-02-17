@@ -3,6 +3,10 @@ import type { DataSourceOptions } from "typeorm";
 import { join } from "path";
 import {
   Event,
+  EventPhoto,
+  EventAttendee,
+  EventAsset,
+  RideScheduleItem,
   EventPlanningMilestone,
   EventMilestoneMember,
   EventPackingCategory,
@@ -39,6 +43,9 @@ import { AddQrCodesTable1740000003000 } from "./migrations/1740000003000-AddQrCo
 import { AddContactHellenicDeceased1740000004000 } from "./migrations/1740000004000-AddContactHellenicDeceased.ts";
 import { AddContactEmergencyContactsTable1740000005000 } from "./migrations/1740000005000-AddContactEmergencyContactsTable.ts";
 import { AddContactOkToSms1740000006000 } from "./migrations/1740000006000-AddContactOkToSms.ts";
+import { AddEventType1740000007000 } from "./migrations/1740000007000-AddEventType.ts";
+import { AddEventPhotosTable1740000007500 } from "./migrations/1740000007500-AddEventPhotosTable.ts";
+import { AddRideFieldsAndAttendeesAssets1740000008000 } from "./migrations/1740000008000-AddRideFieldsAndAttendeesAssets.ts";
 
 const projectRoot = join(import.meta.dir, "../../..");
 const dbPath = join(projectRoot, "data", "badger.db");
@@ -49,10 +56,14 @@ const dataSourceOptions: DataSourceOptions = {
   location: dbPath,
   autoSave: true,
   synchronize: false,
-  migrations: [InitialSchema1700000000000, AddMemberPhotoThumbnail1739750400000, RemoveAuditLog1739900000000, AddMailingListDeliveryType1740000000000, AddContactNotesTable1740000001000, AddContactPhotosTable1740000002000, AddQrCodesTable1740000003000, AddContactHellenicDeceased1740000004000, AddContactEmergencyContactsTable1740000005000, AddContactOkToSms1740000006000],
+  migrations: [InitialSchema1700000000000, AddMemberPhotoThumbnail1739750400000, RemoveAuditLog1739900000000, AddMailingListDeliveryType1740000000000, AddContactNotesTable1740000001000, AddContactPhotosTable1740000002000, AddQrCodesTable1740000003000, AddContactHellenicDeceased1740000004000, AddContactEmergencyContactsTable1740000005000, AddContactOkToSms1740000006000, AddEventType1740000007000, AddEventPhotosTable1740000007500, AddRideFieldsAndAttendeesAssets1740000008000],
   migrationsRun: true,
   entities: [
     Event,
+    EventPhoto,
+    EventAttendee,
+    EventAsset,
+    RideScheduleItem,
     EventPlanningMilestone,
     EventMilestoneMember,
     EventPackingCategory,
