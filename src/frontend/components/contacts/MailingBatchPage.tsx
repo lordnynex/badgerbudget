@@ -17,12 +17,12 @@ import {
 } from "@/components/ui/select";
 import { api } from "@/data/api";
 import type { MailingBatchRecipient } from "@/types/contact";
-import { contactsToVCardFile } from "@/lib/vcard";
+import { contactsToVCardFileAsync } from "@/lib/vcard";
 import { generatePdfLabels } from "@/lib/pdf-labels";
 import { ArrowLeft, ChevronDown } from "lucide-react";
 import { useMailingBatchSuspense, useInvalidateQueries } from "@/queries/hooks";
 
-function recipientToContact(r: MailingBatchRecipient): Parameters<typeof contactsToVCardFile>[0][number] {
+function recipientToContact(r: MailingBatchRecipient): Parameters<typeof contactsToVCardFileAsync>[0][number] {
   return {
     id: "",
     type: "person",
@@ -74,10 +74,10 @@ function MailingBatchContent({ batchId }: { batchId: string }) {
 
   const refresh = () => invalidate.invalidateMailingBatch(batchId);
 
-  const handleExportVCard = () => {
+  const handleExportVCard = async () => {
     if (!batch?.recipients?.length) return;
     const contacts = batch.recipients.map(recipientToContact);
-    const vcf = contactsToVCardFile(contacts);
+    const vcf = await contactsToVCardFileAsync(contacts);
     const blob = new Blob([vcf], { type: "text/vcard;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");

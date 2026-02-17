@@ -80,6 +80,66 @@ export function contactToVCard4(c: Contact, options?: { includeNotes?: boolean; 
   return lines.join("\r\n");
 }
 
+/** Fold a long vCard line per RFC 6350 (max 75 octets, continuation lines start with space) */
+function foldLine(line: string): string {
+  if (line.length <= 75) return line;
+  const parts: string[] = [];
+  let remaining = line;
+  while (remaining.length > 0) {
+    if (parts.length === 0) {
+      parts.push(remaining.slice(0, 75));
+      remaining = remaining.slice(75);
+    } else {
+      parts.push("\r\n " + remaining.slice(0, 74));
+      remaining = remaining.slice(74);
+    }
+  }
+  return parts.join("");
+}
+
+/** Convert a Contact to vCard 4.0 format, including main profile photo if present (async) */
+export async function contactToVCard4Async(
+  c: Contact,
+  options?: { includeNotes?: boolean; includePhone?: boolean; includeEmail?: boolean }
+): Promise<string> {
+  const vcf = contactToVCard4(c, options);
+  const mainPhoto = c.contact_photos?.find((p) => p.type === "profile") ?? c.contact_photos?.[0];
+  if (!mainPhoto?.photo_url) return vcf;
+
+  try {
+    const res = await fetch(mainPhoto.photo_url);
+    if (!res.ok) return vcf;
+    const blob = await res.blob();
+    const base64 = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const dataUrl = reader.result as string;
+        const base64 = dataUrl.split(",")[1];
+        resolve(base64 ?? "");
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+    if (!base64) return vcf;
+
+    const mediaType = blob.type?.startsWith("image/") ? blob.type : "image/jpeg";
+    const photoLine = `PHOTO;MEDIATYPE=${mediaType}:${base64}`;
+    const folded = foldLine(photoLine);
+    return vcf.replace("END:VCARD", `${folded}\r\nEND:VCARD`);
+  } catch {
+    return vcf;
+  }
+}
+
+/** Export multiple contacts as a single vCard file (concatenated), including photos (async) */
+export async function contactsToVCardFileAsync(
+  contacts: Contact[],
+  options?: { includeNotes?: boolean }
+): Promise<string> {
+  const vcfs = await Promise.all(contacts.map((c) => contactToVCard4Async(c, options)));
+  return vcfs.join("\r\n");
+}
+
 /** Export multiple contacts as a single vCard file (concatenated) */
 export function contactsToVCardFile(contacts: Contact[], options?: { includeNotes?: boolean }): string {
   return contacts.map((c) => contactToVCard4(c, options)).join("\r\n");

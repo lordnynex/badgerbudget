@@ -4,7 +4,7 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import { api } from "@/data/api";
-import type { ContactSearchParams } from "@/types/contact";
+import type { ContactSearchParams, MailingList, ListPreview, MailingListStats, MailingListIncludedPage } from "@/types/contact";
 import { queryKeys } from "./keys";
 
 // —— Budgets & scenarios (used only on projections / budget / scenarios pages)
@@ -115,30 +115,30 @@ export function useMailingListsSuspense() {
 
 /** Call only when id is non-null. */
 export function useMailingListSuspense(id: string) {
-  return useSuspenseQuery({
+  return useSuspenseQuery<MailingList | null>({
     queryKey: queryKeys.mailingList(id),
-    queryFn: () => api.mailingLists.get(id),
+    queryFn: async () => (await api.mailingLists.get(id)) as MailingList | null,
   });
 }
 
 export function useMailingListPreview(id: string | null) {
-  return useQuery({
+  return useQuery<ListPreview | null>({
     queryKey: queryKeys.mailingListPreview(id ?? ""),
-    queryFn: () => api.mailingLists.preview(id!),
+    queryFn: async () => (await api.mailingLists.preview(id!)) as ListPreview | null,
     enabled: !!id,
   });
 }
 
 export function useMailingListStats(id: string | null) {
-  return useQuery({
+  return useQuery<MailingListStats | null>({
     queryKey: queryKeys.mailingListStats(id ?? ""),
-    queryFn: () => api.mailingLists.getStats(id!),
+    queryFn: async () => (await api.mailingLists.getStats(id!)) as MailingListStats | null,
     enabled: !!id,
   });
 }
 
 export function useMailingListIncluded(id: string | null, page: number, limit: number, q?: string) {
-  return useQuery({
+  return useQuery<MailingListIncludedPage | null>({
     queryKey: queryKeys.mailingListIncluded(id ?? "", page, limit, q),
     queryFn: () => api.mailingLists.getIncluded(id!, { page, limit, q }),
     enabled: !!id,

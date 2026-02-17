@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/select";
 import { api } from "@/data/api";
 import type { ContactSearchParams } from "@/types/contact";
-import { contactsToVCardFile } from "@/lib/vcard";
+import { contactsToVCardFileAsync } from "@/lib/vcard";
 import { Link } from "react-router-dom";
 import { Plus, Search, Download, Upload, List, Trash2 } from "lucide-react";
 import { AddContactDialog } from "./AddContactDialog";
@@ -81,10 +81,10 @@ export function ContactsPanel() {
     }
   };
 
-  const handleBulkExportVCard = () => {
+  const handleBulkExportVCard = async () => {
     const toExport = selectedIds.size ? contacts.filter((c) => selectedIds.has(c.id)) : contacts;
     if (toExport.length === 0) return;
-    const vcf = contactsToVCardFile(toExport);
+    const vcf = await contactsToVCardFileAsync(toExport);
     const blob = new Blob([vcf], { type: "text/vcard;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");

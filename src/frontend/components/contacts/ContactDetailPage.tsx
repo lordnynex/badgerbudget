@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { api } from "@/data/api";
 import type { MailingList } from "@/types/contact";
-import { contactsToVCardFile } from "@/lib/vcard";
+import { contactsToVCardFileAsync } from "@/lib/vcard";
 import { ArrowLeft, Pencil, Download, Trash2, RotateCcw, Plus, Trash2Icon, User } from "lucide-react";
 import { EditContactDialog } from "./EditContactDialog";
 import { ContactPhotoCarousel } from "./ContactPhotoCarousel";
@@ -64,8 +64,8 @@ function ContactDetailContent({ id }: { id: string }) {
     invalidate.invalidateContact(id);
   };
 
-  const handleExportVCard = () => {
-    const vcf = contactsToVCardFile([contact]);
+  const handleExportVCard = async () => {
+    const vcf = await contactsToVCardFileAsync([contact]);
     const blob = new Blob([vcf], { type: "text/vcard;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -171,42 +171,21 @@ function ContactDetailContent({ id }: { id: string }) {
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr,auto]">
+      <div className="grid gap-6 lg:grid-cols-[1fr,auto] lg:items-start">
         <Card className="h-fit">
           <CardHeader>
-            <div className="flex items-start gap-6">
-              <div className="flex-1 min-w-0">
-                <CardTitle className="text-xl">{contact.display_name}</CardTitle>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {contact.type} • {contact.status}
-                  {contact.organization_name && ` • ${contact.organization_name}`}
-                </p>
-              </div>
-              <div
-                className={`size-32 shrink-0 rounded-lg overflow-hidden bg-muted flex items-center justify-center ${
-                  mainPhoto ? "cursor-pointer hover:opacity-90 transition-opacity" : ""
-                }`}
-                onClick={mainPhoto ? () => setHeaderPhotoLightboxOpen(true) : undefined}
-                role={mainPhoto ? "button" : undefined}
-                aria-label={mainPhoto ? "View full size photo" : undefined}
-              >
-                {mainPhoto ? (
-                  <img
-                    src={mainPhoto.photo_display_url}
-                    alt={`${contact.display_name} photo`}
-                    className="size-full object-cover"
-                  />
-                ) : (
-                  <User className="size-16 text-muted-foreground" />
-                )}
-              </div>
-            </div>
+            <CardTitle className="text-xl">{contact.display_name}</CardTitle>
+            <p className="text-sm text-muted-foreground mt-1">
+              {contact.type} • {contact.status}
+              {contact.organization_name && ` • ${contact.organization_name}`}
+            </p>
           </CardHeader>
           <CardContent className="space-y-8">
-          {/* Profile */}
-          <section>
-            <h3 className="text-sm font-semibold text-muted-foreground mb-3">Profile</h3>
-            <div className="grid gap-4 sm:grid-cols-2">
+          {/* Profile + Photo on same line */}
+          <section className="flex flex-col gap-6 sm:flex-row sm:items-start">
+            <div className="flex-1 min-w-0">
+              <h3 className="text-sm font-semibold text-muted-foreground mb-3">Profile</h3>
+              <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">First name</p>
                 <p>{contact.first_name ?? "—"}</p>
@@ -247,6 +226,25 @@ function ContactDetailContent({ id }: { id: string }) {
                 </div>
               </div>
             )}
+            </div>
+            <div
+              className={`size-64 shrink-0 rounded-lg overflow-hidden bg-muted flex items-center justify-center ${
+                mainPhoto ? "cursor-pointer hover:opacity-90 transition-opacity" : ""
+              }`}
+              onClick={mainPhoto ? () => setHeaderPhotoLightboxOpen(true) : undefined}
+              role={mainPhoto ? "button" : undefined}
+              aria-label={mainPhoto ? "View full size photo" : undefined}
+            >
+              {mainPhoto ? (
+                <img
+                  src={mainPhoto.photo_display_url}
+                  alt={`${contact.display_name} photo`}
+                  className="size-full object-cover"
+                />
+              ) : (
+                <User className="size-32 text-muted-foreground" />
+              )}
+            </div>
           </section>
 
           {/* Addresses */}

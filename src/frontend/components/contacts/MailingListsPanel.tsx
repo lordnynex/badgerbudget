@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/select";
 import { api } from "@/data/api";
 import type { MailingList, ListPreview } from "@/types/contact";
-import { contactsToVCardFile } from "@/lib/vcard";
+import { contactsToVCardFileAsync } from "@/lib/vcard";
 import { ArrowLeft, Plus, Pencil, Trash2, Download, Printer, Users, MapPin, Copy, ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { AddContactToMailingListDialog } from "./AddContactToMailingListDialog";
 import { CreateMailLabelsDialog } from "./CreateMailLabelsDialog";
@@ -33,7 +33,8 @@ export function MailingListsPanel() {
   const invalidate = useInvalidateQueries();
   const { data: listsData } = useMailingListsSuspense();
   const lists = Array.isArray(listsData) ? listsData : [];
-  const { data: events } = useEventsSuspense();
+  const { data: eventsData } = useEventsSuspense();
+  const events: Array<{ id: string; name: string }> = Array.isArray(eventsData) ? eventsData : [];
   const [searchParams, setSearchParams] = useSearchParams();
   const [createOpen, setCreateOpen] = useState(searchParams.get("create") === "1");
   const [newName, setNewName] = useState("");
@@ -224,9 +225,9 @@ function MailingListDetail({
   const { data: selectedList } = useMailingListSuspense(listId);
   const { data: preview } = useMailingListPreview(listId);
   const [editOpen, setEditOpen] = useState(false);
-  const [editName, setEditName] = useState(selectedList.name);
-  const [editDescription, setEditDescription] = useState(selectedList.description ?? "");
-  const [editDeliveryType, setEditDeliveryType] = useState(selectedList.delivery_type ?? "both");
+  const [editName, setEditName] = useState(selectedList?.name ?? "");
+  const [editDescription, setEditDescription] = useState(selectedList?.description ?? "");
+  const [editDeliveryType, setEditDeliveryType] = useState(selectedList?.delivery_type ?? "both");
   const [addMemberOpen, setAddMemberOpen] = useState(false);
   const [labelsDialogOpen, setLabelsDialogOpen] = useState(false);
   const [membersPage, setMembersPage] = useState(1);
@@ -251,14 +252,16 @@ function MailingListDetail({
     membersSearchDebounced || undefined,
   );
 
+  if (!selectedList) return null;
+
   const refreshList = () => {
     invalidate.invalidateMailingList(listId);
   };
 
-  const handleExportVCard = () => {
+  const handleExportVCard = async () => {
     if (!preview || preview.included.length === 0) return;
     const contacts = preview.included.map((i) => i.contact);
-    const vcf = contactsToVCardFile(contacts);
+    const vcf = await contactsToVCardFileAsync(contacts);
     const blob = new Blob([vcf], { type: "text/vcard;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");

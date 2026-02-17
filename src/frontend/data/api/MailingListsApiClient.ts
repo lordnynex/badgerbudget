@@ -1,4 +1,5 @@
 import { client, unwrap, buildSearchParams } from "./client";
+import type { MailingList, ListPreview, MailingListStats } from "@/types/contact";
 
 export class MailingListsApiClient {
   async list() {
@@ -6,8 +7,8 @@ export class MailingListsApiClient {
     return Array.isArray(data) ? data : [];
   }
 
-  get(id: string) {
-    return unwrap(client.api["mailing-lists"]({ id }).get());
+  get(id: string): Promise<MailingList | null> {
+    return unwrap(client.api["mailing-lists"]({ id }).get()) as Promise<MailingList | null>;
   }
 
   create(body: Record<string, unknown>) {
@@ -22,12 +23,12 @@ export class MailingListsApiClient {
     return unwrap(client.api["mailing-lists"]({ id }).delete());
   }
 
-  preview(id: string) {
-    return unwrap(client.api["mailing-lists"]({ id }).preview.get());
+  preview(id: string): Promise<ListPreview | null> {
+    return unwrap(client.api["mailing-lists"]({ id }).preview.get()) as Promise<ListPreview | null>;
   }
 
-  getStats(id: string) {
-    return unwrap(client.api["mailing-lists"]({ id }).stats.get());
+  getStats(id: string): Promise<MailingListStats | null> {
+    return unwrap(client.api["mailing-lists"]({ id }).stats.get()) as Promise<MailingListStats | null>;
   }
 
   async getIncluded(id: string, params?: { page?: number; limit?: number; q?: string }) {
