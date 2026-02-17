@@ -1,6 +1,6 @@
 import type { DbLike } from "../db/dbAdapter";
 import { ALL_MEMBERS_ID } from "@/shared/lib/constants";
-import { uuid, VALID_POSITIONS, parsePhotoToBlob } from "./utils";
+import { uuid, VALID_POSITIONS, parsePhotoToBlob, memberRowToApi } from "./utils";
 import { ImageService } from "./ImageService";
 
 export type PhotoSize = "thumbnail" | "medium" | "full";
@@ -9,10 +9,9 @@ const MEMBER_COLUMNS =
   "id, name, phone_number, email, address, birthday, member_since, is_baby, position, emergency_contact_name, emergency_contact_phone, created_at, (photo IS NOT NULL) as has_photo";
 
 function rowToMember(m: Record<string, unknown>) {
-  const id = m.id as string;
-  const hasPhoto = (m.has_photo as number) === 1;
+  const { photo_url, photo_thumbnail_url } = memberRowToApi(m);
   return {
-    id,
+    id: m.id as string,
     name: m.name,
     phone_number: m.phone_number ?? null,
     email: m.email ?? null,
@@ -23,8 +22,8 @@ function rowToMember(m: Record<string, unknown>) {
     position: m.position ?? null,
     emergency_contact_name: m.emergency_contact_name ?? null,
     emergency_contact_phone: m.emergency_contact_phone ?? null,
-    photo_url: hasPhoto ? `/api/members/${id}/photo?size=full` : null,
-    photo_thumbnail_url: hasPhoto ? `/api/members/${id}/photo?size=thumbnail` : null,
+    photo_url,
+    photo_thumbnail_url,
     created_at: m.created_at as string | undefined,
   };
 }

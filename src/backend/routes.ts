@@ -7,12 +7,9 @@ import { ScenariosController } from "./controllers/scenarios";
 import { ContactsController } from "./controllers/contacts";
 import { MailingListsController } from "./controllers/mailingLists";
 import { MailingBatchesController } from "./controllers/mailingBatches";
-import { logger } from "./logger";
-import { accessLog } from "./middleware/accessLog";
 
 export function createApiRoutes(api: Api) {
   return new Elysia({ prefix: "/api" })
-    .use(accessLog(logger))
     .use(new EventsController(api).init())
     .use(new BudgetsController(api).init())
     .use(new MembersController(api).init())

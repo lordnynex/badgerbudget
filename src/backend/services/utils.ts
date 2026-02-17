@@ -54,3 +54,19 @@ export function parsePhotoToBlob(photo: string): Buffer | null {
     return null;
   }
 }
+
+export function memberRowToApi(m: Record<string, unknown>): {
+  id: string;
+  name: string;
+  photo_url: string | null;
+  photo_thumbnail_url: string | null;
+} {
+  const id = m.id as string;
+  const hasPhoto = m.photo != null || (m.has_photo as number) === 1;
+  return {
+    id,
+    name: m.name as string,
+    photo_url: hasPhoto ? `/api/members/${id}/photo?size=full` : null,
+    photo_thumbnail_url: hasPhoto ? `/api/members/${id}/photo?size=thumbnail` : null,
+  };
+}

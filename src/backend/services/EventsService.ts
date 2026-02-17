@@ -1,22 +1,11 @@
 import type { DbLike } from "../db/dbAdapter";
-import { uuid } from "./utils";
-
-function memberRowToApi(m: Record<string, unknown>): { id: string; name: string; photo_url: string | null; photo_thumbnail_url: string | null } {
-  const id = m.id as string;
-  const hasPhoto = m.photo != null;
-  return {
-    id,
-    name: m.name as string,
-    photo_url: hasPhoto ? `/api/members/${id}/photo?size=full` : null,
-    photo_thumbnail_url: hasPhoto ? `/api/members/${id}/photo?size=thumbnail` : null,
-  };
-}
+import { uuid, memberRowToApi } from "./utils";
 
 export class EventsService {
   constructor(private db: DbLike) {}
 
   async list() {
-    const rows = (await await this.db.query("SELECT * FROM events ORDER BY year DESC, name").all()) as Array<Record<string, unknown>>;
+    const rows = (await this.db.query("SELECT * FROM events ORDER BY year DESC, name").all()) as Array<Record<string, unknown>>;
     return rows.map((e) => ({
       id: e.id,
       name: e.name,
@@ -38,7 +27,7 @@ export class EventsService {
   }
 
   async get(id: string) {
-    const row = await await this.db.query("SELECT * FROM events WHERE id = ?").get(id);
+    const row = await this.db.query("SELECT * FROM events WHERE id = ?").get(id);
     if (!row) return null;
     const e = row as Record<string, unknown>;
     const milestones = (await this.db
