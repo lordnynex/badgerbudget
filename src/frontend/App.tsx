@@ -1,10 +1,13 @@
 import { Suspense, useState } from "react";
-import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
+import { Routes, Route, useLocation, useNavigate } from "react-router-dom";
 import { AppStateProvider, useAppState } from "@/state/AppState";
 import { Header } from "@/components/layout/Header";
 import { Main } from "@/components/layout/Main";
 import { BudgetScenarioLayout } from "@/components/layout/BudgetScenarioLayout";
 import { PageLoading } from "@/components/layout/PageLoading";
+import { NotFoundPage } from "@/components/layout/NotFoundPage";
+import { HomePage } from "@/components/layout/HomePage";
+import { IdParamGuard } from "@/components/layout/IdParamGuard";
 import { EventDetailPage } from "@/components/events/EventDetailPage";
 import { EventsPanel } from "@/components/events/EventsPanel";
 import { MembersPanel } from "@/components/members/MembersPanel";
@@ -80,7 +83,7 @@ function AppContent() {
             )}
           </div>
           <Routes>
-            <Route path="/" element={<Navigate to="/projections" replace />} />
+            <Route path="/" element={<HomePage />} />
             <Route
               path="/events"
               element={
@@ -95,9 +98,11 @@ function AppContent() {
               path="/events/:id"
               element={
                 <main className="space-y-6 p-4 md:p-6">
-                  <Suspense fallback={<PageLoading />}>
-                    <EventDetailPage />
-                  </Suspense>
+                  <IdParamGuard>
+                    <Suspense fallback={<PageLoading />}>
+                      <EventDetailPage />
+                    </Suspense>
+                  </IdParamGuard>
                 </main>
               }
             />
@@ -155,9 +160,11 @@ function AppContent() {
               path="/contacts/lists/:listId"
               element={
                 <main className="space-y-6 p-4 md:p-6">
-                  <Suspense fallback={<PageLoading />}>
-                    <MailingListsPanel />
-                  </Suspense>
+                  <IdParamGuard param="listId">
+                    <Suspense fallback={<PageLoading />}>
+                      <MailingListsPanel />
+                    </Suspense>
+                  </IdParamGuard>
                 </main>
               }
             />
@@ -165,9 +172,11 @@ function AppContent() {
               path="/contacts/batches/:batchId"
               element={
                 <main className="space-y-6 p-4 md:p-6">
-                  <Suspense fallback={<PageLoading />}>
-                    <MailingBatchPage />
-                  </Suspense>
+                  <IdParamGuard param="batchId">
+                    <Suspense fallback={<PageLoading />}>
+                      <MailingBatchPage />
+                    </Suspense>
+                  </IdParamGuard>
                 </main>
               }
             />
@@ -175,9 +184,11 @@ function AppContent() {
               path="/contacts/:id"
               element={
                 <main className="space-y-6 p-4 md:p-6">
-                  <Suspense fallback={<PageLoading />}>
-                    <ContactDetailPage />
-                  </Suspense>
+                  <IdParamGuard>
+                    <Suspense fallback={<PageLoading />}>
+                      <ContactDetailPage />
+                    </Suspense>
+                  </IdParamGuard>
                 </main>
               }
             />
@@ -195,14 +206,16 @@ function AppContent() {
               path="/members/:id"
               element={
                 <main className="space-y-6 p-4 md:p-6">
-                  <Suspense fallback={<PageLoading />}>
-                    <MemberDetailPage />
-                  </Suspense>
+                  <IdParamGuard>
+                    <Suspense fallback={<PageLoading />}>
+                      <MemberDetailPage />
+                    </Suspense>
+                  </IdParamGuard>
                 </main>
               }
             />
             <Route path="/print" element={null} />
-            <Route path="*" element={<Navigate to="/projections" replace />} />
+            <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </>
       )}
