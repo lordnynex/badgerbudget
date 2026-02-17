@@ -8,6 +8,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { ChevronUp } from "lucide-react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useAppState } from "@/state/AppState";
 import { ExportDropdown } from "./ExportDropdown";
@@ -26,6 +27,8 @@ interface ProjectionsSubNavProps {
 }
 
 export function ProjectionsSubNav({ className, onPrint, onEmail }: ProjectionsSubNavProps) {
+  const location = useLocation();
+  const navigate = useNavigate();
   const {
     budgets,
     scenarios,
@@ -34,6 +37,13 @@ export function ProjectionsSubNav({ className, onPrint, onEmail }: ProjectionsSu
     selectBudget,
     selectScenario,
   } = useAppState();
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    if (location.hash) {
+      navigate(location.pathname + location.search, { replace: true });
+    }
+  };
 
   return (
     <div
@@ -101,7 +111,7 @@ export function ProjectionsSubNav({ className, onPrint, onEmail }: ProjectionsSu
           variant="ghost"
           size="icon"
           className="text-muted-foreground hover:text-foreground"
-          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          onClick={scrollToTop}
           aria-label="Scroll to top"
         >
           <ChevronUp className="size-4" />
