@@ -29,21 +29,6 @@ export const DEFAULT_SCENARIO_INPUTS = {
   },
 };
 
-import type { DbLike } from "../db/dbAdapter";
-
-export async function auditLog(
-  db: DbLike,
-  action: string,
-  entityType: string,
-  entityId: string | null,
-  details: Record<string, unknown> = {}
-) {
-  await db.run(
-    "INSERT INTO audit_log (id, action, entity_type, entity_id, user_id, details) VALUES (?, ?, ?, ?, ?, ?)",
-    [uuid(), action, entityType, entityId, null, JSON.stringify(details)]
-  );
-}
-
 export function parsePhotoToBlob(photo: string): Buffer | null {
   if (!photo || typeof photo !== "string") return null;
   const base64 = photo.includes(",") ? photo.split(",")[1] : photo;

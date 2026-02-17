@@ -20,4 +20,3 @@ export { MailingList } from "./MailingList";
 export { MailingListMember } from "./MailingListMember";
 export { MailingBatch } from "./MailingBatch";
 export { MailingBatchRecipient } from "./MailingBatchRecipient";
-export { AuditLog } from "./AuditLog";

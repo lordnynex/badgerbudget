@@ -3,7 +3,7 @@ import type { DbLike } from "../db/dbAdapter";
 import type { Contact, MailingList, MailingBatch, MailingBatchRecipient } from "@/shared/types/contact";
 import type { MailingListsService } from "./MailingListsService";
 import { MailingBatch as MailingBatchEntity, MailingBatchRecipient as MailingBatchRecipientEntity } from "../entities";
-import { uuid, auditLog } from "./utils";
+import { uuid } from "./utils";
 
 export class MailingBatchesService {
   constructor(
@@ -52,7 +52,6 @@ export class MailingBatchesService {
       );
     }
 
-    await auditLog(this.db, "mailing_batch_created", "mailing_batch", id, { list_id: listId, count: preview.totalIncluded });
     return this.get(id)!;
   }
 
@@ -151,10 +150,6 @@ export class MailingBatchesService {
         [status, recipientId, batchId]
       );
     }
-    await auditLog(this.db, "mailing_batch_recipient_status_updated", "mailing_batch", batchId, {
-      recipient_id: recipientId,
-      status,
-    });
     return { ok: true };
   }
 }

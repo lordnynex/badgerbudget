@@ -8,7 +8,7 @@ import type {
 } from "@/shared/types/contact";
 import type { ContactsService } from "./ContactsService";
 import { Contact as ContactEntity, MailingList as MailingListEntity, MailingListMember as MailingListMemberEntity } from "../entities";
-import { uuid, auditLog } from "./utils";
+import { uuid } from "./utils";
 
 export class MailingListsService {
   constructor(
@@ -138,7 +138,6 @@ export class MailingListsService {
         body.criteria ? JSON.stringify(body.criteria) : null,
       ]
     );
-    await auditLog(this.db, "mailing_list_created", "mailing_list", id, { name: body.name });
     return this.get(id)!;
   }
 
@@ -168,14 +167,12 @@ export class MailingListsService {
       "UPDATE mailing_lists SET name = ?, description = ?, list_type = ?, event_id = ?, template = ?, criteria = ?, updated_at = datetime('now') WHERE id = ?",
       [name, description, list_type, event_id, template, criteria ? JSON.stringify(criteria) : null, id]
     );
-    await auditLog(this.db, "mailing_list_updated", "mailing_list", id, {});
     return this.get(id)!;
   }
 
   async delete(id: string) {
     await this.db.run("DELETE FROM mailing_list_members WHERE list_id = ?", [id]);
     await this.db.run("DELETE FROM mailing_lists WHERE id = ?", [id]);
-    await auditLog(this.db, "mailing_list_deleted", "mailing_list", id, {});
     return { ok: true };
   }
 
@@ -189,13 +186,11 @@ export class MailingListsService {
     } catch {
       return null;
     }
-    await auditLog(this.db, "mailing_list_member_added", "mailing_list", listId, { contact_id: contactId });
     return this.get(listId)!;
   }
 
   async removeMember(listId: string, contactId: string) {
     await this.db.run("DELETE FROM mailing_list_members WHERE list_id = ? AND contact_id = ?", [listId, contactId]);
-    await auditLog(this.db, "mailing_list_member_removed", "mailing_list", listId, { contact_id: contactId });
     return { ok: true };
   }
 
@@ -205,7 +200,6 @@ export class MailingListsService {
       { suppressed: 0, suppressReason: null, unsubscribed: 0 }
     );
     if (!result.affected) return null;
-    await auditLog(this.db, "mailing_list_exclusion_removed", "mailing_list", listId, { contact_id: contactId });
     return { ok: true };
   }
 
@@ -220,7 +214,6 @@ export class MailingListsService {
         // duplicate, skip
       }
     }
-    await auditLog(this.db, "mailing_list_members_bulk_added", "mailing_list", listId, { count: contactIds.length });
     return { ok: true };
   }
 

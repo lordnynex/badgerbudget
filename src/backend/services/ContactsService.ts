@@ -11,7 +11,7 @@ import type {
   ContactSearchResult,
 } from "@/shared/types/contact";
 import { Contact as ContactEntity, ContactEmail as ContactEmailEntity, ContactPhone as ContactPhoneEntity, ContactAddress as ContactAddressEntity, Tag as TagEntity, ContactTag } from "../entities";
-import { uuid, auditLog } from "./utils";
+import { uuid } from "./utils";
 
 function entityToContact(e: ContactEntity): Contact {
   return {
@@ -340,7 +340,6 @@ export class ContactsService {
       }
     }
 
-    await auditLog(this.db, "contact_created", "contact", id, { display_name: displayName });
     return this.get(id)!;
   }
 
@@ -433,19 +432,16 @@ export class ContactsService {
       }
     }
 
-    await auditLog(this.db, "contact_updated", "contact", id, {});
     return this.get(id)!;
   }
 
   async delete(id: string) {
     await this.db.run("UPDATE contacts SET status = 'deleted', deleted_at = datetime('now'), updated_at = datetime('now') WHERE id = ?", [id]);
-    await auditLog(this.db, "contact_deleted", "contact", id, {});
     return { ok: true };
   }
 
   async restore(id: string) {
     await this.db.run("UPDATE contacts SET status = 'active', deleted_at = NULL, updated_at = datetime('now') WHERE id = ?", [id]);
-    await auditLog(this.db, "contact_restored", "contact", id, {});
     return this.get(id)!;
   }
 
@@ -475,7 +471,6 @@ export class ContactsService {
         }
       }
     }
-    await auditLog(this.db, "contacts_bulk_updated", "contact", null, { count: ids.length, updates });
     return { ok: true };
   }
 
@@ -522,7 +517,6 @@ export class ContactsService {
     await this.db.run("UPDATE mailing_batch_recipients SET contact_id = ? WHERE contact_id = ?", [targetId, sourceId]);
     await this.delete(sourceId);
 
-    await auditLog(this.db, "contact_merged", "contact", targetId, { source_id: sourceId });
     return this.get(targetId)!;
   }
 

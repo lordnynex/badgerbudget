@@ -296,21 +296,9 @@ export class InitialSchema1700000000000 implements MigrationInterface {
         FOREIGN KEY (contact_id) REFERENCES contacts(id) ON DELETE CASCADE
       )
     `);
-    await queryRunner.query(`
-      CREATE TABLE IF NOT EXISTS audit_log (
-        id TEXT PRIMARY KEY,
-        action TEXT NOT NULL,
-        entity_type TEXT NOT NULL,
-        entity_id TEXT,
-        user_id TEXT,
-        details TEXT,
-        created_at TEXT DEFAULT (datetime('now'))
-      )
-    `);
   }
 
   async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query("DROP TABLE IF EXISTS audit_log");
     await queryRunner.query("DROP TABLE IF EXISTS mailing_batch_recipients");
     await queryRunner.query("DROP TABLE IF EXISTS mailing_batches");
     await queryRunner.query("DROP TABLE IF EXISTS mailing_list_members");
