@@ -9,7 +9,8 @@
     "build": "bun run build.ts",
     "test": "bun test src/",
     "migrate": "bun src/scripts/migrate.ts",
-    "backfill-member-photos": "bun scripts/backfill-member-photos.ts"
+    "backfill-member-photos": "bun scripts/backfill-member-photos.ts",
+    "deduplicate-contact-addresses": "bun scripts/deduplicate-contact-addresses.ts"
   },
   "dependencies": {
     "@elysiajs/cors": "^1.4.1",

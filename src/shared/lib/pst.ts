@@ -129,26 +129,25 @@ function pstContactToPayload(contact: PstContactLike): PstContactPayload {
   const bizState = orNull(contact.businessAddressStateOrProvince);
   const bizPostal = orNull(contact.businessPostalCode);
   const bizCountry = orNull(contact.businessAddressCountry) || "US";
-  if (bizStreet || bizCity || bizPostal) {
-    addresses.push({
-      id: "",
-      contact_id: "",
-      address_line1: bizStreet,
-      address_line2: null,
-      city: bizCity,
-      state: bizState,
-      postal_code: bizPostal,
-      country: bizCountry,
-      type: "work",
-      is_primary_mailing: true,
-    });
-  }
   const homeStreet = orNull(contact.homeAddressStreet);
   const homeCity = orNull(contact.homeAddressCity);
   const homeState = orNull(contact.homeAddressStateOrProvince);
   const homePostal = orNull(contact.homeAddressPostalCode);
   const homeCountry = orNull(contact.homeAddressCountry) || "US";
-  if (homeStreet || homeCity || homePostal) {
+
+  /** Normalize address for duplicate detection (Outlook often stores same address in both business and home) */
+  const addrKey = (line1: string | null, city: string | null, postal: string | null) =>
+    [line1 ?? "", city ?? "", postal ?? ""]
+      .map((s) => s.toLowerCase().replace(/\s+/g, " ").trim())
+      .join("|");
+
+  const bizKey = addrKey(bizStreet, bizCity, bizPostal);
+  const homeKey = addrKey(homeStreet, homeCity, homePostal);
+  const bizHasContent = bizStreet || bizCity || bizPostal;
+  const homeHasContent = homeStreet || homeCity || homePostal;
+
+  if (bizHasContent && homeHasContent && bizKey === homeKey) {
+    // Same address in both fields - prefer home, skip work to avoid duplicates
     addresses.push({
       id: "",
       contact_id: "",
@@ -159,9 +158,39 @@ function pstContactToPayload(contact: PstContactLike): PstContactPayload {
       postal_code: homePostal,
       country: homeCountry,
       type: "home",
-      is_primary_mailing: addresses.length === 0,
+      is_primary_mailing: true,
     });
+  } else {
+    if (bizHasContent) {
+      addresses.push({
+        id: "",
+        contact_id: "",
+        address_line1: bizStreet,
+        address_line2: null,
+        city: bizCity,
+        state: bizState,
+        postal_code: bizPostal,
+        country: bizCountry,
+        type: "work",
+        is_primary_mailing: true,
+      });
+    }
+    if (homeHasContent) {
+      addresses.push({
+        id: "",
+        contact_id: "",
+        address_line1: homeStreet,
+        address_line2: null,
+        city: homeCity,
+        state: homeState,
+        postal_code: homePostal,
+        country: homeCountry,
+        type: "home",
+        is_primary_mailing: addresses.length === 0,
+      });
+    }
   }
+
   if (addresses.length === 0 && contact.postalAddress) {
     const postal = trim(contact.postalAddress);
     if (postal) {
