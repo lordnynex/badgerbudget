@@ -17,6 +17,9 @@ import { ContactDetailPage } from "@/components/contacts/ContactDetailPage";
 import { MailingListsPanel } from "@/components/contacts/MailingListsPanel";
 import { QrCodesPanel } from "@/components/contacts/QrCodesPanel";
 import { QrCodeDetailPage } from "@/components/contacts/QrCodeDetailPage";
+import { MailingPanel } from "@/components/contacts/MailingPanel";
+import { EmailPanel } from "@/components/contacts/EmailPanel";
+import { AssetsPanel } from "@/components/contacts/AssetsPanel";
 import { ActualSpendPanel } from "@/components/budget/ActualSpendPanel";
 import { VendorsPanel } from "@/components/budget/VendorsPanel";
 import { ContactsLayout } from "@/components/layout/ContactsLayout";
@@ -223,6 +226,30 @@ function AppContent() {
                       <QrCodeDetailPage />
                     </Suspense>
                   </IdParamGuard>
+                }
+              />
+              <Route
+                path="compose/mailing"
+                element={
+                  <Suspense fallback={<PageLoading />}>
+                    <MailingPanel />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="compose/email"
+                element={
+                  <Suspense fallback={<PageLoading />}>
+                    <EmailPanel />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="compose/assets"
+                element={
+                  <Suspense fallback={<PageLoading />}>
+                    <AssetsPanel />
+                  </Suspense>
                 }
               />
               <Route
