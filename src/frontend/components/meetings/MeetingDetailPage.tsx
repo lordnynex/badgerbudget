@@ -94,6 +94,26 @@ export function MeetingDetailPage() {
     await api.documents.exportPdf(meeting.minutes_document_id, filename);
   };
 
+  const isMinutesEmpty = (): boolean => {
+    const content = meeting.minutes_content?.trim();
+    if (!content) return true;
+    try {
+      const parsed = JSON.parse(meeting.minutes_content ?? "{}");
+      return (
+        parsed?.type === "doc" &&
+        Array.isArray(parsed?.content) &&
+        parsed.content.length === 1 &&
+        parsed.content[0]?.type === "paragraph" &&
+        !parsed.content[0].content?.length
+      );
+    } catch {
+      return true;
+    }
+  };
+
+  const minutesExportDisabled =
+    !meeting.minutes_document_id || isMinutesEmpty();
+
   const handleDeleteMeeting = async () => {
     setDeleting(true);
     try {
@@ -168,6 +188,20 @@ export function MeetingDetailPage() {
                   <X className="size-4" />
                   Cancel
                 </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setDeleteAgenda(true);
+                    setDeleteMinutes(true);
+                    setDeleteDialogOpen(true);
+                  }}
+                  disabled={metadataSaving}
+                  className="text-muted-foreground hover:text-destructive"
+                >
+                  <Trash2 className="size-4" />
+                  Delete
+                </Button>
               </div>
             ) : (
               <div className="flex flex-wrap items-center gap-2 sm:gap-4">
@@ -190,19 +224,6 @@ export function MeetingDetailPage() {
                 >
                   <Pencil className="size-4" />
                   Edit
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setDeleteAgenda(true);
-                    setDeleteMinutes(true);
-                    setDeleteDialogOpen(true);
-                  }}
-                  className="text-muted-foreground hover:text-destructive"
-                >
-                  <Trash2 className="size-4" />
-                  Delete
                 </Button>
               </div>
             )}
@@ -371,6 +392,7 @@ export function MeetingDetailPage() {
                       size="sm"
                       className="h-7 px-2"
                       onClick={handleMinutesExportPdf}
+                      disabled={minutesExportDisabled}
                     >
                       <FileDown className="size-3.5" />
                       Export
