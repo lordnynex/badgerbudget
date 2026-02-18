@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { useMeetingSuspense, useInvalidateQueries } from "@/queries/hooks";
 import { Button } from "@/components/ui/button";
@@ -50,8 +50,6 @@ export function MeetingDetailPage() {
   const [meetingNumber, setMeetingNumber] = useState(meeting.meeting_number);
   const [date, setDate] = useState(meeting.date);
   const [location, setLocation] = useState(meeting.location ?? "");
-  const [agendaOpen, setAgendaOpen] = useState(true);
-  const [minutesOpen, setMinutesOpen] = useState(true);
 
   const handleMetadataSave = async () => {
     const num = Number(meetingNumber);
@@ -110,6 +108,16 @@ export function MeetingDetailPage() {
       return true;
     }
   };
+
+  const hasMinutes =
+    Boolean(meeting.minutes_document_id) || !isMinutesEmpty();
+
+  const [agendaOpen, setAgendaOpen] = useState(!hasMinutes);
+  const [minutesOpen, setMinutesOpen] = useState(true);
+
+  useEffect(() => {
+    setAgendaOpen(!hasMinutes);
+  }, [hasMinutes]);
 
   const minutesExportDisabled =
     !meeting.minutes_document_id || isMinutesEmpty();
