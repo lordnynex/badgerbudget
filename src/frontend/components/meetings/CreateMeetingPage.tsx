@@ -26,7 +26,6 @@ export function CreateMeetingPage() {
   const [date, setDate] = useState("");
   const [meetingNumber, setMeetingNumber] = useState<number | "">("");
   const [location, setLocation] = useState("");
-  const [previousMeetingId, setPreviousMeetingId] = useState<string>("__none__");
   const [agendaTemplateId, setAgendaTemplateId] = useState<string>("__none__");
   const [saving, setSaving] = useState(false);
 
@@ -50,8 +49,6 @@ export function CreateMeetingPage() {
         date,
         meeting_number: Number(meetingNumber),
         location: location.trim() || null,
-        previous_meeting_id:
-          previousMeetingId === "__none__" ? null : previousMeetingId,
         agenda_template_id:
           agendaTemplateId === "__none__" ? undefined : agendaTemplateId,
       });
@@ -61,10 +58,6 @@ export function CreateMeetingPage() {
       setSaving(false);
     }
   };
-
-  const sortedMeetings = [...meetings].sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-  );
 
   return (
     <div className="space-y-6">
@@ -109,25 +102,6 @@ export function CreateMeetingPage() {
               onChange={(e) => setLocation(e.target.value)}
               placeholder="Meeting location"
             />
-          </div>
-          <div className="space-y-2">
-            <Label>Previous meeting</Label>
-            <Select
-              value={previousMeetingId}
-              onValueChange={setPreviousMeetingId}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="None" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__none__">None</SelectItem>
-                {sortedMeetings.map((m) => (
-                  <SelectItem key={m.id} value={m.id}>
-                    #{m.meeting_number} – {new Date(m.date).toLocaleDateString()}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </div>
           <div className="space-y-2">
             <Label>Agenda template</Label>

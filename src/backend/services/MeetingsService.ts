@@ -312,6 +312,34 @@ export class MeetingsService {
     return result.affected !== 0;
   }
 
+  async listOldBusiness() {
+    const items = await this.ds.getRepository(OldBusinessItem).find({
+      order: { orderIndex: "ASC", createdAt: "ASC" },
+    });
+    if (items.length === 0) return [];
+    const meetingIds = [...new Set(items.map((ob) => ob.meetingId))];
+    const meetings = await this.ds.getRepository(Meeting).find({
+      where: { id: In(meetingIds) },
+      select: ["id", "date", "meetingNumber"],
+    });
+    const meetingMap = new Map(meetings.map((m) => [m.id, m]));
+    return items.map((ob) => {
+      const meeting = meetingMap.get(ob.meetingId);
+      return {
+        id: ob.id,
+        meeting_id: ob.meetingId,
+        description: ob.description,
+        status: ob.status as "open" | "closed",
+        closed_at: ob.closedAt ?? null,
+        closed_in_meeting_id: ob.closedInMeetingId ?? null,
+        order_index: ob.orderIndex,
+        created_at: ob.createdAt ?? undefined,
+        meeting_number: meeting?.meetingNumber,
+        meeting_date: meeting?.date,
+      };
+    });
+  }
+
   private async fetchDocumentsForMeetings(meetings: Meeting[]): Promise<Map<string, Document>> {
     const docIds = [
       ...meetings.map((m) => m.agendaDocumentId),

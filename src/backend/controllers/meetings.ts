@@ -9,6 +9,7 @@ export class MeetingsController extends BaseController {
       .post("/", ({ body }) => this.create(body), {
         body: MeetingsDto.createBody,
       })
+      .get("/old-business", () => this.listOldBusiness())
       .get("/:id", ({ params }) => this.get(params.id), {
         params: MeetingsDto.params,
       })
@@ -56,6 +57,10 @@ export class MeetingsController extends BaseController {
 
   private list(sort?: string) {
     return this.api.meetings.list(sort as "date" | "meeting_number" | undefined).then(this.json);
+  }
+
+  private listOldBusiness() {
+    return this.api.meetings.listOldBusiness().then(this.json);
   }
 
   private create(body: Record<string, unknown>) {

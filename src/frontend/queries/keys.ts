@@ -27,4 +27,5 @@ export const queryKeys = {
   meetingTemplates: (type?: string) =>
     type ? (["meetingTemplates", type] as const) : (["meetingTemplates"] as const),
   meetingTemplate: (id: string) => ["meetingTemplate", id] as const,
+  oldBusiness: ["oldBusiness"] as const,
 } as const;

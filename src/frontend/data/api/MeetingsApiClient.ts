@@ -1,7 +1,11 @@
 import { client, unwrap } from "./client";
-import type { MeetingDetail, MeetingSummary } from "@/shared/types/meeting";
+import type { MeetingDetail, MeetingSummary, OldBusinessItemWithMeeting } from "@/shared/types/meeting";
 
 export class MeetingsApiClient {
+  listOldBusiness() {
+    return unwrap(client.api.meetings["old-business"].get()) as Promise<OldBusinessItemWithMeeting[]>;
+  }
+
   list(options?: { sort?: "date" | "meeting_number" }) {
     return unwrap(
       client.api.meetings.get(

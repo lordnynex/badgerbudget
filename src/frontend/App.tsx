@@ -31,6 +31,8 @@ import { CreateMeetingPage } from "@/components/meetings/CreateMeetingPage";
 import { MeetingDetailPage } from "@/components/meetings/MeetingDetailPage";
 import { TemplatesPanel } from "@/components/meetings/TemplatesPanel";
 import { TemplateDetailPage } from "@/components/meetings/TemplateDetailPage";
+import { BylawsPage } from "@/components/meetings/BylawsPage";
+import { OldBusinessPanel } from "@/components/meetings/OldBusinessPanel";
 import { PrintView } from "@/components/export/PrintView";
 import { EmailView } from "@/components/export/EmailView";
 import {
@@ -210,6 +212,22 @@ function AppContent() {
                       <TemplateDetailPage />
                     </Suspense>
                   </IdParamGuard>
+                }
+              />
+              <Route
+                path="bylaws"
+                element={
+                  <Suspense fallback={<PageLoading />}>
+                    <BylawsPage />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="old-business"
+                element={
+                  <Suspense fallback={<PageLoading />}>
+                    <OldBusinessPanel />
+                  </Suspense>
                 }
               />
               <Route

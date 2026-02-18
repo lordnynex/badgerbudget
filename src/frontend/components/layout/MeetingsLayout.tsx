@@ -3,7 +3,7 @@ import { Outlet, NavLink } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { PanelLeftClose, PanelLeftOpen, Menu, Calendar, FileText } from "lucide-react";
+import { PanelLeftClose, PanelLeftOpen, Menu, Calendar, FileText, Scale, ClipboardList } from "lucide-react";
 
 const navLinkClass = ({ isActive }: { isActive: boolean }, collapsed?: boolean) =>
   cn(
@@ -55,6 +55,22 @@ export function MeetingsLayout() {
         <nav className="space-y-6 py-4" aria-label="Meetings section">
           <div className="space-y-0.5">
             <NavLink
+              to="/meetings/bylaws"
+              className={({ isActive }) => navLinkClass({ isActive }, collapsed)}
+              title={collapsed ? "Bylaws" : undefined}
+            >
+              <Scale className="size-4 shrink-0" />
+              {!collapsed && <span>Bylaws</span>}
+            </NavLink>
+            <NavLink
+              to="/meetings/old-business"
+              className={({ isActive }) => navLinkClass({ isActive }, collapsed)}
+              title={collapsed ? "Old Business" : undefined}
+            >
+              <ClipboardList className="size-4 shrink-0" />
+              {!collapsed && <span>Old Business</span>}
+            </NavLink>
+            <NavLink
               to="/meetings"
               end
               className={({ isActive }) => navLinkClass({ isActive }, collapsed)}
@@ -97,6 +113,22 @@ export function MeetingsLayout() {
                 </span>
                 <nav className="space-y-6" aria-label="Meetings section">
                   <div className="space-y-0.5">
+                    <NavLink
+                      to="/meetings/bylaws"
+                      className={({ isActive }) => navLinkClass({ isActive }, false)}
+                      onClick={() => setMobileNavOpen(false)}
+                    >
+                      <Scale className="size-4 shrink-0" />
+                      <span>Bylaws</span>
+                    </NavLink>
+                    <NavLink
+                      to="/meetings/old-business"
+                      className={({ isActive }) => navLinkClass({ isActive }, false)}
+                      onClick={() => setMobileNavOpen(false)}
+                    >
+                      <ClipboardList className="size-4 shrink-0" />
+                      <span>Old Business</span>
+                    </NavLink>
                     <NavLink
                       to="/meetings"
                       end

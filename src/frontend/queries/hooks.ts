@@ -197,6 +197,13 @@ export function useMeetingsOptional(sort?: "date" | "meeting_number") {
   });
 }
 
+export function useOldBusinessSuspense() {
+  return useSuspenseQuery({
+    queryKey: queryKeys.oldBusiness,
+    queryFn: () => api.meetings.listOldBusiness(),
+  });
+}
+
 // —— Meeting templates
 export function useMeetingTemplatesSuspense(type?: "agenda" | "minutes") {
   return useSuspenseQuery({
@@ -272,6 +279,8 @@ export function useInvalidateQueries() {
       qc.invalidateQueries({ queryKey: queryKeys.meetings() }),
     invalidateMeeting: (id: string) =>
       qc.invalidateQueries({ queryKey: queryKeys.meeting(id) }),
+    invalidateOldBusiness: () =>
+      qc.invalidateQueries({ queryKey: queryKeys.oldBusiness }),
     invalidateMeetingTemplates: () =>
       qc.invalidateQueries({ queryKey: queryKeys.meetingTemplates() }),
     invalidateMeetingTemplate: (id: string) =>

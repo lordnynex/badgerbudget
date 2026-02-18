@@ -46,6 +46,11 @@ export interface OldBusinessItem {
   is_carried?: boolean;
 }
 
+export interface OldBusinessItemWithMeeting extends OldBusinessItem {
+  meeting_number?: number;
+  meeting_date?: string;
+}
+
 export interface MeetingDetail extends MeetingSummary {
   motions: MeetingMotion[];
   action_items: MeetingActionItem[];
