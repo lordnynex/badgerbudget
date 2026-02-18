@@ -11,6 +11,8 @@ import {
 } from "@/components/ui/select";
 import { Plus, Trash2, Pencil } from "lucide-react";
 import { api } from "@/data/api";
+import { useQuery } from "@tanstack/react-query";
+import { queryKeys } from "@/queries/keys";
 import { useInvalidateQueries } from "@/queries/hooks";
 import type { MeetingMotion } from "@/shared/types/meeting";
 
@@ -20,29 +22,49 @@ interface MotionsCardProps {
 }
 
 export function MotionsCard({ meetingId, motions }: MotionsCardProps) {
+  const { data: members = [] } = useQuery({
+    queryKey: queryKeys.members,
+    queryFn: () => api.members.list(),
+  });
   const invalidate = useInvalidateQueries();
   const [adding, setAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [description, setDescription] = useState("");
+  const [moverMemberId, setMoverMemberId] = useState("");
+  const [seconderMemberId, setSeconderMemberId] = useState("");
   const [result, setResult] = useState<"pass" | "fail">("pass");
 
   const handleAdd = async () => {
-    const trimmed = description.trim();
-    if (!trimmed) return;
-    await api.meetings.motions.create(meetingId, { description: trimmed, result });
+    if (!moverMemberId || !seconderMemberId) return;
+    if (moverMemberId === seconderMemberId) return; // Robert's Rules: seconded by another member
+    await api.meetings.motions.create(meetingId, {
+      description: description.trim() || null,
+      result,
+      mover_member_id: moverMemberId,
+      seconder_member_id: seconderMemberId,
+    });
     invalidate.invalidateMeeting(meetingId);
     setDescription("");
+    setMoverMemberId("");
+    setSeconderMemberId("");
     setResult("pass");
     setAdding(false);
   };
 
   const handleUpdate = async (mid: string) => {
-    const trimmed = description.trim();
-    if (!trimmed) return;
-    await api.meetings.motions.update(meetingId, mid, { description: trimmed, result });
+    if (!moverMemberId || !seconderMemberId) return;
+    if (moverMemberId === seconderMemberId) return;
+    await api.meetings.motions.update(meetingId, mid, {
+      description: description.trim() || null,
+      result,
+      mover_member_id: moverMemberId,
+      seconder_member_id: seconderMemberId,
+    });
     invalidate.invalidateMeeting(meetingId);
     setEditingId(null);
     setDescription("");
+    setMoverMemberId("");
+    setSeconderMemberId("");
   };
 
   const handleDelete = async (mid: string) => {
@@ -52,9 +74,24 @@ export function MotionsCard({ meetingId, motions }: MotionsCardProps) {
 
   const startEdit = (m: MeetingMotion) => {
     setEditingId(m.id);
-    setDescription(m.description);
+    setDescription(m.description ?? "");
+    setMoverMemberId(m.mover_member_id ?? "");
+    setSeconderMemberId(m.seconder_member_id ?? "");
     setResult(m.result);
   };
+
+  const resetForm = () => {
+    setAdding(false);
+    setEditingId(null);
+    setDescription("");
+    setMoverMemberId("");
+    setSeconderMemberId("");
+    setResult("pass");
+  };
+
+  const moverName = (id: string | null) => (id ? members.find((x) => x.id === id)?.name ?? id : "—");
+  const canSaveAdd = moverMemberId && seconderMemberId && moverMemberId !== seconderMemberId;
+  const canSaveEdit = editingId && moverMemberId && seconderMemberId && moverMemberId !== seconderMemberId;
 
   return (
     <Card>
@@ -66,26 +103,50 @@ export function MotionsCard({ meetingId, motions }: MotionsCardProps) {
             Add
           </Button>
         ) : (
-          <div className="flex gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <Select value={moverMemberId} onValueChange={setMoverMemberId}>
+              <SelectTrigger className="w-[140px]">
+                <SelectValue placeholder="Moved by" />
+              </SelectTrigger>
+              <SelectContent>
+                {members.map((mem) => (
+                  <SelectItem key={mem.id} value={mem.id}>
+                    {mem.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={seconderMemberId} onValueChange={setSeconderMemberId}>
+              <SelectTrigger className="w-[140px]">
+                <SelectValue placeholder="Seconded by" />
+              </SelectTrigger>
+              <SelectContent>
+                {members.map((mem) => (
+                  <SelectItem key={mem.id} value={mem.id} disabled={mem.id === moverMemberId}>
+                    {mem.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <Input
-              placeholder="Motion description"
+              placeholder="Description (optional)"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="flex-1 min-w-[200px]"
+              className="min-w-[160px] flex-1"
             />
             <Select value={result} onValueChange={(v) => setResult(v as "pass" | "fail")}>
               <SelectTrigger className="w-[100px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="pass">Pass</SelectItem>
-                <SelectItem value="fail">Fail</SelectItem>
+                <SelectItem value="pass">Passed</SelectItem>
+                <SelectItem value="fail">Failed</SelectItem>
               </SelectContent>
             </Select>
-            <Button size="sm" onClick={handleAdd}>
+            <Button size="sm" onClick={handleAdd} disabled={!canSaveAdd}>
               Save
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => { setAdding(false); setDescription(""); }}>
+            <Button variant="ghost" size="sm" onClick={resetForm}>
               Cancel
             </Button>
           </div>
@@ -100,31 +161,62 @@ export function MotionsCard({ meetingId, motions }: MotionsCardProps) {
             >
               {editingId === m.id ? (
                 <div className="flex flex-1 flex-wrap gap-2">
+                  <Select value={moverMemberId} onValueChange={setMoverMemberId}>
+                    <SelectTrigger className="w-[140px]">
+                      <SelectValue placeholder="Moved by" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {members.map((mem) => (
+                        <SelectItem key={mem.id} value={mem.id}>
+                          {mem.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select value={seconderMemberId} onValueChange={setSeconderMemberId}>
+                    <SelectTrigger className="w-[140px]">
+                      <SelectValue placeholder="Seconded by" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {members.map((mem) => (
+                        <SelectItem key={mem.id} value={mem.id} disabled={mem.id === moverMemberId}>
+                          {mem.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <Input
+                    placeholder="Description (optional)"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    className="flex-1 min-w-[200px]"
+                    className="min-w-[160px] flex-1"
                   />
                   <Select value={result} onValueChange={(v) => setResult(v as "pass" | "fail")}>
                     <SelectTrigger className="w-[100px]">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="pass">Pass</SelectItem>
-                      <SelectItem value="fail">Fail</SelectItem>
+                      <SelectItem value="pass">Passed</SelectItem>
+                      <SelectItem value="fail">Failed</SelectItem>
                     </SelectContent>
                   </Select>
-                  <Button size="sm" onClick={() => handleUpdate(m.id)}>
+                  <Button size="sm" onClick={() => handleUpdate(m.id)} disabled={!canSaveEdit}>
                     Save
                   </Button>
-                  <Button variant="ghost" size="sm" onClick={() => { setEditingId(null); setDescription(""); }}>
+                  <Button variant="ghost" size="sm" onClick={resetForm}>
                     Cancel
                   </Button>
                 </div>
               ) : (
                 <>
-                  <div className="flex-1">
-                    <p className="text-sm">{m.description}</p>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-muted-foreground">
+                      Moved by {m.mover_name ?? moverName(m.mover_member_id)}, seconded by{" "}
+                      {m.seconder_name ?? moverName(m.seconder_member_id)}
+                    </p>
+                    {m.description != null && m.description.trim() !== "" && (
+                      <p className="mt-1 text-sm">{m.description}</p>
+                    )}
                     <span
                       className={`mt-1 inline-block rounded px-2 py-0.5 text-xs font-medium ${
                         m.result === "pass"
@@ -132,10 +224,10 @@ export function MotionsCard({ meetingId, motions }: MotionsCardProps) {
                           : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
                       }`}
                     >
-                      {m.result === "pass" ? "Pass" : "Fail"}
+                      {m.result === "pass" ? "Motion passed" : "Motion failed"}
                     </span>
                   </div>
-                  <div className="flex gap-1">
+                  <div className="flex shrink-0 gap-1">
                     <Button variant="ghost" size="icon-sm" onClick={() => startEdit(m)}>
                       <Pencil className="size-4" />
                     </Button>

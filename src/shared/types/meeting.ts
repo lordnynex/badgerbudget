@@ -8,6 +8,7 @@ export interface MeetingSummary {
   minutes_document_id: string | null;
   agenda_content: string;
   minutes_content: string | null;
+  motion_count?: number;
   created_at?: string;
   updated_at?: string;
 }
@@ -15,9 +16,16 @@ export interface MeetingSummary {
 export interface MeetingMotion {
   id: string;
   meeting_id: string;
-  description: string;
+  /** Optional text description of the motion (Robert's Rules). */
+  description: string | null;
   result: "pass" | "fail";
   order_index: number;
+  /** Member who made the motion. */
+  mover_member_id: string | null;
+  /** Member who seconded the motion. */
+  seconder_member_id: string | null;
+  mover_name?: string | null;
+  seconder_name?: string | null;
   created_at?: string;
 }
 

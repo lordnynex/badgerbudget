@@ -35,15 +35,19 @@ export const MeetingsDto = {
   }),
 
   createMotionBody: t.Object({
-    description: t.String(),
+    description: t.Optional(t.Union([t.String(), t.Null()])),
     result: motionResult,
     order_index: t.Optional(t.Number()),
+    mover_member_id: t.String(),
+    seconder_member_id: t.String(),
   }),
 
   updateMotionBody: t.Object({
-    description: t.Optional(t.String()),
+    description: t.Optional(t.Union([t.String(), t.Null()])),
     result: t.Optional(motionResult),
     order_index: t.Optional(t.Number()),
+    mover_member_id: t.Optional(t.Union([t.String(), t.Null()])),
+    seconder_member_id: t.Optional(t.Union([t.String(), t.Null()])),
   }),
 
   createActionItemBody: t.Object({

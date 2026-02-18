@@ -52,8 +52,16 @@ export class MeetingsApiClient {
   }
 
   readonly motions = {
-    create: (meetingId: string, body: { description: string; result: "pass" | "fail"; order_index?: number }) =>
-      unwrap(client.api.meetings({ id: meetingId }).motions.post(body)),
+    create: (
+      meetingId: string,
+      body: {
+        description?: string | null;
+        result: "pass" | "fail";
+        order_index?: number;
+        mover_member_id: string;
+        seconder_member_id: string;
+      }
+    ) => unwrap(client.api.meetings({ id: meetingId }).motions.post(body)),
     update: (meetingId: string, mid: string, body: Record<string, unknown>) =>
       unwrap(client.api.meetings({ id: meetingId }).motions({ mid }).put(body)),
     delete: (meetingId: string, mid: string) =>

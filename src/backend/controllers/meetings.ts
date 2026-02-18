@@ -96,7 +96,13 @@ export class MeetingsController extends BaseController {
   }
 
   private motionsCreate(id: string, body: Record<string, unknown>) {
-    return this.api.meetings.createMotion(id, body as { description: string; result: string; order_index?: number }).then(this.json);
+    return this.api.meetings.createMotion(id, body as {
+      description?: string | null;
+      result: string;
+      order_index?: number;
+      mover_member_id: string;
+      seconder_member_id: string;
+    }).then(this.json);
   }
 
   private motionsUpdate(id: string, mid: string, body: Record<string, unknown>) {

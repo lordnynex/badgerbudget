@@ -8,11 +8,17 @@ export class MeetingMotion {
   @Column({ name: "meeting_id" })
   meetingId!: string;
 
-  @Column({ type: "text" })
-  description!: string;
+  @Column({ type: "text", nullable: true })
+  description!: string | null;
 
   @Column({ type: "text" })
   result!: string;
+
+  @Column({ name: "mover_member_id", type: "text", nullable: true })
+  moverMemberId!: string | null;
+
+  @Column({ name: "seconder_member_id", type: "text", nullable: true })
+  seconderMemberId!: string | null;
 
   @Column({ name: "order_index", type: "integer", default: 0 })
   orderIndex!: number;

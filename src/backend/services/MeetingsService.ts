@@ -24,7 +24,12 @@ export class MeetingsService {
         : { date: "DESC" };
     const entities = await repo.find({ order });
     const docMap = await this.fetchDocumentsForMeetings(entities);
-    return entities.map((m) => this.meetingToApi(m, docMap));
+    const meetingIds = entities.map((m) => m.id);
+    const motionCounts = await this.getMotionCountsByMeetingId(meetingIds);
+    return entities.map((m) => ({
+      ...this.meetingToApi(m, docMap),
+      motion_count: motionCounts.get(m.id) ?? 0,
+    }));
   }
 
   async create(body: {
@@ -111,10 +116,15 @@ export class MeetingsService {
     );
     const newOldBusiness = oldBusiness.filter((ob) => ob.meetingId === id);
     const assigneeIds = [...new Set(actionItems.map((a) => a.assigneeMemberId).filter(Boolean) as string[])];
+    const motionMemberIds = [...new Set([
+      ...motions.map((m) => m.moverMemberId).filter(Boolean),
+      ...motions.map((m) => m.seconderMemberId).filter(Boolean),
+    ] as string[])];
+    const allMemberIds = [...new Set([...assigneeIds, ...motionMemberIds])];
     const membersMap = new Map<string, { id: string; name: string }>();
-    if (assigneeIds.length) {
+    if (allMemberIds.length) {
       const members = await this.ds.getRepository(Member).find({
-        where: { id: In(assigneeIds as string[]) },
+        where: { id: In(allMemberIds) },
         select: ["id", "name"],
       });
       for (const m of members) membersMap.set(m.id, { id: m.id, name: m.name });
@@ -125,9 +135,13 @@ export class MeetingsService {
       motions: motions.map((m) => ({
         id: m.id,
         meeting_id: m.meetingId,
-        description: m.description,
+        description: m.description ?? null,
         result: m.result,
         order_index: m.orderIndex,
+        mover_member_id: m.moverMemberId ?? null,
+        seconder_member_id: m.seconderMemberId ?? null,
+        mover_name: m.moverMemberId ? membersMap.get(m.moverMemberId)?.name ?? null : null,
+        seconder_name: m.seconderMemberId ? membersMap.get(m.seconderMemberId)?.name ?? null : null,
         created_at: m.createdAt ?? undefined,
       })),
       action_items: actionItems.map((a) => ({
@@ -204,7 +218,13 @@ export class MeetingsService {
     return result.affected !== 0;
   }
 
-  async createMotion(meetingId: string, body: { description: string; result: string; order_index?: number }) {
+  async createMotion(meetingId: string, body: {
+    description?: string | null;
+    result: string;
+    order_index?: number;
+    mover_member_id: string;
+    seconder_member_id: string;
+  }) {
     const maxOrder = await this.ds.getRepository(MeetingMotion)
       .createQueryBuilder("m")
       .select("MAX(m.order_index)", "max")
@@ -214,25 +234,48 @@ export class MeetingsService {
     const motion = this.ds.getRepository(MeetingMotion).create({
       id: uuid(),
       meetingId,
-      description: body.description,
+      description: body.description ?? null,
       result: body.result,
       orderIndex,
+      moverMemberId: body.mover_member_id,
+      seconderMemberId: body.seconder_member_id,
       createdAt: new Date().toISOString(),
     });
     await this.ds.getRepository(MeetingMotion).save(motion);
-    return { id: motion.id, meeting_id: motion.meetingId, description: motion.description, result: motion.result, order_index: motion.orderIndex, created_at: motion.createdAt ?? undefined };
+    return {
+      id: motion.id,
+      meeting_id: motion.meetingId,
+      description: motion.description ?? null,
+      result: motion.result,
+      order_index: motion.orderIndex,
+      mover_member_id: motion.moverMemberId ?? null,
+      seconder_member_id: motion.seconderMemberId ?? null,
+      created_at: motion.createdAt ?? undefined,
+    };
   }
 
   async updateMotion(meetingId: string, mid: string, body: Record<string, unknown>) {
     const motion = await this.ds.getRepository(MeetingMotion).findOne({ where: { id: mid, meetingId } });
     if (!motion) return null;
     const updates: Partial<MeetingMotion> = {};
-    if (body.description !== undefined) updates.description = body.description as string;
+    if (body.description !== undefined) updates.description = body.description as string | null;
     if (body.result !== undefined) updates.result = body.result as string;
     if (body.order_index !== undefined) updates.orderIndex = body.order_index as number;
+    if (body.mover_member_id !== undefined) updates.moverMemberId = body.mover_member_id as string | null;
+    if (body.seconder_member_id !== undefined) updates.seconderMemberId = body.seconder_member_id as string | null;
     await this.ds.getRepository(MeetingMotion).update(mid, updates);
     const updated = await this.ds.getRepository(MeetingMotion).findOne({ where: { id: mid } });
-    return updated ? { id: updated.id, meeting_id: updated.meetingId, description: updated.description, result: updated.result, order_index: updated.orderIndex, created_at: updated.createdAt ?? undefined } : null;
+    if (!updated) return null;
+    return {
+      id: updated.id,
+      meeting_id: updated.meetingId,
+      description: updated.description ?? null,
+      result: updated.result,
+      order_index: updated.orderIndex,
+      mover_member_id: updated.moverMemberId ?? null,
+      seconder_member_id: updated.seconderMemberId ?? null,
+      created_at: updated.createdAt ?? undefined,
+    };
   }
 
   async deleteMotion(meetingId: string, mid: string) {
@@ -362,6 +405,18 @@ export class MeetingsService {
     if (docIds.length === 0) return new Map();
     const docs = await this.ds.getRepository(Document).find({ where: { id: In(docIds) } });
     return new Map(docs.map((d) => [d.id, d]));
+  }
+
+  private async getMotionCountsByMeetingId(meetingIds: string[]): Promise<Map<string, number>> {
+    if (meetingIds.length === 0) return new Map();
+    const rows = await this.ds.getRepository(MeetingMotion)
+      .createQueryBuilder("m")
+      .select("m.meeting_id", "meeting_id")
+      .addSelect("COUNT(*)", "count")
+      .where("m.meeting_id IN (:...ids)", { ids: meetingIds })
+      .groupBy("m.meeting_id")
+      .getRawMany<{ meeting_id: string; count: string }>();
+    return new Map(rows.map((r) => [r.meeting_id, parseInt(r.count, 10)]));
   }
 
   private meetingToApi(m: Meeting, docMap: Map<string, Document>) {

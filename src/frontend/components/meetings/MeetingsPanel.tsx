@@ -31,6 +31,25 @@ function MeetingRow({ m }: { m: MeetingSummary }) {
       </td>
       <td className="px-4 py-3">{m.meeting_number}</td>
       <td className="px-4 py-3 text-muted-foreground">{m.location ?? "—"}</td>
+      <td className="px-4 py-3">
+        <Link
+          to={`/meetings/${m.id}/agenda/edit`}
+          className="text-primary hover:underline"
+        >
+          Agenda
+        </Link>
+      </td>
+      <td className="px-4 py-3">
+        <Link
+          to={`/meetings/${m.id}/minutes/edit`}
+          className="text-primary hover:underline"
+        >
+          Minutes
+        </Link>
+      </td>
+      <td className="px-4 py-3 text-muted-foreground">
+        {m.motion_count ?? 0}
+      </td>
     </tr>
   );
 }
@@ -43,6 +62,9 @@ function MeetingsTable({ meetings }: { meetings: MeetingSummary[] }) {
           <th className="px-4 py-3 text-left font-medium">Date</th>
           <th className="px-4 py-3 text-left font-medium">#</th>
           <th className="px-4 py-3 text-left font-medium">Location</th>
+          <th className="px-4 py-3 text-left font-medium">Agenda</th>
+          <th className="px-4 py-3 text-left font-medium">Minutes</th>
+          <th className="px-4 py-3 text-left font-medium">Motions</th>
         </tr>
       </thead>
       <tbody>
