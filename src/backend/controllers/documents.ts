@@ -1,11 +1,15 @@
 import { Elysia } from "elysia";
 import { BaseController } from "./BaseController";
 import { DocumentsDto } from "../dto/documents.dto";
+import { tiptapJsonToPdf } from "../lib/tiptapToPdf";
 
 export class DocumentsController extends BaseController {
   init() {
     return new Elysia({ prefix: "/documents" })
       .get("/:id", ({ params }) => this.get(params.id), {
+        params: DocumentsDto.params,
+      })
+      .get("/:id/pdf", ({ params }) => this.exportPdf(params.id), {
         params: DocumentsDto.params,
       })
       .patch("/:id", ({ params, body }) => this.update(params.id, body), {
@@ -26,6 +30,18 @@ export class DocumentsController extends BaseController {
 
   private get(id: string) {
     return this.api.documents.get(id).then((d) => (d ? this.json(d) : this.notFound()));
+  }
+
+  private async exportPdf(id: string) {
+    const doc = await this.api.documents.get(id);
+    if (!doc) return this.notFound();
+    const pdfBuffer = tiptapJsonToPdf(doc.content);
+    return new Response(pdfBuffer, {
+      headers: {
+        "Content-Type": "application/pdf",
+        "Content-Disposition": `attachment; filename="document-${id}.pdf"`,
+      },
+    });
   }
 
   private update(id: string, body: { content: string }) {

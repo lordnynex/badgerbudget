@@ -22,6 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { formatDateOnly } from "@/lib/date-utils";
 
 export function OldBusinessPanel() {
   const { data: items = [] } = useOldBusinessSuspense();
@@ -94,7 +95,7 @@ export function OldBusinessPanel() {
   };
 
   const meetingLabel = (m: { id: string; meeting_number: number; date: string }) =>
-    `#${m.meeting_number} – ${new Date(m.date).toLocaleDateString()}`;
+    `#${m.meeting_number} – ${formatDateOnly(m.date)}`;
 
   return (
     <div className="space-y-6">
@@ -153,7 +154,7 @@ export function OldBusinessPanel() {
                     <p className="mt-1 text-xs text-muted-foreground">
                       From meeting #{ob.meeting_number} –{" "}
                       {ob.meeting_date
-                        ? new Date(ob.meeting_date).toLocaleDateString()
+                        ? formatDateOnly(ob.meeting_date)
                         : "Unknown"}
                     </p>
                   </div>
@@ -251,7 +252,7 @@ function OldBusinessListItem({
 }) {
   const meeting = meetings.find((m) => m.id === item.meeting_id);
   const meetingLabel = meeting
-    ? `#${meeting.meeting_number} – ${new Date(meeting.date).toLocaleDateString()}`
+    ? `#${meeting.meeting_number} – ${formatDateOnly(meeting.date)}`
     : "Unknown meeting";
 
   return (

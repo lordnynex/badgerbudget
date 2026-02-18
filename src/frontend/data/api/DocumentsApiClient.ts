@@ -38,4 +38,18 @@ export class DocumentsApiClient {
       body: JSON.stringify(body),
     });
   }
+
+  /** Export document as PDF (formatted text only, no styling). Returns blob for download. */
+  async exportPdf(documentId: string, filename: string): Promise<void> {
+    const base = typeof window !== "undefined" ? window.location.origin : "";
+    const res = await fetch(`${base}/api/documents/${documentId}/pdf`);
+    if (!res.ok) throw new Error("Failed to export PDF");
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 }

@@ -65,6 +65,8 @@ interface RichDocumentEditorProps {
   toolbarActions?: React.ReactNode;
   /** Use full height to fill available space */
   fullHeight?: boolean;
+  /** Compact display: no border, smaller typography, minimal min-height */
+  compact?: boolean;
 }
 
 export function RichDocumentEditor({
@@ -75,6 +77,7 @@ export function RichDocumentEditor({
   editable = true,
   toolbarActions,
   fullHeight = false,
+  compact = false,
 }: RichDocumentEditorProps) {
   const editor = useEditor({
     extensions: [
@@ -108,8 +111,11 @@ export function RichDocumentEditor({
     editorProps: {
       attributes: {
         class: cn(
-          "px-4 py-3 focus:outline-none [&_h1]:text-2xl [&_h1]:font-bold [&_h2]:text-xl [&_h2]:font-bold [&_h3]:text-lg [&_h3]:font-semibold [&_p]:my-2 [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6 [&_blockquote]:border-l-4 [&_blockquote]:border-muted [&_blockquote]:pl-4 [&_blockquote]:italic [&_table]:border-collapse [&_th]:border [&_th]:p-2 [&_td]:border [&_td]:p-2",
-          fullHeight ? "min-h-[400px]" : "min-h-[200px]"
+          "focus:outline-none [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6 [&_blockquote]:border-l-4 [&_blockquote]:border-muted [&_blockquote]:pl-4 [&_blockquote]:italic [&_table]:border-collapse [&_th]:border [&_th]:p-2 [&_td]:border [&_td]:p-2",
+          compact
+            ? "px-2 py-1 [&_h1]:text-base [&_h1]:font-bold [&_h2]:text-sm [&_h2]:font-semibold [&_h3]:text-sm [&_h3]:font-medium [&_p]:my-0.5 [&_p]:text-sm"
+            : "px-4 py-3 [&_h1]:text-2xl [&_h1]:font-bold [&_h2]:text-xl [&_h2]:font-bold [&_h3]:text-lg [&_h3]:font-semibold [&_p]:my-2",
+          fullHeight ? "min-h-[400px]" : compact ? "min-h-0" : "min-h-[200px]"
         ),
       },
     },
@@ -129,7 +135,7 @@ export function RichDocumentEditor({
       ((current.content?.[0] as { content?: unknown[] } | undefined)?.content?.length ?? 0) > 0;
     if ((isEmptyIncoming || isEffectivelyEmpty) && hasContent) return;
     if (JSON.stringify(current) !== JSON.stringify(parsed)) {
-      editor.commands.setContent(parsed, false);
+      editor.commands.setContent(parsed, { emitUpdate: false });
     }
   }, [value, editor]);
 
@@ -142,7 +148,9 @@ export function RichDocumentEditor({
   useEffect(() => {
     if (!editor) return;
     editor.on("update", handleUpdate);
-    return () => editor.off("update", handleUpdate);
+    return () => {
+      editor.off("update", handleUpdate);
+    };
   }, [editor, handleUpdate]);
 
   if (!editor) return null;
@@ -150,7 +158,8 @@ export function RichDocumentEditor({
   return (
     <div
       className={cn(
-        "flex flex-col rounded-md border bg-background",
+        "flex flex-col",
+        !compact && "rounded-md border bg-background",
         fullHeight && "min-h-0 flex-1",
         className
       )}
