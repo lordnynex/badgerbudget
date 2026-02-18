@@ -17,4 +17,5 @@ export const CommonParams = {
   idScheduleId: t.Object({ id: t.String(), scheduleId: t.String() }),
   idMidMemberId: t.Object({ id: t.String(), mid: t.String(), memberId: t.String() }),
   idAidMemberId: t.Object({ id: t.String(), aid: t.String(), memberId: t.String() }),
+  idOid: t.Object({ id: t.String(), oid: t.String() }),
 };

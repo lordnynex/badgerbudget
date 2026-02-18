@@ -22,4 +22,9 @@ export const queryKeys = {
   mailingBatch: (id: string) => ["mailingBatch", id] as const,
   qrCodes: ["qrCodes"] as const,
   qrCode: (id: string) => ["qrCode", id] as const,
+  meetings: (sort?: string) => (sort ? (["meetings", sort] as const) : (["meetings"] as const)),
+  meeting: (id: string) => ["meeting", id] as const,
+  meetingTemplates: (type?: string) =>
+    type ? (["meetingTemplates", type] as const) : (["meetingTemplates"] as const),
+  meetingTemplate: (id: string) => ["meetingTemplate", id] as const,
 } as const;

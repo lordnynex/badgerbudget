@@ -25,6 +25,12 @@ import { ActualSpendPanel } from "@/components/budget/ActualSpendPanel";
 import { VendorsPanel } from "@/components/contacts/VendorsPanel";
 import { ContactsLayout } from "@/components/layout/ContactsLayout";
 import { EventsLayout } from "@/components/layout/EventsLayout";
+import { MeetingsLayout } from "@/components/layout/MeetingsLayout";
+import { MeetingsPanel } from "@/components/meetings/MeetingsPanel";
+import { CreateMeetingPage } from "@/components/meetings/CreateMeetingPage";
+import { MeetingDetailPage } from "@/components/meetings/MeetingDetailPage";
+import { TemplatesPanel } from "@/components/meetings/TemplatesPanel";
+import { TemplateDetailPage } from "@/components/meetings/TemplateDetailPage";
 import { PrintView } from "@/components/export/PrintView";
 import { EmailView } from "@/components/export/EmailView";
 import {
@@ -159,6 +165,59 @@ function AppContent() {
                   <IdParamGuard>
                     <Suspense fallback={<PageLoading />}>
                       <EventDetailPage />
+                    </Suspense>
+                  </IdParamGuard>
+                }
+              />
+            </Route>
+            <Route
+              path="/meetings"
+              element={
+                <main className="space-y-6 p-4 md:p-6">
+                  <MeetingsLayout />
+                </main>
+              }
+            >
+              <Route
+                index
+                element={
+                  <Suspense fallback={<PageLoading />}>
+                    <MeetingsPanel />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="new"
+                element={
+                  <Suspense fallback={<PageLoading />}>
+                    <CreateMeetingPage />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="templates"
+                element={
+                  <Suspense fallback={<PageLoading />}>
+                    <TemplatesPanel />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="templates/:id"
+                element={
+                  <IdParamGuard param="id">
+                    <Suspense fallback={<PageLoading />}>
+                      <TemplateDetailPage />
+                    </Suspense>
+                  </IdParamGuard>
+                }
+              />
+              <Route
+                path=":id"
+                element={
+                  <IdParamGuard>
+                    <Suspense fallback={<PageLoading />}>
+                      <MeetingDetailPage />
                     </Suspense>
                   </IdParamGuard>
                 }

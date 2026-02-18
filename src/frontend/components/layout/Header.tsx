@@ -8,6 +8,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 export function Header() {
   const location = useLocation();
   const isBudgetingActive = location.pathname.startsWith("/budgeting");
+  const isMeetingsActive = location.pathname.startsWith("/meetings");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   const navLinkClass = ({ isActive }: { isActive: boolean }) =>
@@ -44,6 +45,12 @@ export function Header() {
           </NavLink>
           <NavLink to="/events" className={navLinkClass}>
             Events
+          </NavLink>
+          <NavLink
+            to="/meetings"
+            className={({ isActive }) => navLinkClass({ isActive: isActive || isMeetingsActive })}
+          >
+            Meetings
           </NavLink>
           <NavLink to="/contacts" className={navLinkClass}>
             Contacts
@@ -94,6 +101,15 @@ export function Header() {
                 onClick={() => setMobileNavOpen(false)}
               >
                 Events
+              </NavLink>
+              <NavLink
+                to="/meetings"
+                className={({ isActive }) =>
+                  mobileNavLinkClass({ isActive: isActive || isMeetingsActive })
+                }
+                onClick={() => setMobileNavOpen(false)}
+              >
+                Meetings
               </NavLink>
               <NavLink
                 to="/contacts"

@@ -175,6 +175,50 @@ export function useQrCodeSuspense(id: string) {
   });
 }
 
+// —— Meetings
+export function useMeetingsSuspense(sort?: "date" | "meeting_number") {
+  return useSuspenseQuery({
+    queryKey: queryKeys.meetings(sort),
+    queryFn: () => api.meetings.list(sort ? { sort } : undefined),
+  });
+}
+
+export function useMeetingSuspense(id: string) {
+  return useSuspenseQuery({
+    queryKey: queryKeys.meeting(id),
+    queryFn: () => api.meetings.get(id),
+  });
+}
+
+export function useMeetingsOptional(sort?: "date" | "meeting_number") {
+  return useQuery({
+    queryKey: queryKeys.meetings(sort),
+    queryFn: () => api.meetings.list(sort ? { sort } : undefined),
+  });
+}
+
+// —— Meeting templates
+export function useMeetingTemplatesSuspense(type?: "agenda" | "minutes") {
+  return useSuspenseQuery({
+    queryKey: queryKeys.meetingTemplates(type),
+    queryFn: () => api.meetingTemplates.list(type ? { type } : undefined),
+  });
+}
+
+export function useMeetingTemplatesOptional(type?: "agenda" | "minutes") {
+  return useQuery({
+    queryKey: queryKeys.meetingTemplates(type),
+    queryFn: () => api.meetingTemplates.list(type ? { type } : undefined),
+  });
+}
+
+export function useMeetingTemplateSuspense(id: string) {
+  return useSuspenseQuery({
+    queryKey: queryKeys.meetingTemplate(id),
+    queryFn: () => api.meetingTemplates.get(id),
+  });
+}
+
 // —— Mailing batches
 export function useMailingBatchSuspense(id: string) {
   return useSuspenseQuery({
@@ -224,5 +268,15 @@ export function useInvalidateQueries() {
       qc.invalidateQueries({ queryKey: queryKeys.qrCodes }),
     invalidateQrCode: (id: string) =>
       qc.invalidateQueries({ queryKey: queryKeys.qrCode(id) }),
+    invalidateMeetings: () =>
+      qc.invalidateQueries({ queryKey: queryKeys.meetings() }),
+    invalidateMeeting: (id: string) =>
+      qc.invalidateQueries({ queryKey: queryKeys.meeting(id) }),
+    invalidateMeetingTemplates: () =>
+      qc.invalidateQueries({ queryKey: queryKeys.meetingTemplates() }),
+    invalidateMeetingTemplate: (id: string) =>
+      qc.invalidateQueries({ queryKey: queryKeys.meetingTemplate(id) }),
+    setMeetingTemplateData: (id: string, data: import("@/shared/types/meeting").MeetingTemplate) =>
+      qc.setQueryData(queryKeys.meetingTemplate(id), data),
   };
 }

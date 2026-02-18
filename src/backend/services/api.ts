@@ -8,6 +8,8 @@ import { ContactsService } from "./ContactsService";
 import { MailingListsService } from "./MailingListsService";
 import { MailingBatchesService } from "./MailingBatchesService";
 import { QrCodesService } from "./QrCodesService";
+import { MeetingsService } from "./MeetingsService";
+import { MeetingTemplatesService } from "./MeetingTemplatesService";
 
 export function createApi(db: DbLike, ds: DataSource) {
   const eventsService = new EventsService(db, ds);
@@ -18,6 +20,8 @@ export function createApi(db: DbLike, ds: DataSource) {
   const mailingListsService = new MailingListsService(db, ds, contactsService);
   const mailingBatchesService = new MailingBatchesService(db, ds, mailingListsService);
   const qrCodesService = new QrCodesService(ds);
+  const meetingsService = new MeetingsService(ds);
+  const meetingTemplatesService = new MeetingTemplatesService(ds);
 
   return {
     events: eventsService,
@@ -28,6 +32,8 @@ export function createApi(db: DbLike, ds: DataSource) {
     mailingLists: mailingListsService,
     mailingBatches: mailingBatchesService,
     qrCodes: qrCodesService,
+    meetings: meetingsService,
+    meetingTemplates: meetingTemplatesService,
   };
 }
 

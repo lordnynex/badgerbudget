@@ -33,6 +33,11 @@ import {
   MailingBatch,
   MailingBatchRecipient,
   QrCode,
+  Meeting,
+  MeetingMotion,
+  MeetingActionItem,
+  OldBusinessItem,
+  MeetingTemplate,
 } from "../entities";
 import { InitialSchema1700000000000 } from "./migrations/1700000000000-InitialSchema.ts";
 import { AddMemberPhotoThumbnail1739750400000 } from "./migrations/1739750400000-AddMemberPhotoThumbnail.ts";
@@ -48,6 +53,7 @@ import { AddEventType1740000007000 } from "./migrations/1740000007000-AddEventTy
 import { AddEventPhotosTable1740000007500 } from "./migrations/1740000007500-AddEventPhotosTable.ts";
 import { AddRideFieldsAndAttendeesAssets1740000008000 } from "./migrations/1740000008000-AddRideFieldsAndAttendeesAssets.ts";
 import { AddEventRideMemberAttendees1740000009000 } from "./migrations/1740000009000-AddEventRideMemberAttendees.ts";
+import { AddMeetingsAndRelated1740000010000 } from "./migrations/1740000010000-AddMeetingsAndRelated.ts";
 
 const projectRoot = join(import.meta.dir, "../../..");
 const dbPath = join(projectRoot, "data", "badger.db");
@@ -58,7 +64,7 @@ const dataSourceOptions: DataSourceOptions = {
   location: dbPath,
   autoSave: true,
   synchronize: false,
-  migrations: [InitialSchema1700000000000, AddMemberPhotoThumbnail1739750400000, RemoveAuditLog1739900000000, AddMailingListDeliveryType1740000000000, AddContactNotesTable1740000001000, AddContactPhotosTable1740000002000, AddQrCodesTable1740000003000, AddContactHellenicDeceased1740000004000, AddContactEmergencyContactsTable1740000005000, AddContactOkToSms1740000006000, AddEventType1740000007000, AddEventPhotosTable1740000007500, AddRideFieldsAndAttendeesAssets1740000008000, AddEventRideMemberAttendees1740000009000],
+  migrations: [InitialSchema1700000000000, AddMemberPhotoThumbnail1739750400000, RemoveAuditLog1739900000000, AddMailingListDeliveryType1740000000000, AddContactNotesTable1740000001000, AddContactPhotosTable1740000002000, AddQrCodesTable1740000003000, AddContactHellenicDeceased1740000004000, AddContactEmergencyContactsTable1740000005000, AddContactOkToSms1740000006000, AddEventType1740000007000, AddEventPhotosTable1740000007500, AddRideFieldsAndAttendeesAssets1740000008000, AddEventRideMemberAttendees1740000009000, AddMeetingsAndRelated1740000010000],
   migrationsRun: true,
   entities: [
     Event,
@@ -92,6 +98,11 @@ const dataSourceOptions: DataSourceOptions = {
     MailingBatch,
     MailingBatchRecipient,
     QrCode,
+    Meeting,
+    MeetingMotion,
+    MeetingActionItem,
+    OldBusinessItem,
+    MeetingTemplate,
   ],
 };
 
