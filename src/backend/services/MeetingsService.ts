@@ -185,7 +185,21 @@ export class MeetingsService {
     return this.meetingToApi(updated, docMap);
   }
 
-  async delete(id: string) {
+  async delete(
+    id: string,
+    options?: { delete_agenda?: boolean; delete_minutes?: boolean }
+  ) {
+    const meeting = await this.ds.getRepository(Meeting).findOne({ where: { id } });
+    if (!meeting) return false;
+    const deleteAgenda = options?.delete_agenda !== false;
+    const deleteMinutes = options?.delete_minutes !== false;
+    const docIds: string[] = [];
+    if (deleteAgenda) docIds.push(meeting.agendaDocumentId);
+    if (deleteMinutes && meeting.minutesDocumentId)
+      docIds.push(meeting.minutesDocumentId);
+    if (docIds.length) {
+      await this.ds.getRepository(Document).delete(docIds);
+    }
     const result = await this.ds.getRepository(Meeting).delete(id);
     return result.affected !== 0;
   }

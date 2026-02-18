@@ -17,8 +17,9 @@ export class MeetingsController extends BaseController {
         params: MeetingsDto.params,
         body: MeetingsDto.updateBody,
       })
-      .delete("/:id", ({ params }) => this.delete(params.id), {
+      .delete("/:id", ({ params, query }) => this.delete(params.id, query), {
         params: MeetingsDto.params,
+        query: MeetingsDto.deleteQuery,
       })
       .post("/:id/motions", ({ params, body }) => this.motionsCreate(params.id, body), {
         params: MeetingsDto.params,
@@ -75,8 +76,23 @@ export class MeetingsController extends BaseController {
     return this.api.meetings.update(id, body).then((m) => (m ? this.json(m) : this.notFound()));
   }
 
-  private delete(id: string) {
-    return this.api.meetings.delete(id).then((ok) => (ok ? this.json({ ok: true }) : this.notFound()));
+  private delete(
+    id: string,
+    query?: { delete_agenda?: boolean | string; delete_minutes?: boolean | string }
+  ) {
+    const options =
+      query &&
+      (query.delete_agenda !== undefined || query.delete_minutes !== undefined)
+        ? {
+            delete_agenda:
+              query.delete_agenda === true || query.delete_agenda === "true",
+            delete_minutes:
+              query.delete_minutes === true || query.delete_minutes === "true",
+          }
+        : undefined;
+    return this.api.meetings
+      .delete(id, options)
+      .then((ok) => (ok ? this.json({ ok: true }) : this.notFound()));
   }
 
   private motionsCreate(id: string, body: Record<string, unknown>) {

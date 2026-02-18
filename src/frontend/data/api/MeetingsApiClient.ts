@@ -34,8 +34,21 @@ export class MeetingsApiClient {
     return unwrap(client.api.meetings({ id }).put(body)) as Promise<MeetingSummary>;
   }
 
-  delete(id: string) {
-    return unwrap(client.api.meetings({ id }).delete()) as Promise<{ ok: boolean }>;
+  delete(
+    id: string,
+    options?: { delete_agenda?: boolean; delete_minutes?: boolean }
+  ) {
+    const query =
+      options &&
+      (options.delete_agenda !== undefined || options.delete_minutes !== undefined)
+        ? {
+            delete_agenda: options.delete_agenda,
+            delete_minutes: options.delete_minutes,
+          }
+        : undefined;
+    return unwrap(
+      client.api.meetings({ id }).delete(query ? { query } : undefined)
+    ) as Promise<{ ok: boolean }>;
   }
 
   readonly motions = {

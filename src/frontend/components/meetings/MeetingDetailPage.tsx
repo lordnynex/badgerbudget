@@ -1,18 +1,26 @@
 import { useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import { useMeetingSuspense, useInvalidateQueries } from "@/queries/hooks";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DatePicker } from "@/components/ui/date-picker";
-import { RichDocumentEditor } from "./RichDocumentEditor";
-import { MotionsCard } from "./MotionsCard";
-import { ActionItemsCard } from "./ActionItemsCard";
-import { OldBusinessCard } from "./OldBusinessCard";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { RichDocumentEditor } from "./RichDocumentEditor";
+import { MotionsCard } from "./MotionsCard";
+import { ActionItemsCard } from "./ActionItemsCard";
+import { OldBusinessCard } from "./OldBusinessCard";
 import {
   ArrowLeft,
   Pencil,
@@ -20,17 +28,25 @@ import {
   ChevronDown,
   ChevronRight,
   FileDown,
+  Trash2,
 } from "lucide-react";
 import { api } from "@/data/api";
 import { formatDateOnly } from "@/lib/date-utils";
 
 export function MeetingDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { data: meeting } = useMeetingSuspense(id!);
   const invalidate = useInvalidateQueries();
 
   const [editingMetadata, setEditingMetadata] = useState(false);
   const [metadataSaving, setMetadataSaving] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteAgenda, setDeleteAgenda] = useState(true);
+  const [deleteMinutes, setDeleteMinutes] = useState(true);
+  const [deleteMotions, setDeleteMotions] = useState(true);
+  const [deleteActionItems, setDeleteActionItems] = useState(true);
+  const [deleting, setDeleting] = useState(false);
   const [meetingNumber, setMeetingNumber] = useState(meeting.meeting_number);
   const [date, setDate] = useState(meeting.date);
   const [location, setLocation] = useState(meeting.location ?? "");
@@ -76,6 +92,22 @@ export function MeetingDetailPage() {
     if (!meeting.minutes_document_id) return;
     const filename = `meeting-${meeting.meeting_number}-minutes.pdf`;
     await api.documents.exportPdf(meeting.minutes_document_id, filename);
+  };
+
+  const handleDeleteMeeting = async () => {
+    setDeleting(true);
+    try {
+      await api.meetings.delete(id!, {
+        delete_agenda: deleteAgenda,
+        delete_minutes: deleteMinutes,
+      });
+      invalidate.invalidateMeetings();
+      invalidate.invalidateMeeting(id!);
+      navigate("/meetings");
+    } finally {
+      setDeleting(false);
+      setDeleteDialogOpen(false);
+    }
   };
 
   return (
@@ -159,11 +191,101 @@ export function MeetingDetailPage() {
                   <Pencil className="size-4" />
                   Edit
                 </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setDeleteAgenda(true);
+                    setDeleteMinutes(true);
+                    setDeleteDialogOpen(true);
+                  }}
+                  className="text-muted-foreground hover:text-destructive"
+                >
+                  <Trash2 className="size-4" />
+                  Delete
+                </Button>
               </div>
             )}
           </div>
         </div>
       </div>
+
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent showCloseButton={!deleting}>
+          <DialogHeader>
+            <DialogTitle>Delete meeting?</DialogTitle>
+            <DialogDescription>
+              This cannot be undone. The following will be permanently deleted:
+            </DialogDescription>
+          </DialogHeader>
+          <ul className="space-y-2 text-muted-foreground text-sm">
+            <li className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="delete-agenda"
+                checked={deleteAgenda}
+                onChange={(e) => setDeleteAgenda(e.target.checked)}
+                className="rounded border-input"
+              />
+              <label htmlFor="delete-agenda" className="cursor-pointer">
+                Agenda
+              </label>
+            </li>
+            <li className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="delete-minutes"
+                checked={deleteMinutes}
+                onChange={(e) => setDeleteMinutes(e.target.checked)}
+                className="rounded border-input"
+              />
+              <label htmlFor="delete-minutes" className="cursor-pointer">
+                Minutes
+              </label>
+            </li>
+            <li className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="delete-motions"
+                checked={deleteMotions}
+                disabled
+                className="rounded border-input"
+              />
+              <label htmlFor="delete-motions" className="cursor-pointer">
+                Motions (always removed with meeting)
+              </label>
+            </li>
+            <li className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="delete-action-items"
+                checked={deleteActionItems}
+                disabled
+                className="rounded border-input"
+              />
+              <label htmlFor="delete-action-items" className="cursor-pointer">
+                Action items (always removed with meeting)
+              </label>
+            </li>
+          </ul>
+          <DialogFooter showCloseButton={false}>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteDialogOpen(false)}
+              disabled={deleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteMeeting}
+              disabled={deleting}
+            >
+              {deleting ? "Deleting…" : "Delete meeting"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {meeting.previous_meeting_id && (
         <p className="text-sm text-muted-foreground">

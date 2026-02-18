@@ -89,12 +89,15 @@ export function ActionItemsCard({ meetingId, actionItems }: ActionItemsCardProps
         onChange={(e) => setDescription(e.target.value)}
         className="flex-1 min-w-[180px]"
       />
-      <Select value={assigneeMemberId} onValueChange={setAssigneeMemberId}>
+      <Select
+        value={assigneeMemberId || "__unassigned__"}
+        onValueChange={(v) => setAssigneeMemberId(v === "__unassigned__" ? "" : v)}
+      >
         <SelectTrigger className="w-[160px]">
           <SelectValue placeholder="Assignee" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="">Unassigned</SelectItem>
+          <SelectItem value="__unassigned__">Unassigned</SelectItem>
           {members.map((m) => (
             <SelectItem key={m.id} value={m.id}>
               {m.name}
