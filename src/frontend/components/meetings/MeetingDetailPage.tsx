@@ -1,7 +1,6 @@
-import { useRef, useState, useCallback, useEffect } from "react";
+import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { useMeetingSuspense } from "@/queries/hooks";
-import { useInvalidateQueries } from "@/queries/hooks";
+import { useMeetingSuspense, useInvalidateQueries } from "@/queries/hooks";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DatePicker } from "@/components/ui/date-picker";
@@ -9,7 +8,6 @@ import { RichDocumentEditor } from "./RichDocumentEditor";
 import { MotionsCard } from "./MotionsCard";
 import { ActionItemsCard } from "./ActionItemsCard";
 import { OldBusinessCard } from "./OldBusinessCard";
-import { ExportPdfButton } from "./ExportPdfButton";
 import {
   Collapsible,
   CollapsibleContent,
@@ -17,7 +15,6 @@ import {
 } from "@/components/ui/collapsible";
 import {
   ArrowLeft,
-  Save,
   Pencil,
   X,
   ChevronDown,
@@ -27,126 +24,18 @@ import {
 import { api } from "@/data/api";
 import { formatDateOnly } from "@/lib/date-utils";
 
-function DocumentSection({
-  value,
-  onChange,
-  onSave,
-  saving,
-  dirty,
-  printRef,
-  placeholder,
-}: {
-  value: string;
-  onChange: (value: string) => void;
-  onSave: () => void;
-  saving: boolean;
-  dirty: boolean;
-  printRef: React.RefObject<HTMLDivElement | null>;
-  placeholder: string;
-}) {
-  return (
-    <div
-      ref={printRef}
-      className="flex min-h-[400px] flex-col rounded-md border bg-background print:break-inside-avoid"
-    >
-      <RichDocumentEditor
-        value={value}
-        onChange={onChange}
-        placeholder={placeholder}
-        fullHeight
-        toolbarActions={
-          <div className="flex items-center gap-2">
-            <Button
-              variant="default"
-              size="sm"
-              onClick={onSave}
-              disabled={saving || !dirty}
-            >
-              <Save className="size-4" />
-              {saving ? "Saving..." : "Save"}
-            </Button>
-            <ExportPdfButton
-              onPrint={() => printRef.current?.scrollIntoView()}
-              label="Export PDF"
-            />
-          </div>
-        }
-      />
-    </div>
-  );
-}
-
 export function MeetingDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { data: meeting } = useMeetingSuspense(id!);
   const invalidate = useInvalidateQueries();
-  const minutesPrintRef = useRef<HTMLDivElement>(null);
 
   const [editingMetadata, setEditingMetadata] = useState(false);
   const [metadataSaving, setMetadataSaving] = useState(false);
   const [meetingNumber, setMeetingNumber] = useState(meeting.meeting_number);
   const [date, setDate] = useState(meeting.date);
   const [location, setLocation] = useState(meeting.location ?? "");
-  const [agendaEditMode, setAgendaEditMode] = useState(false);
   const [agendaOpen, setAgendaOpen] = useState(true);
-  const [agendaContent, setAgendaContent] = useState(meeting.agenda_content);
-  const [minutesContent, setMinutesContent] = useState(
-    meeting.minutes_content ?? ""
-  );
-  const [agendaDirty, setAgendaDirty] = useState(false);
-  const [minutesDirty, setMinutesDirty] = useState(false);
-  const [agendaSaving, setAgendaSaving] = useState(false);
-  const [minutesSaving, setMinutesSaving] = useState(false);
-
-  useEffect(() => {
-    setMeetingNumber(meeting.meeting_number);
-    setDate(meeting.date);
-    setLocation(meeting.location ?? "");
-  }, [meeting.id, meeting.meeting_number, meeting.date, meeting.location]);
-
-  useEffect(() => {
-    setAgendaContent(meeting.agenda_content);
-    setMinutesContent(meeting.minutes_content ?? "");
-  }, [meeting.id, meeting.agenda_content, meeting.minutes_content]);
-
-  const handleAgendaChange = useCallback((value: string) => {
-    setAgendaContent(value);
-    setAgendaDirty(true);
-  }, []);
-
-  const handleMinutesChange = useCallback((value: string) => {
-    setMinutesContent(value);
-    setMinutesDirty(true);
-  }, []);
-
-  const handleAgendaSave = async () => {
-    if (!meeting.agenda_document_id) return;
-    setAgendaSaving(true);
-    try {
-      await api.documents.update(meeting.agenda_document_id, {
-        content: agendaContent,
-      });
-      invalidate.invalidateMeeting(id!);
-      setAgendaDirty(false);
-      setAgendaEditMode(false);
-    } finally {
-      setAgendaSaving(false);
-    }
-  };
-
-  const handleMinutesSave = async () => {
-    if (!meeting.minutes_document_id) return;
-    setMinutesSaving(true);
-    try {
-      await api.documents.update(meeting.minutes_document_id, {
-        content: minutesContent,
-      });
-      invalidate.invalidateMeeting(id!);
-      setMinutesDirty(false);
-    } finally {
-      setMinutesSaving(false);
-    }
-  };
+  const [minutesOpen, setMinutesOpen] = useState(true);
 
   const handleMetadataSave = async () => {
     const num = Number(meetingNumber);
@@ -183,14 +72,10 @@ export function MeetingDetailPage() {
     await api.documents.exportPdf(meeting.agenda_document_id, filename);
   };
 
-  const handleAgendaEdit = () => {
-    setAgendaEditMode(true);
-  };
-
-  const handleAgendaCancelEdit = () => {
-    setAgendaContent(meeting.agenda_content);
-    setAgendaDirty(false);
-    setAgendaEditMode(false);
+  const handleMinutesExportPdf = async () => {
+    if (!meeting.minutes_document_id) return;
+    const filename = `meeting-${meeting.meeting_number}-minutes.pdf`;
+    await api.documents.exportPdf(meeting.minutes_document_id, filename);
   };
 
   return (
@@ -297,7 +182,7 @@ export function MeetingDetailPage() {
           <CollapsibleTrigger asChild>
             <button
               type="button"
-              className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left hover:bg-muted/50 rounded-t-lg"
+              className="flex w-full items-center justify-between gap-2 rounded-t-lg px-3 py-2 text-left hover:bg-muted/50"
             >
               <div className="flex items-center gap-2">
                 {agendaOpen ? (
@@ -307,91 +192,91 @@ export function MeetingDetailPage() {
                 )}
                 <h2 className="text-base font-medium">Agenda</h2>
               </div>
-              {!agendaEditMode && (
-                <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 px-2"
-                    onClick={handleAgendaExportPdf}
-                  >
-                    <FileDown className="size-3.5" />
-                    Export
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 px-2"
-                    onClick={handleAgendaEdit}
-                  >
+              <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2"
+                  onClick={handleAgendaExportPdf}
+                >
+                  <FileDown className="size-3.5" />
+                  Export
+                </Button>
+                <Button variant="ghost" size="sm" className="h-7 px-2" asChild>
+                  <Link to={`/meetings/${id}/agenda/edit`}>
                     <Pencil className="size-3.5" />
                     Edit
-                  </Button>
-                </div>
-              )}
+                  </Link>
+                </Button>
+              </div>
             </button>
           </CollapsibleTrigger>
           <CollapsibleContent>
             <div className="border-t px-3 py-2">
-              {agendaEditMode ? (
-                <div className="min-h-[180px]">
-                  <RichDocumentEditor
-                    value={agendaContent}
-                    onChange={handleAgendaChange}
-                    placeholder="Enter meeting agenda..."
-                    fullHeight
-                    toolbarActions={
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="default"
-                          size="sm"
-                          onClick={handleAgendaSave}
-                          disabled={agendaSaving || !agendaDirty}
-                        >
-                          <Save className="size-4" />
-                          {agendaSaving ? "Saving..." : "Save"}
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={handleAgendaCancelEdit}
-                          disabled={agendaSaving}
-                        >
-                          <X className="size-4" />
-                          Cancel
-                        </Button>
-                      </div>
-                    }
-                  />
-                </div>
-              ) : (
-                <div>
-                  <RichDocumentEditor
-                    value={agendaContent}
-                    onChange={() => {}}
-                    placeholder="No agenda yet."
-                    editable={false}
-                    compact
-                  />
-                </div>
-              )}
+              <RichDocumentEditor
+                value={meeting.agenda_content}
+                onChange={() => {}}
+                placeholder="No agenda yet."
+                editable={false}
+                compact
+              />
             </div>
           </CollapsibleContent>
         </div>
       </Collapsible>
 
-      <div>
-        <h2 className="mb-2 text-lg font-medium">Minutes</h2>
-        <DocumentSection
-          value={minutesContent}
-          onChange={handleMinutesChange}
-          onSave={handleMinutesSave}
-          saving={minutesSaving}
-          dirty={minutesDirty}
-          printRef={minutesPrintRef}
-          placeholder="Transcribe meeting minutes..."
-        />
-      </div>
+      {/* Collapsible Minutes section */}
+      <Collapsible open={minutesOpen} onOpenChange={setMinutesOpen}>
+        <div className="rounded-lg border">
+          <CollapsibleTrigger asChild>
+            <button
+              type="button"
+              className="flex w-full items-center justify-between gap-2 rounded-t-lg px-3 py-2 text-left hover:bg-muted/50"
+            >
+              <div className="flex items-center gap-2">
+                {minutesOpen ? (
+                  <ChevronDown className="size-4 text-muted-foreground" />
+                ) : (
+                  <ChevronRight className="size-4 text-muted-foreground" />
+                )}
+                <h2 className="text-base font-medium">Minutes</h2>
+              </div>
+              <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                {meeting.minutes_document_id && (
+                  <>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2"
+                      onClick={handleMinutesExportPdf}
+                    >
+                      <FileDown className="size-3.5" />
+                      Export
+                    </Button>
+                    <Button variant="ghost" size="sm" className="h-7 px-2" asChild>
+                      <Link to={`/meetings/${id}/minutes/edit`}>
+                        <Pencil className="size-3.5" />
+                        Edit
+                      </Link>
+                    </Button>
+                  </>
+                )}
+              </div>
+            </button>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <div className="border-t px-3 py-2">
+              <RichDocumentEditor
+                value={meeting.minutes_content ?? ""}
+                onChange={() => {}}
+                placeholder="No minutes yet."
+                editable={false}
+                compact
+              />
+            </div>
+          </CollapsibleContent>
+        </div>
+      </Collapsible>
 
       <MotionsCard meetingId={meeting.id} motions={meeting.motions} />
       <ActionItemsCard meetingId={meeting.id} actionItems={meeting.action_items} />

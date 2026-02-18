@@ -29,6 +29,7 @@ import { MeetingsLayout } from "@/components/layout/MeetingsLayout";
 import { MeetingsPanel } from "@/components/meetings/MeetingsPanel";
 import { CreateMeetingPage } from "@/components/meetings/CreateMeetingPage";
 import { MeetingDetailPage } from "@/components/meetings/MeetingDetailPage";
+import { MeetingDocumentEditPage } from "@/components/meetings/MeetingDocumentEditPage";
 import { TemplatesPanel } from "@/components/meetings/TemplatesPanel";
 import { TemplateDetailPage } from "@/components/meetings/TemplateDetailPage";
 import { BylawsPage } from "@/components/meetings/BylawsPage";
@@ -245,6 +246,26 @@ function AppContent() {
                   <IdParamGuard>
                     <Suspense fallback={<PageLoading />}>
                       <MeetingDetailPage />
+                    </Suspense>
+                  </IdParamGuard>
+                }
+              />
+              <Route
+                path=":id/agenda/edit"
+                element={
+                  <IdParamGuard>
+                    <Suspense fallback={<PageLoading />}>
+                      <MeetingDocumentEditPage documentType="agenda" />
+                    </Suspense>
+                  </IdParamGuard>
+                }
+              />
+              <Route
+                path=":id/minutes/edit"
+                element={
+                  <IdParamGuard>
+                    <Suspense fallback={<PageLoading />}>
+                      <MeetingDocumentEditPage documentType="minutes" />
                     </Suspense>
                   </IdParamGuard>
                 }
