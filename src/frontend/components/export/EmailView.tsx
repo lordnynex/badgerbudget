@@ -52,6 +52,7 @@ export function EmailView({ state, metrics }: EmailViewProps) {
 
     const scenarioChartTypes = ["ROI", "PnL", "Revenue", "ProfitMargin", "ProfitPerAttendee", "CostCoverage"] as const;
     const scenarioTablesHtml = scenarioMatrix.attendanceLevels
+      .filter((pct) => pct >= 50)
       .map((pct) => {
         const tableMetrics = (scenarioMatrix.byAttendance[pct] ?? [])
           .slice()

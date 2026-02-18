@@ -500,7 +500,9 @@ export function PrintView({ state, metrics }: PrintViewProps) {
         <p className="mb-6 text-sm text-gray-600">
           Gross = ticket income; Net = Gross − costs. One table per attendance level.
         </p>
-        {scenarioMatrix.attendanceLevels.map((pct) => {
+        {scenarioMatrix.attendanceLevels
+          .filter((pct) => pct >= 50)
+          .map((pct) => {
           const tableMetrics = (scenarioMatrix.byAttendance[pct] ?? [])
             .slice()
             .sort((a, b) => {
