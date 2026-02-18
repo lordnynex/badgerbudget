@@ -3,7 +3,7 @@ import { Outlet, NavLink } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { PanelLeftClose, PanelLeftOpen, Menu, Calendar, FileText, Scale, ClipboardList } from "lucide-react";
+import { PanelLeftClose, PanelLeftOpen, Menu, Calendar, FileText, Scale, ClipboardList, BookOpen } from "lucide-react";
 
 const navLinkClass = ({ isActive }: { isActive: boolean }, collapsed?: boolean) =>
   cn(
@@ -71,6 +71,14 @@ export function MeetingsLayout() {
               {!collapsed && <span>Old Business</span>}
             </NavLink>
             <NavLink
+              to="/meetings/roberts-rules"
+              className={({ isActive }) => navLinkClass({ isActive }, collapsed)}
+              title={collapsed ? "Roberts Rules of Order" : undefined}
+            >
+              <BookOpen className="size-4 shrink-0" />
+              {!collapsed && <span>Roberts Rules of Order</span>}
+            </NavLink>
+            <NavLink
               to="/meetings"
               end
               className={({ isActive }) => navLinkClass({ isActive }, collapsed)}
@@ -128,6 +136,14 @@ export function MeetingsLayout() {
                     >
                       <ClipboardList className="size-4 shrink-0" />
                       <span>Old Business</span>
+                    </NavLink>
+                    <NavLink
+                      to="/meetings/roberts-rules"
+                      className={({ isActive }) => navLinkClass({ isActive }, false)}
+                      onClick={() => setMobileNavOpen(false)}
+                    >
+                      <BookOpen className="size-4 shrink-0" />
+                      <span>Roberts Rules of Order</span>
                     </NavLink>
                     <NavLink
                       to="/meetings"

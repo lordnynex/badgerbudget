@@ -32,6 +32,7 @@ import { MeetingDetailPage } from "@/components/meetings/MeetingDetailPage";
 import { TemplatesPanel } from "@/components/meetings/TemplatesPanel";
 import { TemplateDetailPage } from "@/components/meetings/TemplateDetailPage";
 import { BylawsPage } from "@/components/meetings/BylawsPage";
+import { RobertsRulesPage } from "@/components/meetings/RobertsRulesPage";
 import { OldBusinessPanel } from "@/components/meetings/OldBusinessPanel";
 import { PrintView } from "@/components/export/PrintView";
 import { EmailView } from "@/components/export/EmailView";
@@ -219,6 +220,14 @@ function AppContent() {
                 element={
                   <Suspense fallback={<PageLoading />}>
                     <BylawsPage />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="roberts-rules"
+                element={
+                  <Suspense fallback={<PageLoading />}>
+                    <RobertsRulesPage />
                   </Suspense>
                 }
               />
