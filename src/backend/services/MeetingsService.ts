@@ -369,6 +369,78 @@ export class MeetingsService {
     return result.affected !== 0;
   }
 
+  async listMotions(options: { page?: number; per_page?: number } = {}) {
+    const page = Math.max(1, options.page ?? 1);
+    const perPage = Math.min(100, Math.max(1, options.per_page ?? 25));
+    const skip = (page - 1) * perPage;
+
+    const baseQb = () =>
+      this.ds.getRepository(MeetingMotion)
+        .createQueryBuilder("m")
+        .innerJoin(Meeting, "mt", "mt.id = m.meeting_id")
+        .orderBy("mt.date", "DESC")
+        .addOrderBy("m.order_index", "ASC")
+        .addOrderBy("m.created_at", "ASC");
+
+    const total = await baseQb().getCount();
+
+    const rawRows = await baseQb()
+      .select("m.id", "m_id")
+      .addSelect("m.meeting_id", "m_meeting_id")
+      .addSelect("m.description", "m_description")
+      .addSelect("m.result", "m_result")
+      .addSelect("m.order_index", "m_order_index")
+      .addSelect("m.mover_member_id", "m_mover_member_id")
+      .addSelect("m.seconder_member_id", "m_seconder_member_id")
+      .addSelect("m.created_at", "m_created_at")
+      .addSelect("mt.date", "meeting_date")
+      .addSelect("mt.meeting_number", "meeting_number")
+      .skip(skip)
+      .take(perPage)
+      .getRawMany<{
+        m_id: string;
+        m_meeting_id: string;
+        m_description: string | null;
+        m_result: string;
+        m_order_index: number;
+        m_mover_member_id: string | null;
+        m_seconder_member_id: string | null;
+        m_created_at: string | null;
+        meeting_date: string;
+        meeting_number: number;
+      }>();
+
+    const motionMemberIds = [...new Set([
+      ...rawRows.map((r) => r.m_mover_member_id).filter(Boolean),
+      ...rawRows.map((r) => r.m_seconder_member_id).filter(Boolean),
+    ] as string[])];
+    const membersMap = new Map<string, string>();
+    if (motionMemberIds.length > 0) {
+      const members = await this.ds.getRepository(Member).find({
+        where: { id: In(motionMemberIds) },
+        select: ["id", "name"],
+      });
+      for (const m of members) membersMap.set(m.id, m.name);
+    }
+
+    const items = rawRows.map((r) => ({
+      id: r.m_id,
+      meeting_id: r.m_meeting_id,
+      description: r.m_description ?? null,
+      result: r.m_result as "pass" | "fail",
+      order_index: r.m_order_index,
+      mover_member_id: r.m_mover_member_id ?? null,
+      seconder_member_id: r.m_seconder_member_id ?? null,
+      mover_name: r.m_mover_member_id ? membersMap.get(r.m_mover_member_id) ?? null : null,
+      seconder_name: r.m_seconder_member_id ? membersMap.get(r.m_seconder_member_id) ?? null : null,
+      created_at: r.m_created_at ?? undefined,
+      meeting_date: r.meeting_date,
+      meeting_number: r.meeting_number,
+    }));
+
+    return { items, total };
+  }
+
   async listOldBusiness() {
     const items = await this.ds.getRepository(OldBusinessItem).find({
       order: { orderIndex: "ASC", createdAt: "ASC" },

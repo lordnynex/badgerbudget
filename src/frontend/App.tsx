@@ -35,6 +35,7 @@ import { TemplateDetailPage } from "@/components/meetings/TemplateDetailPage";
 import { BylawsPage } from "@/components/meetings/BylawsPage";
 import { RobertsRulesPage } from "@/components/meetings/RobertsRulesPage";
 import { OldBusinessPanel } from "@/components/meetings/OldBusinessPanel";
+import { MotionsPanel } from "@/components/meetings/MotionsPanel";
 import { PrintView } from "@/components/export/PrintView";
 import { EmailView } from "@/components/export/EmailView";
 import {
@@ -237,6 +238,14 @@ function AppContent() {
                 element={
                   <Suspense fallback={<PageLoading />}>
                     <OldBusinessPanel />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="motions"
+                element={
+                  <Suspense fallback={<PageLoading />}>
+                    <MotionsPanel />
                   </Suspense>
                 }
               />

@@ -3,7 +3,7 @@ import { Outlet, NavLink } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { PanelLeftClose, PanelLeftOpen, Menu, Calendar, FileText, Scale, ClipboardList, BookOpen } from "lucide-react";
+import { PanelLeftClose, PanelLeftOpen, Menu, Calendar, FileText, Scale, ClipboardList, BookOpen, Gavel } from "lucide-react";
 
 const navLinkClass = ({ isActive }: { isActive: boolean }, collapsed?: boolean) =>
   cn(
@@ -88,6 +88,16 @@ export function MeetingsLayout() {
               {!collapsed && <span>All meetings</span>}
             </NavLink>
             <NavLink
+              to="/meetings/motions"
+              className={({ isActive }) =>
+                navLinkClass({ isActive }, collapsed) + (collapsed ? "" : " pl-6")
+              }
+              title={collapsed ? "Motions" : undefined}
+            >
+              <Gavel className="size-4 shrink-0" />
+              {!collapsed && <span>Motions</span>}
+            </NavLink>
+            <NavLink
               to="/meetings/templates"
               className={({ isActive }) => navLinkClass({ isActive }, collapsed)}
               title={collapsed ? "Templates" : undefined}
@@ -153,6 +163,14 @@ export function MeetingsLayout() {
                     >
                       <Calendar className="size-4 shrink-0" />
                       <span>All meetings</span>
+                    </NavLink>
+                    <NavLink
+                      to="/meetings/motions"
+                      className={({ isActive }) => navLinkClass({ isActive }, false) + " pl-6"}
+                      onClick={() => setMobileNavOpen(false)}
+                    >
+                      <Gavel className="size-4 shrink-0" />
+                      <span>Motions</span>
                     </NavLink>
                     <NavLink
                       to="/meetings/templates"

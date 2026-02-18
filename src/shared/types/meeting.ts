@@ -29,6 +29,17 @@ export interface MeetingMotion {
   created_at?: string;
 }
 
+/** Motion with meeting context (e.g. from list all motions). */
+export interface MotionWithMeeting extends MeetingMotion {
+  meeting_date: string;
+  meeting_number: number;
+}
+
+export interface MotionsListResponse {
+  items: MotionWithMeeting[];
+  total: number;
+}
+
 export interface MeetingActionItem {
   id: string;
   meeting_id: string;

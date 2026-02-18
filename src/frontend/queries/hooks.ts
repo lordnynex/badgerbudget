@@ -204,6 +204,13 @@ export function useOldBusinessSuspense() {
   });
 }
 
+export function useMotionsList(page: number, perPage: number) {
+  return useQuery({
+    queryKey: queryKeys.motionsList(page, perPage),
+    queryFn: () => api.meetings.listMotions({ page, per_page: perPage }),
+  });
+}
+
 // —— Meeting templates
 export function useMeetingTemplatesSuspense(type?: "agenda" | "minutes") {
   return useSuspenseQuery({

@@ -1,9 +1,15 @@
 import { client, unwrap } from "./client";
-import type { MeetingDetail, MeetingSummary, OldBusinessItemWithMeeting } from "@/shared/types/meeting";
+import type { MeetingDetail, MeetingSummary, MotionsListResponse, OldBusinessItemWithMeeting } from "@/shared/types/meeting";
 
 export class MeetingsApiClient {
   listOldBusiness() {
     return unwrap(client.api.meetings["old-business"].get()) as Promise<OldBusinessItemWithMeeting[]>;
+  }
+
+  listMotions(params?: { page?: number; per_page?: number }) {
+    return unwrap(
+      client.api.meetings.motions.get(params ? { query: params } : undefined)
+    ) as Promise<MotionsListResponse>;
   }
 
   list(options?: { sort?: "date" | "meeting_number" }) {

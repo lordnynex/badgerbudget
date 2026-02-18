@@ -12,6 +12,11 @@ export const MeetingsDto = {
   idAid: CommonParams.idAid,
   idOid: CommonParams.idOid,
 
+  listMotionsQuery: t.Object({
+    page: t.Optional(t.Numeric()),
+    per_page: t.Optional(t.Numeric()),
+  }),
+
   deleteQuery: t.Object({
     delete_agenda: t.Optional(t.Boolean()),
     delete_minutes: t.Optional(t.Boolean()),
