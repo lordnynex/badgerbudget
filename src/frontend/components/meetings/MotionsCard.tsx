@@ -14,6 +14,7 @@ import { api } from "@/data/api";
 import { useQuery } from "@tanstack/react-query";
 import { queryKeys } from "@/queries/keys";
 import { useInvalidateQueries } from "@/queries/hooks";
+import { MemberChip } from "@/components/members/MemberChip";
 import type { MeetingMotion } from "@/shared/types/meeting";
 
 interface MotionsCardProps {
@@ -89,6 +90,7 @@ export function MotionsCard({ meetingId, motions }: MotionsCardProps) {
     setResult("pass");
   };
 
+  const getMember = (id: string | null) => (id ? members.find((x) => x.id === id) ?? null : null);
   const moverName = (id: string | null) => (id ? members.find((x) => x.id === id)?.name ?? id : "—");
   const canSaveAdd = moverMemberId && seconderMemberId && moverMemberId !== seconderMemberId;
   const canSaveEdit = editingId && moverMemberId && seconderMemberId && moverMemberId !== seconderMemberId;
@@ -210,9 +212,33 @@ export function MotionsCard({ meetingId, motions }: MotionsCardProps) {
               ) : (
                 <>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm text-muted-foreground">
-                      Moved by {m.mover_name ?? moverName(m.mover_member_id)}, seconded by{" "}
-                      {m.seconder_name ?? moverName(m.seconder_member_id)}
+                    <p className="text-sm text-muted-foreground flex flex-wrap items-center gap-x-1 gap-y-1">
+                      <span>Moved by</span>
+                      {(() => {
+                        const mover = getMember(m.mover_member_id);
+                        return mover ? (
+                          <MemberChip
+                            memberId={mover.id}
+                            name={mover.name}
+                            photo={mover.photo_thumbnail_url}
+                          />
+                        ) : (
+                          <span>{m.mover_name ?? moverName(m.mover_member_id)}</span>
+                        );
+                      })()}
+                      <span>, seconded by</span>
+                      {(() => {
+                        const seconder = getMember(m.seconder_member_id);
+                        return seconder ? (
+                          <MemberChip
+                            memberId={seconder.id}
+                            name={seconder.name}
+                            photo={seconder.photo_thumbnail_url}
+                          />
+                        ) : (
+                          <span>{m.seconder_name ?? moverName(m.seconder_member_id)}</span>
+                        );
+                      })()}
                     </p>
                     {m.description != null && m.description.trim() !== "" && (
                       <p className="mt-1 text-sm">{m.description}</p>
