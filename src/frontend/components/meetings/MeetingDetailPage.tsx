@@ -87,9 +87,10 @@ export function MeetingDetailPage() {
   }, []);
 
   const handleAgendaSave = async () => {
+    if (!meeting.agenda_document_id) return;
     setAgendaSaving(true);
     try {
-      await api.meetings.update(id!, { agenda_content: agendaContent });
+      await api.documents.update(meeting.agenda_document_id, { content: agendaContent });
       invalidate.invalidateMeeting(id!);
       setAgendaDirty(false);
     } finally {
@@ -98,9 +99,10 @@ export function MeetingDetailPage() {
   };
 
   const handleMinutesSave = async () => {
+    if (!meeting.minutes_document_id) return;
     setMinutesSaving(true);
     try {
-      await api.meetings.update(id!, { minutes_content: minutesContent });
+      await api.documents.update(meeting.minutes_document_id, { content: minutesContent });
       invalidate.invalidateMeeting(id!);
       setMinutesDirty(false);
     } finally {

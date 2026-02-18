@@ -17,11 +17,11 @@ export class Meeting {
   @Column({ name: "previous_meeting_id", type: "text", nullable: true })
   previousMeetingId!: string | null;
 
-  @Column({ name: "agenda_content", type: "text" })
-  agendaContent!: string;
+  @Column({ name: "agenda_document_id", type: "text" })
+  agendaDocumentId!: string;
 
-  @Column({ name: "minutes_content", type: "text", nullable: true })
-  minutesContent!: string | null;
+  @Column({ name: "minutes_document_id", type: "text", nullable: true })
+  minutesDocumentId!: string | null;
 
   @Column({ name: "created_at", type: "text", nullable: true })
   createdAt!: string | null;

@@ -10,6 +10,7 @@ import { MailingBatchesController } from "./controllers/mailingBatches";
 import { QrCodesController } from "./controllers/qrCodes";
 import { MeetingsController } from "./controllers/meetings";
 import { MeetingTemplatesController } from "./controllers/meetingTemplates";
+import { DocumentsController } from "./controllers/documents";
 
 export function createApiRoutes(api: Api) {
   return new Elysia({ prefix: "/api" })
@@ -22,5 +23,6 @@ export function createApiRoutes(api: Api) {
     .use(new MailingBatchesController(api).init())
     .use(new QrCodesController(api).init())
     .use(new MeetingsController(api).init())
-    .use(new MeetingTemplatesController(api).init());
+    .use(new MeetingTemplatesController(api).init())
+    .use(new DocumentsController(api).init());
 }

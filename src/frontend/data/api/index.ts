@@ -8,6 +8,7 @@ import { MailingBatchesApiClient } from "./MailingBatchesApiClient";
 import { QrCodesApiClient } from "./QrCodesApiClient";
 import { MeetingsApiClient } from "./MeetingsApiClient";
 import { MeetingTemplatesApiClient } from "./MeetingTemplatesApiClient";
+import { DocumentsApiClient } from "./DocumentsApiClient";
 
 const events = new EventsApiClient();
 const budgets = new BudgetsApiClient();
@@ -19,6 +20,7 @@ const mailingBatches = new MailingBatchesApiClient();
 const qrCodes = new QrCodesApiClient();
 const meetings = new MeetingsApiClient();
 const meetingTemplates = new MeetingTemplatesApiClient();
+const documents = new DocumentsApiClient();
 
 /**
  * Composed API client mirroring backend service structure.
@@ -35,6 +37,7 @@ export const api = {
   qrCodes,
   meetings,
   meetingTemplates,
+  documents,
 };
 
 export { client, unwrap, buildSearchParams } from "./client";

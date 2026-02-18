@@ -1,6 +1,7 @@
 import { In } from "typeorm";
 import type { DataSource } from "typeorm";
 import {
+  Document,
   Meeting,
   MeetingMotion,
   MeetingActionItem,
@@ -9,6 +10,8 @@ import {
   Member,
 } from "../entities";
 import { uuid } from "./utils";
+
+const EMPTY_DOC = JSON.stringify({ type: "doc", content: [{ type: "paragraph" }] });
 
 export class MeetingsService {
   constructor(private ds: DataSource) {}
@@ -20,7 +23,8 @@ export class MeetingsService {
         ? { meetingNumber: "DESC" }
         : { date: "DESC" };
     const entities = await repo.find({ order });
-    return entities.map((m) => this.meetingToApi(m));
+    const docMap = await this.fetchDocumentsForMeetings(entities);
+    return entities.map((m) => this.meetingToApi(m, docMap));
   }
 
   async create(body: {
@@ -32,27 +36,50 @@ export class MeetingsService {
     minutes_content?: string | null;
     agenda_template_id?: string;
   }) {
-    let agendaContent = body.agenda_content ?? "";
+    let agendaContent = body.agenda_content ?? EMPTY_DOC;
     if (body.agenda_template_id) {
       const template = await this.ds.getRepository(MeetingTemplate).findOne({
         where: { id: body.agenda_template_id, type: "agenda" },
       });
-      if (template) agendaContent = template.content;
+      if (template) {
+        const agendaDoc = await this.ds.getRepository(Document).findOne({
+          where: { id: template.documentId },
+        });
+        if (agendaDoc) agendaContent = agendaDoc.content;
+      }
     }
     const now = new Date().toISOString();
+    const agendaDoc = this.ds.getRepository(Document).create({
+      id: uuid(),
+      content: agendaContent,
+      createdAt: now,
+      updatedAt: now,
+    });
+    await this.ds.getRepository(Document).save(agendaDoc);
+    const minutesDoc = this.ds.getRepository(Document).create({
+      id: uuid(),
+      content: body.minutes_content ?? EMPTY_DOC,
+      createdAt: now,
+      updatedAt: now,
+    });
+    await this.ds.getRepository(Document).save(minutesDoc);
     const meeting = this.ds.getRepository(Meeting).create({
       id: uuid(),
       date: body.date,
       meetingNumber: body.meeting_number,
       location: body.location ?? null,
       previousMeetingId: body.previous_meeting_id ?? null,
-      agendaContent,
-      minutesContent: body.minutes_content ?? null,
+      agendaDocumentId: agendaDoc.id,
+      minutesDocumentId: minutesDoc.id,
       createdAt: now,
       updatedAt: now,
     });
     await this.ds.getRepository(Meeting).save(meeting);
-    return this.meetingToApi(meeting);
+    const docMap = new Map<string, Document>([
+      [agendaDoc.id, agendaDoc],
+      [minutesDoc.id, minutesDoc],
+    ]);
+    return this.meetingToApi(meeting, docMap);
   }
 
   async get(id: string) {
@@ -92,8 +119,9 @@ export class MeetingsService {
       });
       for (const m of members) membersMap.set(m.id, { id: m.id, name: m.name });
     }
+    const docMap = await this.fetchDocumentsForMeetings([meeting]);
     return {
-      ...this.meetingToApi(meeting),
+      ...this.meetingToApi(meeting, docMap),
       motions: motions.map((m) => ({
         id: m.id,
         meeting_id: m.meetingId,
@@ -149,12 +177,12 @@ export class MeetingsService {
     if (body.meeting_number !== undefined) updates.meetingNumber = body.meeting_number as number;
     if (body.location !== undefined) updates.location = body.location as string | null;
     if (body.previous_meeting_id !== undefined) updates.previousMeetingId = body.previous_meeting_id as string | null;
-    if (body.agenda_content !== undefined) updates.agendaContent = body.agenda_content as string;
-    if (body.minutes_content !== undefined) updates.minutesContent = body.minutes_content as string | null;
     updates.updatedAt = new Date().toISOString();
     await this.ds.getRepository(Meeting).update(id, updates);
     const updated = await this.ds.getRepository(Meeting).findOne({ where: { id } });
-    return updated ? this.meetingToApi(updated) : null;
+    if (!updated) return null;
+    const docMap = await this.fetchDocumentsForMeetings([updated]);
+    return this.meetingToApi(updated, docMap);
   }
 
   async delete(id: string) {
@@ -284,15 +312,29 @@ export class MeetingsService {
     return result.affected !== 0;
   }
 
-  private meetingToApi(m: Meeting) {
+  private async fetchDocumentsForMeetings(meetings: Meeting[]): Promise<Map<string, Document>> {
+    const docIds = [
+      ...meetings.map((m) => m.agendaDocumentId),
+      ...meetings.map((m) => m.minutesDocumentId).filter((id): id is string => id != null),
+    ];
+    if (docIds.length === 0) return new Map();
+    const docs = await this.ds.getRepository(Document).find({ where: { id: In(docIds) } });
+    return new Map(docs.map((d) => [d.id, d]));
+  }
+
+  private meetingToApi(m: Meeting, docMap: Map<string, Document>) {
+    const agendaDoc = docMap.get(m.agendaDocumentId);
+    const minutesDoc = m.minutesDocumentId ? docMap.get(m.minutesDocumentId) : null;
     return {
       id: m.id,
       date: m.date,
       meeting_number: m.meetingNumber,
       location: m.location ?? null,
       previous_meeting_id: m.previousMeetingId ?? null,
-      agenda_content: m.agendaContent,
-      minutes_content: m.minutesContent ?? null,
+      agenda_document_id: m.agendaDocumentId,
+      minutes_document_id: m.minutesDocumentId ?? null,
+      agenda_content: agendaDoc?.content ?? EMPTY_DOC,
+      minutes_content: minutesDoc?.content ?? null,
       created_at: m.createdAt ?? undefined,
       updated_at: m.updatedAt ?? undefined,
     };

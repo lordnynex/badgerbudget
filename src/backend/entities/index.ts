@@ -29,6 +29,8 @@ export { MailingListMember } from "./MailingListMember";
 export { MailingBatch } from "./MailingBatch";
 export { MailingBatchRecipient } from "./MailingBatchRecipient";
 export { QrCode } from "./QrCode";
+export { Document } from "./Document";
+export { DocumentVersion } from "./DocumentVersion";
 export { Meeting } from "./Meeting";
 export { MeetingMotion } from "./MeetingMotion";
 export { MeetingActionItem } from "./MeetingActionItem";

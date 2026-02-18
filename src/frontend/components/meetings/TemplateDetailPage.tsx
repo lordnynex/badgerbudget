@@ -45,7 +45,15 @@ export function TemplateDetailPage() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const updated = await api.meetingTemplates.update(id!, { name, content });
+      const promises: Promise<unknown>[] = [];
+      if (name !== (template.name ?? "")) {
+        promises.push(api.meetingTemplates.update(id!, { name }));
+      }
+      if (content !== (template.content ?? "") && template.document_id) {
+        promises.push(api.documents.update(template.document_id, { content }));
+      }
+      await Promise.all(promises);
+      const updated = await api.meetingTemplates.get(id!);
       if (updated) {
         setName(updated.name);
         setContent(updated.content);

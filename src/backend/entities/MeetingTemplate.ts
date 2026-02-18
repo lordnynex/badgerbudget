@@ -11,8 +11,8 @@ export class MeetingTemplate {
   @Column({ type: "text" })
   type!: string;
 
-  @Column({ type: "text" })
-  content!: string;
+  @Column({ name: "document_id", type: "text" })
+  documentId!: string;
 
   @Column({ name: "created_at", type: "text", nullable: true })
   createdAt!: string | null;

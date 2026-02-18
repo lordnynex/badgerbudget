@@ -4,6 +4,8 @@ export interface MeetingSummary {
   meeting_number: number;
   location: string | null;
   previous_meeting_id: string | null;
+  agenda_document_id: string;
+  minutes_document_id: string | null;
   agenda_content: string;
   minutes_content: string | null;
   created_at?: string;
@@ -54,6 +56,7 @@ export interface MeetingTemplate {
   id: string;
   name: string;
   type: "agenda" | "minutes";
+  document_id: string;
   content: string;
   created_at?: string;
   updated_at?: string;

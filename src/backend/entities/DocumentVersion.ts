@@ -1,0 +1,19 @@
+import { Entity, PrimaryColumn, Column } from "typeorm";
+
+@Entity("document_versions")
+export class DocumentVersion {
+  @PrimaryColumn()
+  id!: string;
+
+  @Column({ name: "document_id", type: "text" })
+  documentId!: string;
+
+  @Column({ type: "text" })
+  content!: string;
+
+  @Column({ name: "version_number", type: "integer" })
+  versionNumber!: number;
+
+  @Column({ name: "created_at", type: "text", nullable: true })
+  createdAt!: string | null;
+}

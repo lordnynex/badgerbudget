@@ -27,8 +27,6 @@ export const MeetingsDto = {
     meeting_number: t.Optional(t.Union([t.Number(), t.Null()])),
     location: t.Optional(t.Union([t.String(), t.Null()])),
     previous_meeting_id: t.Optional(t.Union([t.String(), t.Null()])),
-    agenda_content: t.Optional(t.Union([t.String(), t.Null()])),
-    minutes_content: t.Optional(t.Union([t.String(), t.Null()])),
   }),
 
   createMotionBody: t.Object({
@@ -83,6 +81,5 @@ export const MeetingTemplatesDto = {
   updateBody: t.Object({
     name: t.Optional(t.String()),
     type: t.Optional(templateType),
-    content: t.Optional(t.String()),
   }),
 };
