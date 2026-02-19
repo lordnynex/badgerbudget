@@ -1,12 +1,23 @@
+import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useMotionsList } from "@/queries/hooks";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Calendar, ChevronLeft, ChevronRight } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Calendar, ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { formatDateOnly } from "@/lib/date-utils";
 import type { MotionWithMeeting } from "@/shared/types/meeting";
 
 const PER_PAGE = 25;
+
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedValue(value), delay);
+    return () => clearTimeout(t);
+  }, [value, delay]);
+  return debouncedValue;
+}
 
 function MotionRow({ m }: { m: MotionWithMeeting }) {
   return (
@@ -43,7 +54,24 @@ function MotionRow({ m }: { m: MotionWithMeeting }) {
 export function MotionsPanel() {
   const [searchParams, setSearchParams] = useSearchParams();
   const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10) || 1);
-  const { data, isPending, isError, error } = useMotionsList(page, PER_PAGE);
+  const qFromUrl = searchParams.get("q") ?? "";
+  const [searchInput, setSearchInput] = useState(qFromUrl);
+  const debouncedQ = useDebounce(searchInput, 300);
+
+  useEffect(() => {
+    setSearchInput(qFromUrl);
+  }, [qFromUrl]);
+
+  useEffect(() => {
+    if (debouncedQ === qFromUrl) return;
+    const next = new URLSearchParams(searchParams);
+    if (debouncedQ) next.set("q", debouncedQ);
+    else next.delete("q");
+    next.set("page", "1");
+    setSearchParams(next, { replace: true });
+  }, [debouncedQ, qFromUrl, searchParams, setSearchParams]);
+
+  const { data, isPending, isError, error } = useMotionsList(page, PER_PAGE, qFromUrl || undefined);
 
   if (isError) {
     return (
@@ -65,22 +93,46 @@ export function MotionsPanel() {
   const start = total === 0 ? 0 : (safePage - 1) * PER_PAGE + 1;
   const end = Math.min(safePage * PER_PAGE, total);
 
+  // Keep URL in sync when page is out of range (e.g. after total count drops)
+  useEffect(() => {
+    if (isPending || page === safePage) return;
+    const next = new URLSearchParams(searchParams);
+    next.set("page", String(safePage));
+    setSearchParams(next, { replace: true });
+  }, [isPending, page, safePage, searchParams, setSearchParams]);
+
   return (
-    <div className="space-y-8">
-      <h1 className="text-2xl font-semibold">Motions</h1>
-      <p className="text-muted-foreground">
-        All motions from all meetings, ordered by meeting date (newest first).
-      </p>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-semibold">Motions</h1>
+        <p className="text-muted-foreground mt-1">
+          All motions from all meetings, ordered by meeting date (newest first).
+        </p>
+      </div>
 
       <Card>
         <CardContent className="pt-6">
+          <div className="sticky top-14 z-10 -mx-6 -mt-6 flex flex-col gap-4 border-b border-border/50 bg-card px-6 pt-6 pb-4 sm:flex-row sm:items-center sm:gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+              <Input
+                placeholder="Search motion text, mover, seconder, or meeting number..."
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+          </div>
+
           {isPending ? (
             <div className="py-12 text-center text-muted-foreground">
               Loading motions…
             </div>
           ) : items.length === 0 ? (
             <div className="py-12 text-center text-muted-foreground">
-              No motions recorded in any meeting.
+              {qFromUrl
+                ? "No motions match your search."
+                : "No motions recorded in any meeting."}
             </div>
           ) : (
             <>
@@ -104,11 +156,15 @@ export function MotionsPanel() {
               </div>
 
               {total > PER_PAGE && (
-                <div className="mt-4 flex items-center justify-between">
+                <div className="mt-4 flex flex-wrap items-center justify-between gap-4">
                   <p className="text-sm text-muted-foreground">
-                    Showing {start}–{end} of {total}
+                    Showing {start}–{end} of {total} (25 per page)
                   </p>
-                  <div className="flex gap-2">
+                  <div className="flex items-center gap-4">
+                    <span className="text-sm text-muted-foreground">
+                      Page {safePage} of {totalPages}
+                    </span>
+                    <div className="flex gap-2">
                     <Button
                       variant="outline"
                       size="sm"
@@ -137,6 +193,7 @@ export function MotionsPanel() {
                       Next
                       <ChevronRight className="size-4" />
                     </Button>
+                    </div>
                   </div>
                 </div>
               )}

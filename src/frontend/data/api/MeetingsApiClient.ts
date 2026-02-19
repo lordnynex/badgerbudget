@@ -6,7 +6,7 @@ export class MeetingsApiClient {
     return unwrap(client.api.meetings["old-business"].get()) as Promise<OldBusinessItemWithMeeting[]>;
   }
 
-  listMotions(params?: { page?: number; per_page?: number }) {
+  listMotions(params?: { page?: number; per_page?: number; q?: string }) {
     return unwrap(
       client.api.meetings.motions.get(params ? { query: params } : undefined)
     ) as Promise<MotionsListResponse>;

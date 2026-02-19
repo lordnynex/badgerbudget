@@ -204,10 +204,10 @@ export function useOldBusinessSuspense() {
   });
 }
 
-export function useMotionsList(page: number, perPage: number) {
+export function useMotionsList(page: number, perPage: number, q?: string) {
   return useQuery({
-    queryKey: queryKeys.motionsList(page, perPage),
-    queryFn: () => api.meetings.listMotions({ page, per_page: perPage }),
+    queryKey: queryKeys.motionsList(page, perPage, q),
+    queryFn: () => api.meetings.listMotions({ page, per_page: perPage, q }),
   });
 }
 

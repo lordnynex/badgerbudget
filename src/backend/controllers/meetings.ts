@@ -67,10 +67,11 @@ export class MeetingsController extends BaseController {
     return this.api.meetings.listOldBusiness().then(this.json);
   }
 
-  private listMotions(query: { page?: number; per_page?: number }) {
+  private listMotions(query: { page?: number; per_page?: number; q?: string }) {
     const page = query.page != null ? Number(query.page) : undefined;
     const per_page = query.per_page != null ? Number(query.per_page) : undefined;
-    return this.api.meetings.listMotions({ page, per_page }).then(this.json);
+    const q = typeof query.q === "string" && query.q.trim() ? query.q.trim() : undefined;
+    return this.api.meetings.listMotions({ page, per_page, q }).then(this.json);
   }
 
   private create(body: Record<string, unknown>) {

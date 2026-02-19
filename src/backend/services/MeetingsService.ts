@@ -369,18 +369,31 @@ export class MeetingsService {
     return result.affected !== 0;
   }
 
-  async listMotions(options: { page?: number; per_page?: number } = {}) {
+  async listMotions(options: { page?: number; per_page?: number; q?: string } = {}) {
     const page = Math.max(1, options.page ?? 1);
     const perPage = Math.min(100, Math.max(1, options.per_page ?? 25));
     const skip = (page - 1) * perPage;
+    const q = typeof options.q === "string" && options.q.trim() ? options.q.trim() : undefined;
+    const searchPattern = q ? `%${options.q!.trim()}%` : undefined;
 
-    const baseQb = () =>
-      this.ds.getRepository(MeetingMotion)
+    const baseQb = () => {
+      const qb = this.ds
+        .getRepository(MeetingMotion)
         .createQueryBuilder("m")
         .innerJoin(Meeting, "mt", "mt.id = m.meeting_id")
         .orderBy("mt.date", "DESC")
         .addOrderBy("m.order_index", "ASC")
         .addOrderBy("m.created_at", "ASC");
+      if (searchPattern) {
+        qb.leftJoin(Member, "mover", "mover.id = m.mover_member_id")
+          .leftJoin(Member, "seconder", "seconder.id = m.seconder_member_id")
+          .andWhere(
+            "(m.description LIKE :searchPattern OR mover.name LIKE :searchPattern OR seconder.name LIKE :searchPattern OR CAST(mt.meeting_number AS TEXT) LIKE :searchPattern)",
+            { searchPattern }
+          );
+      }
+      return qb;
+    };
 
     const total = await baseQb().getCount();
 

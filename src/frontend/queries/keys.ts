@@ -23,7 +23,8 @@ export const queryKeys = {
   qrCodes: ["qrCodes"] as const,
   qrCode: (id: string) => ["qrCode", id] as const,
   meetings: (sort?: string) => (sort ? (["meetings", sort] as const) : (["meetings"] as const)),
-  motionsList: (page: number, perPage: number) => ["meetings", "motions", page, perPage] as const,
+  motionsList: (page: number, perPage: number, q?: string) =>
+    ["meetings", "motions", page, perPage, q ?? ""] as const,
   meeting: (id: string) => ["meeting", id] as const,
   meetingTemplates: (type?: string) =>
     type ? (["meetingTemplates", type] as const) : (["meetingTemplates"] as const),

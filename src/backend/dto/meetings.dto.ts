@@ -15,6 +15,7 @@ export const MeetingsDto = {
   listMotionsQuery: t.Object({
     page: t.Optional(t.Numeric()),
     per_page: t.Optional(t.Numeric()),
+    q: t.Optional(t.String()),
   }),
 
   deleteQuery: t.Object({
