@@ -20,7 +20,7 @@ import {
 import { RichDocumentEditor } from "./RichDocumentEditor";
 import { MotionsCard } from "./MotionsCard";
 import { ActionItemsCard } from "./ActionItemsCard";
-import { OldBusinessCard } from "./OldBusinessCard";
+import { NewBusinessCard } from "./NewBusinessCard";
 import {
   ArrowLeft,
   Pencil,
@@ -432,10 +432,7 @@ export function MeetingDetailPage() {
 
       <MotionsCard meetingId={meeting.id} motions={meeting.motions} />
       <ActionItemsCard meetingId={meeting.id} actionItems={meeting.action_items} />
-      <OldBusinessCard
-        meetingId={meeting.id}
-        oldBusiness={meeting.old_business}
-      />
+      <NewBusinessCard meetingId={meeting.id} />
     </div>
   );
 }

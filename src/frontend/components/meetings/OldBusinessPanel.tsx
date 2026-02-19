@@ -83,7 +83,7 @@ export function OldBusinessPanel() {
   };
 
   const handleDelete = async (ob: OldBusinessItemWithMeeting) => {
-    if (!confirm("Delete this old business item?")) return;
+    if (!confirm("Delete this open business item?")) return;
     await api.meetings.oldBusiness.delete(ob.meeting_id, ob.id);
     invalidate.invalidateOldBusiness();
     invalidate.invalidateMeeting(ob.meeting_id);
@@ -100,7 +100,7 @@ export function OldBusinessPanel() {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-2xl font-semibold">Old Business</h1>
+        <h1 className="text-2xl font-semibold">Open Business</h1>
         <Button onClick={() => setCreateOpen(true)}>
           <Plus className="size-4" />
           Add item
@@ -136,7 +136,7 @@ export function OldBusinessPanel() {
             ))}
           </ul>
           {openItems.length === 0 && (
-            <p className="text-sm text-muted-foreground">No open old business items.</p>
+            <p className="text-sm text-muted-foreground">No open business items.</p>
           )}
         </div>
 
@@ -176,7 +176,7 @@ export function OldBusinessPanel() {
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Add old business item</DialogTitle>
+            <DialogTitle>Add open business item</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
@@ -195,7 +195,7 @@ export function OldBusinessPanel() {
               </Select>
               {sortedMeetings.length === 0 && (
                 <p className="text-xs text-muted-foreground">
-                  Create a meeting first to add old business items.
+                  Create a meeting first to add open business items.
                 </p>
               )}
             </div>

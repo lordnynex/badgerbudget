@@ -65,10 +65,10 @@ export function MeetingsLayout() {
             <NavLink
               to="/meetings/old-business"
               className={({ isActive }) => navLinkClass({ isActive }, collapsed)}
-              title={collapsed ? "Old Business" : undefined}
+              title={collapsed ? "Open Business" : undefined}
             >
               <ClipboardList className="size-4 shrink-0" />
-              {!collapsed && <span>Old Business</span>}
+              {!collapsed && <span>Open Business</span>}
             </NavLink>
             <NavLink
               to="/meetings/roberts-rules"
@@ -145,7 +145,7 @@ export function MeetingsLayout() {
                       onClick={() => setMobileNavOpen(false)}
                     >
                       <ClipboardList className="size-4 shrink-0" />
-                      <span>Old Business</span>
+                      <span>Open Business</span>
                     </NavLink>
                     <NavLink
                       to="/meetings/roberts-rules"
