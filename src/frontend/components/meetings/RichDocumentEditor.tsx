@@ -67,6 +67,8 @@ interface RichDocumentEditorProps {
   fullHeight?: boolean;
   /** Compact display: no border, smaller typography, minimal min-height */
   compact?: boolean;
+  /** Keep toolbar visible when scrolling (sticky at top of editor area) */
+  stickyToolbar?: boolean;
 }
 
 export function RichDocumentEditor({
@@ -78,6 +80,7 @@ export function RichDocumentEditor({
   toolbarActions,
   fullHeight = false,
   compact = false,
+  stickyToolbar = false,
 }: RichDocumentEditorProps) {
   const editor = useEditor({
     extensions: [
@@ -165,7 +168,12 @@ export function RichDocumentEditor({
       )}
     >
       {editable && (
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b p-2">
+        <div
+          className={cn(
+            "flex flex-wrap items-center justify-between gap-2 border-b bg-background p-2",
+            stickyToolbar && "sticky top-0 z-10"
+          )}
+        >
           <div className="flex flex-wrap items-center gap-1">
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleBold().run()}

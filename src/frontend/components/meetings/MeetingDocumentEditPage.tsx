@@ -121,12 +121,13 @@ export function MeetingDocumentEditPage({
         </div>
       </div>
 
-      <div className="min-h-[500px] flex flex-col rounded-md border bg-background">
+      <div className="flex min-h-[400px] max-h-[calc(100vh-11rem)] flex-col rounded-md border bg-background">
         <RichDocumentEditor
           value={editContent}
           onChange={handleChange}
           placeholder={placeholder}
           fullHeight
+          stickyToolbar
         />
       </div>
     </div>
