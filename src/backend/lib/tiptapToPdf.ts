@@ -88,6 +88,7 @@ export function tiptapJsonToPdf(contentJson: string): Buffer {
   function checkPageBreak(needed: number) {
     if (y + needed > pageHeight - MARGIN) {
       doc.addPage();
+      doc.setPage(doc.getNumberOfPages());
       y = MARGIN;
     }
   }
@@ -186,7 +187,6 @@ export function tiptapJsonToPdf(contentJson: string): Buffer {
     const lh = fontSize * LINE_HEIGHT * 0.35;
 
     const logicalLines = buildLinesFromRuns(runs, fontSize, lineMaxWidth);
-    let lineY = y;
 
     for (const segments of logicalLines) {
       checkPageBreak(lh);
@@ -203,12 +203,11 @@ export function tiptapJsonToPdf(contentJson: string): Buffer {
 
       for (const seg of segments) {
         setFontStyle(fontSize, seg.bold, seg.italic);
-        doc.text(seg.text, segX, lineY);
+        doc.text(seg.text, segX, y);
         segX += doc.getTextWidth(seg.text);
       }
-      lineY += lh;
+      y += lh;
     }
-    y = lineY;
   }
 
   function processNode(node: ProseNode, listIndent = 0) {
@@ -281,7 +280,7 @@ export function tiptapJsonToPdf(contentJson: string): Buffer {
                 doc.setFont("helvetica", "normal");
                 const lines = doc.splitTextToSize(cell, colWidth - 2);
                 let lineY = cellY;
-                lines.forEach((line) => {
+                lines.forEach((line: string) => {
                   doc.text(line, MARGIN + colIdx * colWidth + 1, lineY + 3);
                   lineY += FONT_SIZES.small * 0.35;
                 });
