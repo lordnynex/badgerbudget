@@ -6,10 +6,13 @@ export class MeetingsApiClient {
     return unwrap(client.api.meetings["old-business"].get()) as Promise<OldBusinessItemWithMeeting[]>;
   }
 
-  listMotions(params?: { page?: number; per_page?: number; q?: string }) {
-    return unwrap(
-      client.api.meetings.motions.get(params ? { query: params } : undefined)
-    ) as Promise<MotionsListResponse>;
+  listMotions(params: { page: number; per_page: number; q?: string }) {
+    const query: { page: number; per_page: number; q?: string } = {
+      page: params.page,
+      per_page: params.per_page,
+    };
+    if (params.q != null && params.q !== "") query.q = params.q;
+    return unwrap(client.api.meetings.motions.get({ query })) as Promise<MotionsListResponse>;
   }
 
   list(options?: { sort?: "date" | "meeting_number" }) {

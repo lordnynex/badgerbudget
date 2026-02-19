@@ -408,8 +408,8 @@ export class MeetingsService {
       .addSelect("m.created_at", "m_created_at")
       .addSelect("mt.date", "meeting_date")
       .addSelect("mt.meeting_number", "meeting_number")
-      .skip(skip)
-      .take(perPage)
+      .offset(skip)
+      .limit(perPage)
       .getRawMany<{
         m_id: string;
         m_meeting_id: string;
