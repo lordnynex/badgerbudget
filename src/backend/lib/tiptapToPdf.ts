@@ -1,8 +1,47 @@
 /**
  * Converts TipTap/ProseMirror JSON to a clean PDF with formatted text only.
  * No background styling, minimal file size.
+ * Uses DejaVu Sans for Unicode support; characters outside the font (e.g. emoji) are removed to avoid corruption.
  */
+import { readFileSync } from "fs";
+import { join } from "path";
 import { jsPDF } from "jspdf";
+
+const FONT_FAMILY = "DejaVuSans";
+
+/** Remove characters that would corrupt PDF or aren't in our font (e.g. emoji in supplementary plane). */
+function sanitizeForPdf(text: string): string {
+  return text.replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, "");
+}
+
+let fontCache: { file: string; style: string; base64: string }[] | null = null;
+
+function loadDejaVuFonts(doc: jsPDF): boolean {
+  try {
+    if (!fontCache) {
+      const cwd = process.cwd();
+      const ttfDir = join(cwd, "node_modules", "dejavu-fonts-ttf", "ttf");
+      const fontSpecs: { file: string; style: string }[] = [
+        { file: "DejaVuSans.ttf", style: "normal" },
+        { file: "DejaVuSans-Bold.ttf", style: "bold" },
+        { file: "DejaVuSans-Oblique.ttf", style: "italic" },
+        { file: "DejaVuSans-BoldOblique.ttf", style: "bolditalic" },
+      ];
+      fontCache = fontSpecs.map(({ file, style }) => ({
+        file,
+        style,
+        base64: Buffer.from(readFileSync(join(ttfDir, file))).toString("base64"),
+      }));
+    }
+    for (const { file, style, base64 } of fontCache) {
+      doc.addFileToVFS(file, base64);
+      doc.addFont(file, FONT_FAMILY, style, undefined, "Identity-H");
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 type TextAlign = "left" | "center" | "right" | "justify";
 
@@ -18,7 +57,7 @@ type ProseNode = {
 type TextRun = { text: string; bold: boolean; italic: boolean };
 
 function getTextFromNode(node: ProseNode): string {
-  if (node.text) return node.text;
+  if (node.text) return sanitizeForPdf(node.text);
   if (!node.content) return "";
   return node.content.map(getTextFromNode).join("");
 }
@@ -37,7 +76,8 @@ function getTextRuns(node: ProseNode): TextRun[] {
     if (child.type === "text" && child.text != null) {
       const bold = child.marks?.some((m) => m.type === "bold") ?? false;
       const italic = child.marks?.some((m) => m.type === "italic") ?? false;
-      if (child.text.length) runs.push({ text: child.text, bold, italic });
+      const text = sanitizeForPdf(child.text);
+      if (text.length) runs.push({ text, bold, italic });
     } else if (child.content) {
       runs.push(...getTextRuns(child));
     }
@@ -63,6 +103,8 @@ export function tiptapJsonToPdf(contentJson: string): Buffer {
     format: "a4",
     compress: true,
   });
+
+  const useUnicodeFont = loadDejaVuFonts(doc);
 
   let parsed: ProseNode;
   try {
@@ -96,7 +138,7 @@ export function tiptapJsonToPdf(contentJson: string): Buffer {
   function setFontStyle(fontSize: number, bold: boolean, italic: boolean) {
     doc.setFontSize(fontSize);
     const style = bold && italic ? "bolditalic" : bold ? "bold" : italic ? "italic" : "normal";
-    doc.setFont("helvetica", style);
+    doc.setFont(useUnicodeFont ? FONT_FAMILY : "helvetica", style);
   }
 
   /** Reference x for alignment: left edge, page center, or right edge. */
