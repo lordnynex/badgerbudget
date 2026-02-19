@@ -46,7 +46,7 @@ export class DocumentsController extends BaseController {
     const doc = await this.api.documents.get(id);
     if (!doc) return this.notFound();
     const pdfBuffer = await tiptapJsonToPdf(doc.content);
-    return new Response(pdfBuffer, {
+    return new Response(new Uint8Array(pdfBuffer), {
       headers: {
         "Content-Type": "application/pdf",
         "Content-Disposition": `attachment; filename="document-${id}.pdf"`,
