@@ -11,6 +11,7 @@ import { QrCodesService } from "./QrCodesService";
 import { MeetingsService } from "./MeetingsService";
 import { MeetingTemplatesService } from "./MeetingTemplatesService";
 import { DocumentsService } from "./DocumentsService";
+import { CommitteesService } from "./CommitteesService";
 
 export function createApi(db: DbLike, ds: DataSource) {
   const eventsService = new EventsService(db, ds);
@@ -24,6 +25,7 @@ export function createApi(db: DbLike, ds: DataSource) {
   const meetingsService = new MeetingsService(ds);
   const meetingTemplatesService = new MeetingTemplatesService(ds);
   const documentsService = new DocumentsService(ds);
+  const committeesService = new CommitteesService(ds);
 
   return {
     events: eventsService,
@@ -37,6 +39,7 @@ export function createApi(db: DbLike, ds: DataSource) {
     meetings: meetingsService,
     meetingTemplates: meetingTemplatesService,
     documents: documentsService,
+    committees: committeesService,
   };
 }
 

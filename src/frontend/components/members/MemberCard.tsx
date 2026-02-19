@@ -1,14 +1,16 @@
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
-import { Baby, ChevronRight, User } from "lucide-react";
+import { Baby, ChevronRight, User, Gavel } from "lucide-react";
 import type { Member } from "@/types/budget";
 import { formatMemberSinceDisplay } from "./memberUtils";
 
 interface MemberCardProps {
   member: Member;
   onNavigate: (id: string) => void;
+  /** When true, show a chairperson indicator on the card */
+  isChair?: boolean;
 }
 
-export function MemberCard({ member, onNavigate }: MemberCardProps) {
+export function MemberCard({ member, onNavigate, isChair }: MemberCardProps) {
   return (
     <Card
       className="overflow-hidden cursor-pointer transition-all hover:shadow-md hover:border-primary/50 active:scale-[0.99]"
@@ -24,8 +26,17 @@ export function MemberCard({ member, onNavigate }: MemberCardProps) {
             )}
           </div>
           <div className="min-w-0 flex-1">
-            <CardTitle className="text-lg truncate flex items-center gap-1.5">
+            <CardTitle className="text-lg truncate flex items-center gap-1.5 flex-wrap">
               {member.name}
+              {isChair && (
+                <span
+                  title="Chairperson"
+                  className="inline-flex items-center gap-1 rounded bg-primary/10 px-1.5 py-0.5 text-xs font-medium text-primary shrink-0"
+                >
+                  <Gavel className="size-3" />
+                  Chair
+                </span>
+              )}
               {member.is_baby && (
               <span title="Baby" className="shrink-0">
                 <Baby className="size-4 text-muted-foreground" />

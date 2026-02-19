@@ -26,6 +26,9 @@ export function CreateMeetingPage() {
   const [date, setDate] = useState("");
   const [meetingNumber, setMeetingNumber] = useState<number | "">("");
   const [location, setLocation] = useState("");
+  const [startTime, setStartTime] = useState("");
+  const [endTime, setEndTime] = useState("");
+  const [videoConferenceUrl, setVideoConferenceUrl] = useState("");
   const [agendaTemplateId, setAgendaTemplateId] = useState<string>("__none__");
   const [saving, setSaving] = useState(false);
 
@@ -49,6 +52,9 @@ export function CreateMeetingPage() {
         date,
         meeting_number: Number(meetingNumber),
         location: location.trim() || null,
+        start_time: startTime.trim() || null,
+        end_time: endTime.trim() || null,
+        video_conference_url: videoConferenceUrl.trim() || null,
         agenda_template_id:
           agendaTemplateId === "__none__" ? undefined : agendaTemplateId,
       });
@@ -101,6 +107,36 @@ export function CreateMeetingPage() {
               value={location}
               onChange={(e) => setLocation(e.target.value)}
               placeholder="Meeting location"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="start-time">Start time</Label>
+              <Input
+                id="start-time"
+                type="time"
+                value={startTime}
+                onChange={(e) => setStartTime(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="end-time">End time</Label>
+              <Input
+                id="end-time"
+                type="time"
+                value={endTime}
+                onChange={(e) => setEndTime(e.target.value)}
+              />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="video-url">Video conference URL</Label>
+            <Input
+              id="video-url"
+              type="url"
+              value={videoConferenceUrl}
+              onChange={(e) => setVideoConferenceUrl(e.target.value)}
+              placeholder="https://..."
             />
           </div>
           <div className="space-y-2">

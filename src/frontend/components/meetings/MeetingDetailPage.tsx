@@ -23,12 +23,16 @@ import { ActionItemsCard } from "./ActionItemsCard";
 import { NewBusinessCard } from "./NewBusinessCard";
 import {
   ArrowLeft,
-  Pencil,
-  X,
+  Calendar,
   ChevronDown,
   ChevronRight,
+  Clock,
   FileDown,
+  MapPin,
+  Pencil,
   Trash2,
+  Video,
+  X,
 } from "lucide-react";
 import { api } from "@/data/api";
 import { formatDateOnly } from "@/lib/date-utils";
@@ -50,6 +54,9 @@ export function MeetingDetailPage() {
   const [meetingNumber, setMeetingNumber] = useState(meeting.meeting_number);
   const [date, setDate] = useState(meeting.date);
   const [location, setLocation] = useState(meeting.location ?? "");
+  const [startTime, setStartTime] = useState(meeting.start_time ?? "");
+  const [endTime, setEndTime] = useState(meeting.end_time ?? "");
+  const [videoConferenceUrl, setVideoConferenceUrl] = useState(meeting.video_conference_url ?? "");
 
   const handleMetadataSave = async () => {
     const num = Number(meetingNumber);
@@ -64,6 +71,9 @@ export function MeetingDetailPage() {
         meeting_number: num,
         date,
         location: location.trim() || null,
+        start_time: startTime.trim() || null,
+        end_time: endTime.trim() || null,
+        video_conference_url: videoConferenceUrl.trim() || null,
       });
       invalidate.invalidateMeeting(id!);
       invalidate.invalidateMeetings();
@@ -77,6 +87,9 @@ export function MeetingDetailPage() {
     setMeetingNumber(meeting.meeting_number);
     setDate(meeting.date);
     setLocation(meeting.location ?? "");
+    setStartTime(meeting.start_time ?? "");
+    setEndTime(meeting.end_time ?? "");
+    setVideoConferenceUrl(meeting.video_conference_url ?? "");
     setEditingMetadata(false);
   };
 
@@ -180,6 +193,27 @@ export function MeetingDetailPage() {
                   onChange={(e) => setLocation(e.target.value)}
                   className="h-9 w-48"
                 />
+                <Input
+                  type="time"
+                  value={startTime}
+                  onChange={(e) => setStartTime(e.target.value)}
+                  className="h-9 w-28"
+                  title="Start time"
+                />
+                <Input
+                  type="time"
+                  value={endTime}
+                  onChange={(e) => setEndTime(e.target.value)}
+                  className="h-9 w-28"
+                  title="End time"
+                />
+                <Input
+                  type="url"
+                  placeholder="Video URL"
+                  value={videoConferenceUrl}
+                  onChange={(e) => setVideoConferenceUrl(e.target.value)}
+                  className="h-9 w-48"
+                />
                 <Button
                   size="sm"
                   onClick={handleMetadataSave}
@@ -224,6 +258,21 @@ export function MeetingDetailPage() {
                     • {meeting.location}
                   </span>
                 )}
+                {(meeting.start_time || meeting.end_time) && (
+                  <span className="text-muted-foreground">
+                    • {[meeting.start_time, meeting.end_time].filter(Boolean).join(" – ")}
+                  </span>
+                )}
+                {meeting.video_conference_url && (
+                  <a
+                    href={meeting.video_conference_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline text-sm"
+                  >
+                    Video call
+                  </a>
+                )}
                 <Button
                   variant="ghost"
                   size="sm"
@@ -236,6 +285,44 @@ export function MeetingDetailPage() {
               </div>
             )}
           </div>
+        </div>
+      </div>
+
+      {/* Meeting info header */}
+      <div className="rounded-lg border bg-muted/30 px-4 py-3">
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+          <span className="flex items-center gap-2 text-sm">
+            <Calendar className="size-4 text-muted-foreground" />
+            <span className="text-muted-foreground">Date</span>
+            <span className="font-medium">{formatDateOnly(meeting.date)}</span>
+          </span>
+          {(meeting.start_time || meeting.end_time) && (
+            <span className="flex items-center gap-2 text-sm">
+              <Clock className="size-4 text-muted-foreground" />
+              <span className="text-muted-foreground">Time</span>
+              <span className="font-medium">
+                {[meeting.start_time, meeting.end_time].filter(Boolean).join(" – ")}
+              </span>
+            </span>
+          )}
+          {meeting.location && (
+            <span className="flex items-center gap-2 text-sm">
+              <MapPin className="size-4 text-muted-foreground" />
+              <span className="text-muted-foreground">Location</span>
+              <span className="font-medium">{meeting.location}</span>
+            </span>
+          )}
+          {meeting.video_conference_url && (
+            <a
+              href={meeting.video_conference_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+            >
+              <Video className="size-4" />
+              Join video call
+            </a>
+          )}
         </div>
       </div>
 

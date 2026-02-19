@@ -36,6 +36,14 @@ import { BylawsPage } from "@/components/meetings/BylawsPage";
 import { RobertsRulesPage } from "@/components/meetings/RobertsRulesPage";
 import { OldBusinessPanel } from "@/components/meetings/OldBusinessPanel";
 import { MotionsPanel } from "@/components/meetings/MotionsPanel";
+import {
+  CommitteesPanel,
+  CommitteeDetailPage,
+  CreateCommitteePage,
+  CreateCommitteeMeetingPage,
+  CommitteeMeetingDetailPage,
+  CommitteeMeetingDocumentEditPage,
+} from "@/components/committees";
 import { PrintView } from "@/components/export/PrintView";
 import { EmailView } from "@/components/export/EmailView";
 import {
@@ -197,6 +205,78 @@ function AppContent() {
                   <Suspense fallback={<PageLoading />}>
                     <CreateMeetingPage />
                   </Suspense>
+                }
+              />
+              <Route
+                path="committees"
+                element={
+                  <Suspense fallback={<PageLoading />}>
+                    <CommitteesPanel />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="committees/new"
+                element={
+                  <Suspense fallback={<PageLoading />}>
+                    <CreateCommitteePage />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="committees/:id"
+                element={
+                  <IdParamGuard param="id">
+                    <Suspense fallback={<PageLoading />}>
+                      <CommitteeDetailPage />
+                    </Suspense>
+                  </IdParamGuard>
+                }
+              />
+              <Route
+                path="committees/:id/meetings/new"
+                element={
+                  <IdParamGuard param="id">
+                    <Suspense fallback={<PageLoading />}>
+                      <CreateCommitteeMeetingPage />
+                    </Suspense>
+                  </IdParamGuard>
+                }
+              />
+              <Route
+                path="committees/:id/meetings/:meetingId"
+                element={
+                  <IdParamGuard param="id">
+                    <IdParamGuard param="meetingId">
+                      <Suspense fallback={<PageLoading />}>
+                        <CommitteeMeetingDetailPage />
+                      </Suspense>
+                    </IdParamGuard>
+                  </IdParamGuard>
+                }
+              />
+              <Route
+                path="committees/:id/meetings/:meetingId/agenda/edit"
+                element={
+                  <IdParamGuard param="id">
+                    <IdParamGuard param="meetingId">
+                      <Suspense fallback={<PageLoading />}>
+                        <CommitteeMeetingDocumentEditPage documentType="agenda" />
+                      </Suspense>
+                    </IdParamGuard>
+                  </IdParamGuard>
+                }
+              />
+              <Route
+                path="committees/:id/meetings/:meetingId/minutes/edit"
+                element={
+                  <IdParamGuard param="id">
+                    <IdParamGuard param="meetingId">
+                      <Suspense fallback={<PageLoading />}>
+                        <CommitteeMeetingDocumentEditPage documentType="minutes" />
+                      </Suspense>
+                    </IdParamGuard>
+                  </IdParamGuard>
                 }
               />
               <Route

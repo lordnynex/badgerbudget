@@ -3,6 +3,11 @@ export interface MeetingSummary {
   date: string;
   meeting_number: number;
   location: string | null;
+  /** Start time as HH:mm (e.g. "19:00") */
+  start_time: string | null;
+  /** End time as HH:mm */
+  end_time: string | null;
+  video_conference_url: string | null;
   previous_meeting_id: string | null;
   agenda_document_id: string;
   minutes_document_id: string | null;

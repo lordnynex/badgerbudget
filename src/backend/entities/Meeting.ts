@@ -14,6 +14,15 @@ export class Meeting {
   @Column({ type: "text", nullable: true })
   location!: string | null;
 
+  @Column({ name: "start_time", type: "text", nullable: true })
+  startTime!: string | null;
+
+  @Column({ name: "end_time", type: "text", nullable: true })
+  endTime!: string | null;
+
+  @Column({ name: "video_conference_url", type: "text", nullable: true })
+  videoConferenceUrl!: string | null;
+
   @Column({ name: "previous_meeting_id", type: "text", nullable: true })
   previousMeetingId!: string | null;
 

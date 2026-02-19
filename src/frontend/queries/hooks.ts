@@ -211,6 +211,36 @@ export function useMotionsList(page: number, perPage: number, q?: string) {
   });
 }
 
+// —— Committees
+export function useCommitteesSuspense(sort?: "formed_date" | "name") {
+  return useSuspenseQuery({
+    queryKey: queryKeys.committees(sort),
+    queryFn: () => api.committees.list(sort ? { sort } : undefined),
+  });
+}
+
+export function useCommitteeSuspense(id: string) {
+  return useSuspenseQuery({
+    queryKey: queryKeys.committee(id),
+    queryFn: () => api.committees.get(id),
+  });
+}
+
+export function useCommitteeMeetingsSuspense(committeeId: string) {
+  return useSuspenseQuery({
+    queryKey: queryKeys.committeeMeetings(committeeId),
+    queryFn: () =>
+      api.committees.listMeetings(committeeId).then((r) => r ?? []),
+  });
+}
+
+export function useCommitteeMeetingSuspense(committeeId: string, meetingId: string) {
+  return useSuspenseQuery({
+    queryKey: queryKeys.committeeMeeting(committeeId, meetingId),
+    queryFn: () => api.committees.getMeeting(committeeId, meetingId),
+  });
+}
+
 // —— Meeting templates
 export function useMeetingTemplatesSuspense(type?: "agenda" | "minutes") {
   return useSuspenseQuery({
@@ -294,5 +324,13 @@ export function useInvalidateQueries() {
       qc.invalidateQueries({ queryKey: queryKeys.meetingTemplate(id) }),
     setMeetingTemplateData: (id: string, data: import("@/shared/types/meeting").MeetingTemplate) =>
       qc.setQueryData(queryKeys.meetingTemplate(id), data),
+    invalidateCommittees: () =>
+      qc.invalidateQueries({ queryKey: queryKeys.committees() }),
+    invalidateCommittee: (id: string) =>
+      qc.invalidateQueries({ queryKey: queryKeys.committee(id) }),
+    invalidateCommitteeMeetings: (committeeId: string) =>
+      qc.invalidateQueries({ queryKey: queryKeys.committeeMeetings(committeeId) }),
+    invalidateCommitteeMeeting: (committeeId: string, meetingId: string) =>
+      qc.invalidateQueries({ queryKey: queryKeys.committeeMeeting(committeeId, meetingId) }),
   };
 }

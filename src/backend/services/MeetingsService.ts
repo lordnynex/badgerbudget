@@ -36,6 +36,9 @@ export class MeetingsService {
     date: string;
     meeting_number: number;
     location?: string | null;
+    start_time?: string | null;
+    end_time?: string | null;
+    video_conference_url?: string | null;
     previous_meeting_id?: string | null;
     agenda_content?: string;
     minutes_content?: string | null;
@@ -73,6 +76,9 @@ export class MeetingsService {
       date: body.date,
       meetingNumber: body.meeting_number,
       location: body.location ?? null,
+      startTime: body.start_time ?? null,
+      endTime: body.end_time ?? null,
+      videoConferenceUrl: body.video_conference_url ?? null,
       previousMeetingId: body.previous_meeting_id ?? null,
       agendaDocumentId: agendaDoc.id,
       minutesDocumentId: minutesDoc.id,
@@ -190,6 +196,9 @@ export class MeetingsService {
     if (body.date !== undefined) updates.date = body.date as string;
     if (body.meeting_number !== undefined) updates.meetingNumber = body.meeting_number as number;
     if (body.location !== undefined) updates.location = body.location as string | null;
+    if (body.start_time !== undefined) updates.startTime = body.start_time as string | null;
+    if (body.end_time !== undefined) updates.endTime = body.end_time as string | null;
+    if (body.video_conference_url !== undefined) updates.videoConferenceUrl = body.video_conference_url as string | null;
     if (body.previous_meeting_id !== undefined) updates.previousMeetingId = body.previous_meeting_id as string | null;
     updates.updatedAt = new Date().toISOString();
     await this.ds.getRepository(Meeting).update(id, updates);
@@ -512,6 +521,9 @@ export class MeetingsService {
       date: m.date,
       meeting_number: m.meetingNumber,
       location: m.location ?? null,
+      start_time: m.startTime ?? null,
+      end_time: m.endTime ?? null,
+      video_conference_url: m.videoConferenceUrl ?? null,
       previous_meeting_id: m.previousMeetingId ?? null,
       agenda_document_id: m.agendaDocumentId,
       minutes_document_id: m.minutesDocumentId ?? null,

@@ -36,3 +36,6 @@ export { MeetingMotion } from "./MeetingMotion";
 export { MeetingActionItem } from "./MeetingActionItem";
 export { OldBusinessItem } from "./OldBusinessItem";
 export { MeetingTemplate } from "./MeetingTemplate";
+export { Committee } from "./Committee";
+export { CommitteeMember } from "./CommitteeMember";
+export { CommitteeMeeting } from "./CommitteeMeeting";

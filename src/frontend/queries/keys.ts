@@ -30,4 +30,11 @@ export const queryKeys = {
     type ? (["meetingTemplates", type] as const) : (["meetingTemplates"] as const),
   meetingTemplate: (id: string) => ["meetingTemplate", id] as const,
   oldBusiness: ["oldBusiness"] as const,
+  committees: (sort?: string) =>
+    sort ? (["committees", sort] as const) : (["committees"] as const),
+  committee: (id: string) => ["committee", id] as const,
+  committeeMeetings: (committeeId: string) =>
+    ["committee", committeeId, "meetings"] as const,
+  committeeMeeting: (committeeId: string, meetingId: string) =>
+    ["committee", committeeId, "meeting", meetingId] as const,
 } as const;

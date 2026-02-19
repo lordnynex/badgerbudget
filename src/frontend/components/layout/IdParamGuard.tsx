@@ -4,8 +4,8 @@ import { NotFoundPage } from "./NotFoundPage";
 
 type IdParamGuardProps = {
   children: React.ReactNode;
-  /** Route param name (default: "id"). Use "listId", "batchId", etc. for other routes. */
-  param?: "id" | "listId" | "batchId";
+  /** Route param name (default: "id"). Use "listId", "batchId", "meetingId", etc. for other routes. */
+  param?: "id" | "listId" | "batchId" | "meetingId";
 };
 
 /**

@@ -40,6 +40,9 @@ import {
   MeetingActionItem,
   OldBusinessItem,
   MeetingTemplate,
+  Committee,
+  CommitteeMember,
+  CommitteeMeeting,
 } from "../entities";
 import { InitialSchema1700000000000 } from "./migrations/1700000000000-InitialSchema.ts";
 import { AddMemberPhotoThumbnail1739750400000 } from "./migrations/1739750400000-AddMemberPhotoThumbnail.ts";
@@ -58,17 +61,19 @@ import { AddEventRideMemberAttendees1740000009000 } from "./migrations/174000000
 import { AddMeetingsAndRelated1740000010000 } from "./migrations/1740000010000-AddMeetingsAndRelated.ts";
 import { AddDocumentsTable1740000011000 } from "./migrations/1740000011000-AddDocumentsTable.ts";
 import { AddMotionMoverSeconder1740000012000 } from "./migrations/1740000012000-AddMotionMoverSeconder.ts";
+import { AddCommittees1740000013000 } from "./migrations/1740000013000-AddCommittees.ts";
+import { AddMeetingTimesAndVideoUrl1740000014000 } from "./migrations/1740000014000-AddMeetingTimesAndVideoUrl.ts";
 
 const projectRoot = join(import.meta.dir, "../../..");
 const dbPath = join(projectRoot, "data", "badger.db");
 
-const dataSourceOptions: DataSourceOptions = {
+export const dataSourceOptions: DataSourceOptions = {
   name: "badger",
   type: "sqljs",
   location: dbPath,
   autoSave: true,
   synchronize: false,
-  migrations: [InitialSchema1700000000000, AddMemberPhotoThumbnail1739750400000, RemoveAuditLog1739900000000, AddMailingListDeliveryType1740000000000, AddContactNotesTable1740000001000, AddContactPhotosTable1740000002000, AddQrCodesTable1740000003000, AddContactHellenicDeceased1740000004000, AddContactEmergencyContactsTable1740000005000, AddContactOkToSms1740000006000, AddEventType1740000007000, AddEventPhotosTable1740000007500, AddRideFieldsAndAttendeesAssets1740000008000, AddEventRideMemberAttendees1740000009000, AddMeetingsAndRelated1740000010000, AddDocumentsTable1740000011000, AddMotionMoverSeconder1740000012000],
+  migrations: [InitialSchema1700000000000, AddMemberPhotoThumbnail1739750400000, RemoveAuditLog1739900000000, AddMailingListDeliveryType1740000000000, AddContactNotesTable1740000001000, AddContactPhotosTable1740000002000, AddQrCodesTable1740000003000, AddContactHellenicDeceased1740000004000, AddContactEmergencyContactsTable1740000005000, AddContactOkToSms1740000006000, AddEventType1740000007000, AddEventPhotosTable1740000007500, AddRideFieldsAndAttendeesAssets1740000008000, AddEventRideMemberAttendees1740000009000, AddMeetingsAndRelated1740000010000, AddDocumentsTable1740000011000, AddMotionMoverSeconder1740000012000, AddCommittees1740000013000, AddMeetingTimesAndVideoUrl1740000014000],
   migrationsRun: true,
   entities: [
     Event,
@@ -109,6 +114,9 @@ const dataSourceOptions: DataSourceOptions = {
     MeetingActionItem,
     OldBusinessItem,
     MeetingTemplate,
+    Committee,
+    CommitteeMember,
+    CommitteeMeeting,
   ],
 };
 
