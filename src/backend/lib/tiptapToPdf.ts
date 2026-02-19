@@ -168,7 +168,7 @@ export function tiptapJsonToPdf(contentJson: string): Buffer {
         lines.push(currentLine);
         currentLine = [];
         currentLineWidth = 0;
-        remaining = remaining.slice(first.length);
+        remaining = remaining.slice(first.length).replace(/^\s+/, "");
       }
     }
     if (currentLine.length > 0) lines.push(currentLine);
