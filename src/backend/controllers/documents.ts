@@ -19,23 +19,33 @@ export class DocumentsController extends BaseController {
       .get("/:id/versions", ({ params }) => this.listVersions(params.id), {
         params: DocumentsDto.params,
       })
-      .get("/:id/versions/:vid", ({ params }) => this.getVersion(params.id, params.vid), {
-        params: DocumentsDto.idVid,
-      })
-      .post("/:id/restore", ({ params, body }) => this.restore(params.id, body), {
-        params: DocumentsDto.params,
-        body: DocumentsDto.restoreBody,
-      });
+      .get(
+        "/:id/versions/:vid",
+        ({ params }) => this.getVersion(params.id, params.vid),
+        {
+          params: DocumentsDto.idVid,
+        },
+      )
+      .post(
+        "/:id/restore",
+        ({ params, body }) => this.restore(params.id, body),
+        {
+          params: DocumentsDto.params,
+          body: DocumentsDto.restoreBody,
+        },
+      );
   }
 
   private get(id: string) {
-    return this.api.documents.get(id).then((d) => (d ? this.json(d) : this.notFound()));
+    return this.api.documents
+      .get(id)
+      .then((d) => (d ? this.json(d) : this.notFound()));
   }
 
   private async exportPdf(id: string) {
     const doc = await this.api.documents.get(id);
     if (!doc) return this.notFound();
-    const pdfBuffer = tiptapJsonToPdf(doc.content);
+    const pdfBuffer = await tiptapJsonToPdf(doc.content);
     return new Response(pdfBuffer, {
       headers: {
         "Content-Type": "application/pdf",
@@ -45,7 +55,9 @@ export class DocumentsController extends BaseController {
   }
 
   private update(id: string, body: { content: string }) {
-    return this.api.documents.update(id, body).then((d) => (d ? this.json(d) : this.notFound()));
+    return this.api.documents
+      .update(id, body)
+      .then((d) => (d ? this.json(d) : this.notFound()));
   }
 
   private listVersions(id: string) {
@@ -60,7 +72,10 @@ export class DocumentsController extends BaseController {
       .then((v) => (v ? this.json(v) : this.notFound()));
   }
 
-  private restore(id: string, body: { version_id?: string; version_number?: number }) {
+  private restore(
+    id: string,
+    body: { version_id?: string; version_number?: number },
+  ) {
     return this.api.documents
       .restore(id, body.version_id, body.version_number)
       .then((d) => (d ? this.json(d) : this.notFound()));

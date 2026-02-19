@@ -1,17 +1,67 @@
 /**
  * Converts TipTap/ProseMirror JSON to a clean PDF with formatted text only.
  * No background styling, minimal file size.
- * Uses DejaVu Sans for Unicode support; characters outside the font (e.g. emoji) are removed to avoid corruption.
+ * Uses DejaVu Sans for Unicode; emoji are rendered as inline images (Twemoji).
  */
 import { readFileSync } from "fs";
 import { join } from "path";
 import { jsPDF } from "jspdf";
 
 const FONT_FAMILY = "DejaVuSans";
+const TWEMOJI_CDN =
+  "https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72";
+/** Emoji drawn at this size in mm to align with body text. */
+const EMOJI_SIZE_MM = 4;
 
-/** Remove characters that would corrupt PDF or aren't in our font (e.g. emoji in supplementary plane). */
+/** Remove characters that would corrupt PDF or aren't in our font (e.g. replacement chars). */
 function sanitizeForPdf(text: string): string {
   return text.replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, "");
+}
+
+/** Segment of content: either text or an emoji (by Unicode codepoint hex). */
+type ContentSegment =
+  | { type: "text"; content: string }
+  | { type: "emoji"; codepoint: string };
+
+/** Segment for paragraph runs: text with formatting or emoji. */
+type RunSegment =
+  | { type: "text"; content: string; bold: boolean; italic: boolean }
+  | { type: "emoji"; codepoint: string };
+
+/** Split string into alternating text and emoji segments (emoji = supplementary plane). */
+function splitIntoTextAndEmoji(text: string): ContentSegment[] {
+  const segments: ContentSegment[] = [];
+  const re = /([\uD800-\uDBFF][\uDC00-\uDFFF])/g;
+  let lastIndex = 0;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text)) !== null) {
+    if (m.index > lastIndex)
+      segments.push({ type: "text", content: text.slice(lastIndex, m.index) });
+    const codepoint = (m[0].codePointAt(0) ?? 0).toString(16);
+    segments.push({ type: "emoji", codepoint });
+    lastIndex = m.index + m[0].length;
+  }
+  if (lastIndex < text.length)
+    segments.push({ type: "text", content: text.slice(lastIndex) });
+  return segments;
+}
+
+const emojiImageCache = new Map<string, string>();
+
+async function getEmojiBase64(codepoint: string): Promise<string> {
+  const cached = emojiImageCache.get(codepoint);
+  if (cached) return cached;
+  try {
+    const url = `${TWEMOJI_CDN}/${codepoint}.png`;
+    const res = await fetch(url);
+    if (!res.ok) return "";
+    const buf = await res.arrayBuffer();
+    const base64 = Buffer.from(buf).toString("base64");
+    emojiImageCache.set(codepoint, base64);
+    return base64;
+  } catch {
+    return "";
+  }
 }
 
 let fontCache: { file: string; style: string; base64: string }[] | null = null;
@@ -30,7 +80,9 @@ function loadDejaVuFonts(doc: jsPDF): boolean {
       fontCache = fontSpecs.map(({ file, style }) => ({
         file,
         style,
-        base64: Buffer.from(readFileSync(join(ttfDir, file))).toString("base64"),
+        base64: Buffer.from(readFileSync(join(ttfDir, file))).toString(
+          "base64",
+        ),
       }));
     }
     for (const { file, style, base64 } of fontCache) {
@@ -56,8 +108,9 @@ type ProseNode = {
 /** A segment of text with inline formatting (bold/italic) for PDF output */
 type TextRun = { text: string; bold: boolean; italic: boolean };
 
+/** Raw text from node (may include emoji). Sanitize at use site when drawing. */
 function getTextFromNode(node: ProseNode): string {
-  if (node.text) return sanitizeForPdf(node.text);
+  if (node.text) return node.text;
   if (!node.content) return "";
   return node.content.map(getTextFromNode).join("");
 }
@@ -76,8 +129,7 @@ function getTextRuns(node: ProseNode): TextRun[] {
     if (child.type === "text" && child.text != null) {
       const bold = child.marks?.some((m) => m.type === "bold") ?? false;
       const italic = child.marks?.some((m) => m.type === "italic") ?? false;
-      const text = sanitizeForPdf(child.text);
-      if (text.length) runs.push({ text, bold, italic });
+      if (child.text.length) runs.push({ text: child.text, bold, italic });
     } else if (child.content) {
       runs.push(...getTextRuns(child));
     }
@@ -92,11 +144,12 @@ const FONT_SIZES = { h1: 18, h2: 14, h3: 12, body: 11, small: 9 };
 const EMPTY_PARAGRAPH_GAP_MM = 4;
 
 function toTextAlign(value: unknown): TextAlign {
-  if (value === "center" || value === "right" || value === "justify") return value;
+  if (value === "center" || value === "right" || value === "justify")
+    return value;
   return "left";
 }
 
-export function tiptapJsonToPdf(contentJson: string): Buffer {
+export async function tiptapJsonToPdf(contentJson: string): Promise<Buffer> {
   const doc = new jsPDF({
     orientation: "portrait",
     unit: "mm",
@@ -112,7 +165,9 @@ export function tiptapJsonToPdf(contentJson: string): Buffer {
   } catch {
     parsed = {
       type: "doc",
-      content: [{ type: "paragraph", content: [{ type: "text", text: contentJson }] }],
+      content: [
+        { type: "paragraph", content: [{ type: "text", text: contentJson }] },
+      ],
     };
   }
 
@@ -137,7 +192,14 @@ export function tiptapJsonToPdf(contentJson: string): Buffer {
 
   function setFontStyle(fontSize: number, bold: boolean, italic: boolean) {
     doc.setFontSize(fontSize);
-    const style = bold && italic ? "bolditalic" : bold ? "bold" : italic ? "italic" : "normal";
+    const style =
+      bold && italic
+        ? "bolditalic"
+        : bold
+          ? "bold"
+          : italic
+            ? "italic"
+            : "normal";
     doc.setFont(useUnicodeFont ? FONT_FAMILY : "helvetica", style);
   }
 
@@ -148,7 +210,57 @@ export function tiptapJsonToPdf(contentJson: string): Buffer {
     return MARGIN + indent;
   }
 
-  function addText(
+  /** Build lines from content segments (text + emoji). Text wraps; emoji are atomic. */
+  function buildLinesFromContentSegments(
+    segments: ContentSegment[],
+    lineMaxWidth: number,
+    fontSize: number,
+    bold: boolean,
+    italic: boolean,
+  ): ContentSegment[][] {
+    const lines: ContentSegment[][] = [];
+    let currentLine: ContentSegment[] = [];
+    let currentWidth = 0;
+
+    setFontStyle(fontSize, bold, italic);
+    for (const seg of segments) {
+      if (seg.type === "emoji") {
+        if (
+          currentWidth + EMOJI_SIZE_MM > lineMaxWidth &&
+          currentLine.length > 0
+        ) {
+          lines.push(currentLine);
+          currentLine = [];
+          currentWidth = 0;
+        }
+        currentLine.push(seg);
+        currentWidth += EMOJI_SIZE_MM;
+        continue;
+      }
+      let remaining = sanitizeForPdf(seg.content);
+      while (remaining.length > 0) {
+        const spaceLeft = lineMaxWidth - currentWidth;
+        setFontStyle(fontSize, bold, italic);
+        const runLines = doc.splitTextToSize(remaining, Math.max(1, spaceLeft));
+        if (runLines.length === 0) break;
+        const first = runLines[0];
+        if (first.length === 0) break;
+        setFontStyle(fontSize, bold, italic);
+        const firstW = doc.getTextWidth(first);
+        currentLine.push({ type: "text", content: first });
+        currentWidth += firstW;
+        if (runLines.length === 1) break;
+        lines.push(currentLine);
+        currentLine = [];
+        currentWidth = 0;
+        remaining = remaining.slice(first.length).replace(/^\s+/, "");
+      }
+    }
+    if (currentLine.length > 0) lines.push(currentLine);
+    return lines;
+  }
+
+  async function addText(
     text: string,
     options: {
       fontSize?: number;
@@ -156,7 +268,7 @@ export function tiptapJsonToPdf(contentJson: string): Buffer {
       italic?: boolean;
       indent?: number;
       align?: TextAlign;
-    } = {}
+    } = {},
   ) {
     const {
       fontSize = FONT_SIZES.body,
@@ -165,51 +277,122 @@ export function tiptapJsonToPdf(contentJson: string): Buffer {
       indent = 0,
       align = "left",
     } = options;
-    setFontStyle(fontSize, bold, italic);
-    const lines = doc.splitTextToSize(text, maxWidth - indent);
+    const lineMaxWidth = maxWidth - indent;
+    const segments = splitIntoTextAndEmoji(text);
+    const lines = buildLinesFromContentSegments(
+      segments,
+      lineMaxWidth,
+      fontSize,
+      bold,
+      italic,
+    );
     const lh = fontSize * LINE_HEIGHT * 0.35;
-    const refX = getTextRefX(align, indent);
-    const textOpts = align !== "left" && align !== "justify" ? { align } : undefined;
+    const leftX = MARGIN + indent;
+    const rightX = pageWidth - MARGIN;
+
     for (const line of lines) {
       checkPageBreak(lh);
-      doc.text(line, refX, y, textOpts);
+      setFontStyle(fontSize, bold, italic);
+      let totalLineWidth = 0;
+      for (const seg of line) {
+        if (seg.type === "text")
+          totalLineWidth += doc.getTextWidth(seg.content);
+        else totalLineWidth += EMOJI_SIZE_MM;
+      }
+      let x: number;
+      if (align === "center") x = pageWidth / 2 - totalLineWidth / 2;
+      else if (align === "right") x = rightX - totalLineWidth;
+      else x = leftX;
+
+      for (const seg of line) {
+        if (seg.type === "text") {
+          doc.text(seg.content, x, y);
+          x += doc.getTextWidth(seg.content);
+        } else {
+          const base64 = await getEmojiBase64(seg.codepoint);
+          if (base64)
+            doc.addImage(
+              base64,
+              "PNG",
+              x,
+              y - EMOJI_SIZE_MM,
+              EMOJI_SIZE_MM,
+              EMOJI_SIZE_MM,
+            );
+          x += EMOJI_SIZE_MM;
+        }
+      }
       y += lh;
     }
   }
 
-  /** Build logical lines (each line = list of segments) from runs with wrapping. */
-  function buildLinesFromRuns(
-    runs: TextRun[],
-    fontSize: number,
-    lineMaxWidth: number
-  ): TextRun[][] {
-    const lines: TextRun[][] = [];
-    let currentLine: TextRun[] = [];
-    let currentLineWidth = 0;
-
+  /** Flatten runs into run segments (text with formatting or emoji). */
+  function runsToSegments(runs: TextRun[]): RunSegment[] {
+    const out: RunSegment[] = [];
     for (const run of runs) {
       if (!run.text.length) continue;
-      setFontStyle(fontSize, run.bold, run.italic);
-      let remaining = run.text;
+      const parts = splitIntoTextAndEmoji(run.text);
+      for (const p of parts) {
+        if (p.type === "text") {
+          const content = sanitizeForPdf(p.content);
+          if (content.length)
+            out.push({
+              type: "text",
+              content,
+              bold: run.bold,
+              italic: run.italic,
+            });
+        } else out.push({ type: "emoji", codepoint: p.codepoint });
+      }
+    }
+    return out;
+  }
+
+  /** Build logical lines from run segments. Text wraps; emoji are atomic. */
+  function buildLinesFromRunSegments(
+    segments: RunSegment[],
+    fontSize: number,
+    lineMaxWidth: number,
+  ): RunSegment[][] {
+    const lines: RunSegment[][] = [];
+    let currentLine: RunSegment[] = [];
+    let currentWidth = 0;
+
+    for (const seg of segments) {
+      if (seg.type === "emoji") {
+        if (
+          currentWidth + EMOJI_SIZE_MM > lineMaxWidth &&
+          currentLine.length > 0
+        ) {
+          lines.push(currentLine);
+          currentLine = [];
+          currentWidth = 0;
+        }
+        currentLine.push(seg);
+        currentWidth += EMOJI_SIZE_MM;
+        continue;
+      }
+      setFontStyle(fontSize, seg.bold, seg.italic);
+      let remaining = seg.content;
       while (remaining.length > 0) {
-        const spaceLeft = lineMaxWidth - currentLineWidth;
+        const spaceLeft = lineMaxWidth - currentWidth;
+        setFontStyle(fontSize, seg.bold, seg.italic);
         const runLines = doc.splitTextToSize(remaining, Math.max(1, spaceLeft));
         if (runLines.length === 0) break;
         const first = runLines[0];
-        if (first.length === 0) {
-          remaining = "";
-          break;
-        }
-        const firstW = doc.getTextWidth(first);
-        currentLine.push({ text: first, bold: run.bold, italic: run.italic });
-        currentLineWidth += firstW;
-        if (runLines.length === 1) {
-          remaining = "";
-          continue;
-        }
+        if (first.length === 0) break;
+        setFontStyle(fontSize, seg.bold, seg.italic);
+        currentLine.push({
+          type: "text",
+          content: first,
+          bold: seg.bold,
+          italic: seg.italic,
+        });
+        currentWidth += doc.getTextWidth(first);
+        if (runLines.length === 1) break;
         lines.push(currentLine);
         currentLine = [];
-        currentLineWidth = 0;
+        currentWidth = 0;
         remaining = remaining.slice(first.length).replace(/^\s+/, "");
       }
     }
@@ -217,10 +400,10 @@ export function tiptapJsonToPdf(contentJson: string): Buffer {
     return lines;
   }
 
-  /** Draw paragraph content as inline runs (bold/italic) with wrapping. Supports alignment. */
-  function addRuns(
+  /** Draw paragraph content as inline runs (bold/italic + emoji) with wrapping. */
+  async function addRuns(
     runs: TextRun[],
-    options: { fontSize?: number; indent?: number; align?: TextAlign } = {}
+    options: { fontSize?: number; indent?: number; align?: TextAlign } = {},
   ) {
     const { fontSize = FONT_SIZES.body, indent = 0, align = "left" } = options;
     const leftX = MARGIN + indent;
@@ -228,34 +411,55 @@ export function tiptapJsonToPdf(contentJson: string): Buffer {
     const lineMaxWidth = rightX - leftX;
     const lh = fontSize * LINE_HEIGHT * 0.35;
 
-    const logicalLines = buildLinesFromRuns(runs, fontSize, lineMaxWidth);
+    const segments = runsToSegments(runs);
+    const logicalLines = buildLinesFromRunSegments(
+      segments,
+      fontSize,
+      lineMaxWidth,
+    );
 
-    for (const segments of logicalLines) {
+    for (const lineSegments of logicalLines) {
       checkPageBreak(lh);
       let totalWidth = 0;
       setFontStyle(fontSize, false, false);
-      for (const seg of segments) {
-        setFontStyle(fontSize, seg.bold, seg.italic);
-        totalWidth += doc.getTextWidth(seg.text);
+      for (const seg of lineSegments) {
+        if (seg.type === "text") {
+          setFontStyle(fontSize, seg.bold, seg.italic);
+          totalWidth += doc.getTextWidth(seg.content);
+        } else totalWidth += EMOJI_SIZE_MM;
       }
       let segX: number;
       if (align === "center") segX = pageWidth / 2 - totalWidth / 2;
       else if (align === "right") segX = rightX - totalWidth;
       else segX = leftX;
 
-      for (const seg of segments) {
-        setFontStyle(fontSize, seg.bold, seg.italic);
-        doc.text(seg.text, segX, y);
-        segX += doc.getTextWidth(seg.text);
+      for (const seg of lineSegments) {
+        if (seg.type === "text") {
+          setFontStyle(fontSize, seg.bold, seg.italic);
+          doc.text(seg.content, segX, y);
+          segX += doc.getTextWidth(seg.content);
+        } else {
+          const base64 = await getEmojiBase64(seg.codepoint);
+          if (base64)
+            doc.addImage(
+              base64,
+              "PNG",
+              segX,
+              y - EMOJI_SIZE_MM,
+              EMOJI_SIZE_MM,
+              EMOJI_SIZE_MM,
+            );
+          segX += EMOJI_SIZE_MM;
+        }
       }
       y += lh;
     }
   }
 
-  function processNode(node: ProseNode, listIndent = 0) {
+  async function processNode(node: ProseNode, listIndent = 0) {
     switch (node.type) {
       case "doc":
-        node.content?.forEach((c) => processNode(c));
+        for (const c of node.content ?? []) await processNode(c, listIndent);
         break;
 
       case "paragraph":
@@ -266,36 +470,52 @@ export function tiptapJsonToPdf(contentJson: string): Buffer {
         const runs = getTextRuns(node);
         const paraText = runs.map((r) => r.text).join("");
         const paraAlign = toTextAlign(node.attrs?.textAlign);
-        if (paraText.trim()) addRuns(runs, { indent: listIndent, align: paraAlign });
+        if (paraText.trim())
+          await addRuns(runs, { indent: listIndent, align: paraAlign });
         break;
 
       case "heading": {
         const level = node.attrs?.level ?? 1;
         const text = getTextFromNode(node);
-        const size = level === 1 ? FONT_SIZES.h1 : level === 2 ? FONT_SIZES.h2 : FONT_SIZES.h3;
+        const size =
+          level === 1
+            ? FONT_SIZES.h1
+            : level === 2
+              ? FONT_SIZES.h2
+              : FONT_SIZES.h3;
         const headingAlign = toTextAlign(node.attrs?.textAlign);
         checkPageBreak(size * LINE_HEIGHT * 0.5);
         y += size * 0.3;
-        addText(text, { fontSize: size, bold: true, align: headingAlign });
+        await addText(text, {
+          fontSize: size,
+          bold: true,
+          align: headingAlign,
+        });
         y += size * 0.2;
         break;
       }
 
       case "bulletList":
-        node.content?.forEach((item) => processListItem(item, "bullet", listIndent, undefined));
+        for (const item of node.content ?? [])
+          await processListItem(item, "bullet", listIndent, undefined);
         break;
 
       case "orderedList": {
-        node.content?.forEach((item, i) => processListItem(item, "ordered", listIndent, i + 1));
+        const ordContent = node.content ?? [];
+        for (let i = 0; i < ordContent.length; i++) {
+          const item = ordContent[i];
+          if (item) await processListItem(item, "ordered", listIndent, i + 1);
+        }
         break;
       }
 
       case "listItem":
-        processListItem(node, "bullet", listIndent, undefined);
+        await processListItem(node, "bullet", listIndent, undefined);
         break;
 
       case "blockquote":
-        node.content?.forEach((c) => processNode(c, listIndent + 8));
+        for (const c of node.content ?? [])
+          await processNode(c, listIndent + 8);
         break;
 
       case "horizontalRule":
@@ -307,11 +527,13 @@ export function tiptapJsonToPdf(contentJson: string): Buffer {
         break;
 
       case "table": {
-        node.content?.forEach((row) => {
+        for (const row of node.content ?? []) {
           if (row.type === "tableRow" && row.content) {
             const cells = row.content
               .filter((c) => c.type === "tableCell" || c.type === "tableHeader")
-              .map((c) => getTextFromNode(c).replace(/\n/g, " ").trim());
+              .map((c) =>
+                sanitizeForPdf(getTextFromNode(c)).replace(/\n/g, " ").trim(),
+              );
             if (cells.length) {
               checkPageBreak(FONT_SIZES.body * LINE_HEIGHT * 0.5);
               const colWidth = maxWidth / cells.length;
@@ -319,7 +541,10 @@ export function tiptapJsonToPdf(contentJson: string): Buffer {
               let maxCellHeight = FONT_SIZES.small * 0.35;
               cells.forEach((cell, colIdx) => {
                 doc.setFontSize(FONT_SIZES.small);
-                doc.setFont("helvetica", "normal");
+                doc.setFont(
+                  useUnicodeFont ? FONT_FAMILY : "helvetica",
+                  "normal",
+                );
                 const lines = doc.splitTextToSize(cell, colWidth - 2);
                 let lineY = cellY;
                 lines.forEach((line: string) => {
@@ -331,51 +556,62 @@ export function tiptapJsonToPdf(contentJson: string): Buffer {
               y += maxCellHeight + 2;
             }
           }
-        });
+        }
         break;
       }
 
       case "taskList":
-        node.content?.forEach((item) => {
+        for (const item of node.content ?? []) {
           if (item.type === "taskItem") {
             const text = getTextFromNode(item);
             const checked = item.attrs?.checked;
-            addText(`${checked ? "☑" : "☐"} ${text}`, { indent: listIndent });
+            await addText(`${checked ? "☑" : "☐"} ${text}`, {
+              indent: listIndent,
+            });
           }
-        });
+        }
         break;
 
       default:
-        node.content?.forEach((c) => processNode(c, listIndent));
+        for (const c of node.content ?? []) await processNode(c, listIndent);
     }
   }
 
-  function processListItem(
+  async function processListItem(
     item: ProseNode,
     style: "bullet" | "ordered",
     baseIndent: number,
-    num?: number
+    num?: number,
   ) {
     const indent = baseIndent + 6;
-    item.content?.forEach((c) => {
+    for (const c of item.content ?? []) {
       if (c.type === "paragraph") {
-        const prefix = style === "bullet" ? "• " : num !== undefined ? `${num}. ` : "";
+        const prefix =
+          style === "bullet" ? "• " : num !== undefined ? `${num}. ` : "";
         const runs = getTextRuns(c);
         const text = runs.map((r) => r.text).join("");
         const align = toTextAlign(c.attrs?.textAlign);
         if (text.trim()) {
-          addRuns([{ text: prefix, bold: false, italic: false }, ...runs], { indent, align });
+          await addRuns(
+            [{ text: prefix, bold: false, italic: false }, ...runs],
+            { indent, align },
+          );
         }
       } else if (c.type === "bulletList") {
-        c.content?.forEach((sub) => processListItem(sub, "bullet", indent, undefined));
+        for (const sub of c.content ?? [])
+          await processListItem(sub, "bullet", indent, undefined);
       } else if (c.type === "orderedList") {
-        c.content?.forEach((sub, i) => processListItem(sub, "ordered", indent, i + 1));
+        const ordContent = c.content ?? [];
+        for (let i = 0; i < ordContent.length; i++) {
+          const sub = ordContent[i];
+          if (sub) await processListItem(sub, "ordered", indent, i + 1);
+        }
       } else {
-        processNode(c, indent);
+        await processNode(c, indent);
       }
-    });
+    }
   }
 
-  processNode(parsed);
+  await processNode(parsed);
   return Buffer.from(doc.output("arraybuffer"));
 }
