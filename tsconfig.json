@@ -36,7 +36,8 @@
       "@/types/*": ["./src/shared/types/*"],
       "@/frontend/*": ["./src/frontend/*"],
       "@/backend/*": ["./src/backend/*"],
-      "@/shared/*": ["./src/shared/*"]
+      "@/shared/*": ["./src/shared/*"],
+      "@/trpc": ["./src/frontend/trpc.ts"]
     },
 
     // Some stricter flags (disabled by default)
