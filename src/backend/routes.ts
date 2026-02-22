@@ -12,6 +12,7 @@ import { MeetingsController } from "./controllers/meetings";
 import { MeetingTemplatesController } from "./controllers/meetingTemplates";
 import { DocumentsController } from "./controllers/documents";
 import { CommitteesController } from "./controllers/committees";
+import { WebsiteController } from "./controllers/website";
 
 export function createApiRoutes(api: Api) {
   return new Elysia({ prefix: "/api" })
@@ -26,5 +27,6 @@ export function createApiRoutes(api: Api) {
     .use(new MeetingsController(api).init())
     .use(new MeetingTemplatesController(api).init())
     .use(new DocumentsController(api).init())
-    .use(new CommitteesController(api).init());
+    .use(new CommitteesController(api).init())
+    .use(new WebsiteController(api).init());
 }

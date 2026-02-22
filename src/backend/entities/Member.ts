@@ -43,4 +43,7 @@ export class Member {
 
   @Column({ name: "created_at", type: "text", nullable: true })
   createdAt!: string | null;
+
+  @Column({ name: "show_on_website", type: "integer", default: 0 })
+  showOnWebsite!: number;
 }

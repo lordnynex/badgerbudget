@@ -67,4 +67,7 @@ export class Event {
 
   @Column({ name: "ride_cost", type: "real", nullable: true })
   rideCost!: number | null;
+
+  @Column({ name: "show_on_website", type: "integer", default: 0 })
+  showOnWebsite!: number;
 }

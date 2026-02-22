@@ -37,4 +37,7 @@ export const queryKeys = {
     ["committee", committeeId, "meetings"] as const,
   committeeMeeting: (committeeId: string, meetingId: string) =>
     ["committee", committeeId, "meeting", meetingId] as const,
+  websitePages: ["website", "pages"] as const,
+  websitePage: (id: string) => ["website", "page", id] as const,
+  websiteSettings: ["website", "settings"] as const,
 } as const;

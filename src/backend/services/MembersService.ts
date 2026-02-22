@@ -23,6 +23,7 @@ function rowToMember(m: Record<string, unknown>) {
     emergency_contact_phone: m.emergency_contact_phone ?? null,
     photo_url,
     photo_thumbnail_url,
+    show_on_website: (m.show_on_website as number) === 1,
     created_at: m.created_at as string | undefined,
   };
 }
@@ -51,10 +52,36 @@ export class MembersService {
       .addSelect("m.emergencyContactPhone", "emergency_contact_phone")
       .addSelect("m.createdAt", "created_at")
       .addSelect("(m.photo IS NOT NULL)", "has_photo")
+      .addSelect("m.showOnWebsite", "show_on_website")
       .where("m.id != :excludeId", { excludeId: ALL_MEMBERS_ID })
       .orderBy("m.name")
       .getRawMany()) as Array<Record<string, unknown>>;
     return rows.map(rowToMember);
+  }
+
+  /** Public website feed: members with show_on_website = 1, minimal public fields only. */
+  async listForWebsite() {
+    const rows = (await this.ds
+      .getRepository(Member)
+      .createQueryBuilder("m")
+      .select("m.id", "id")
+      .addSelect("m.name", "name")
+      .addSelect("m.position", "position")
+      .addSelect("(m.photo IS NOT NULL)", "has_photo")
+      .where("m.id != :excludeId", { excludeId: ALL_MEMBERS_ID })
+      .andWhere("m.showOnWebsite = :on", { on: 1 })
+      .orderBy("m.name")
+      .getRawMany()) as Array<Record<string, unknown>>;
+    return rows.map((m) => {
+      const { photo_url, photo_thumbnail_url } = memberRowToApi(m);
+      return {
+        id: m.id as string,
+        name: m.name as string,
+        position: (m.position as string) ?? null,
+        photo_url,
+        photo_thumbnail_url,
+      };
+    });
   }
 
   async get(id: string) {
@@ -75,6 +102,7 @@ export class MembersService {
       .addSelect("m.emergencyContactPhone", "emergency_contact_phone")
       .addSelect("m.createdAt", "created_at")
       .addSelect("(m.photo IS NOT NULL)", "has_photo")
+      .addSelect("m.showOnWebsite", "show_on_website")
       .where("m.id = :id", { id })
       .getRawOne()) as Record<string, unknown> | undefined;
     if (!row) return null;
@@ -164,6 +192,7 @@ export class MembersService {
     emergency_contact_name: string | null;
     emergency_contact_phone: string | null;
     photo: string | null;
+    show_on_website: boolean;
   }>) {
     /* Original: SELECT * FROM members WHERE id = ? */
     const existing = await this.ds.getRepository(Member).findOne({ where: { id } });
@@ -191,9 +220,10 @@ export class MembersService {
       body.photo !== undefined
         ? (photoBlob ? await ImageService.createThumbnail(Buffer.from(photoBlob)) : null)
         : existing.photoThumbnail ?? null;
+    const show_on_website = body.show_on_website !== undefined ? (body.show_on_website ? 1 : 0) : existing.showOnWebsite;
     await this.db.run(
-      `UPDATE members SET name = ?, phone_number = ?, email = ?, address = ?, birthday = ?, member_since = ?, is_baby = ?, position = ?, emergency_contact_name = ?, emergency_contact_phone = ?, photo = ?, photo_thumbnail = ? WHERE id = ?`,
-      [name, phone_number, email, address, birthday, member_since, is_baby, position, emergency_contact_name, emergency_contact_phone, photoBlob, photoThumbnailBlob, id]
+      `UPDATE members SET name = ?, phone_number = ?, email = ?, address = ?, birthday = ?, member_since = ?, is_baby = ?, position = ?, emergency_contact_name = ?, emergency_contact_phone = ?, photo = ?, photo_thumbnail = ?, show_on_website = ? WHERE id = ?`,
+      [name, phone_number, email, address, birthday, member_since, is_baby, position, emergency_contact_name, emergency_contact_phone, photoBlob, photoThumbnailBlob, show_on_website, id]
     );
     return this.get(id)!;
   }

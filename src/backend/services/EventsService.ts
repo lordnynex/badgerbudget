@@ -63,6 +63,26 @@ export class EventsService {
       scenario_id: e.scenarioId ?? null,
       planning_notes: e.planningNotes ?? null,
       event_type: e.eventType ?? "badger",
+      show_on_website: e.showOnWebsite === 1,
+      created_at: e.createdAt ?? undefined,
+    }));
+  }
+
+  async listForWebsite() {
+    const repo = this.ds.getRepository(Event);
+    const entities = await repo.find({
+      where: { showOnWebsite: 1 },
+      order: { year: "DESC", name: "ASC" },
+    });
+    return entities.map((e) => ({
+      id: e.id,
+      name: e.name,
+      description: e.description ?? null,
+      year: e.year ?? null,
+      event_date: e.eventDate ?? null,
+      event_url: e.eventUrl ?? null,
+      event_location: e.eventLocation ?? null,
+      event_type: e.eventType ?? "badger",
       created_at: e.createdAt ?? undefined,
     }));
   }
@@ -391,6 +411,7 @@ export class EventsService {
     facebook_event_url: string;
     pre_ride_event_id: string;
     ride_cost: number;
+    show_on_website: boolean;
   }>) {
     /* Original: SELECT * FROM events WHERE id = ? */
     const existing = await this.ds.getRepository(Event).findOne({ where: { id } });
@@ -415,9 +436,10 @@ export class EventsService {
     const facebook_event_url = body.facebook_event_url !== undefined ? body.facebook_event_url : existing.facebookEventUrl;
     const pre_ride_event_id = body.pre_ride_event_id !== undefined ? body.pre_ride_event_id : existing.preRideEventId;
     const ride_cost = body.ride_cost !== undefined ? body.ride_cost : existing.rideCost;
+    const show_on_website = body.show_on_website !== undefined ? (body.show_on_website ? 1 : 0) : existing.showOnWebsite;
     await this.db.run(
-      `UPDATE events SET name = ?, event_type = ?, description = ?, year = ?, event_date = ?, event_url = ?, event_location = ?, event_location_embed = ?, ga_ticket_cost = ?, day_pass_cost = ?, ga_tickets_sold = ?, day_passes_sold = ?, budget_id = ?, scenario_id = ?, planning_notes = ?, start_location = ?, end_location = ?, facebook_event_url = ?, pre_ride_event_id = ?, ride_cost = ? WHERE id = ?`,
-      [name, event_type, description, year, event_date, event_url, event_location, event_location_embed, ga_ticket_cost, day_pass_cost, ga_tickets_sold, day_passes_sold, budget_id, scenario_id, planning_notes, start_location, end_location, facebook_event_url, pre_ride_event_id, ride_cost, id]
+      `UPDATE events SET name = ?, event_type = ?, description = ?, year = ?, event_date = ?, event_url = ?, event_location = ?, event_location_embed = ?, ga_ticket_cost = ?, day_pass_cost = ?, ga_tickets_sold = ?, day_passes_sold = ?, budget_id = ?, scenario_id = ?, planning_notes = ?, start_location = ?, end_location = ?, facebook_event_url = ?, pre_ride_event_id = ?, ride_cost = ?, show_on_website = ? WHERE id = ?`,
+      [name, event_type, description, year, event_date, event_url, event_location, event_location_embed, ga_ticket_cost, day_pass_cost, ga_tickets_sold, day_passes_sold, budget_id, scenario_id, planning_notes, start_location, end_location, facebook_event_url, pre_ride_event_id, ride_cost, show_on_website, id]
     );
     return this.get(id)!;
   }

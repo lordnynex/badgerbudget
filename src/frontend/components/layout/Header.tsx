@@ -9,6 +9,7 @@ export function Header() {
   const location = useLocation();
   const isBudgetingActive = location.pathname.startsWith("/budgeting");
   const isMeetingsActive = location.pathname.startsWith("/meetings");
+  const isWebsiteActive = location.pathname.startsWith("/website");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   const navLinkClass = ({ isActive }: { isActive: boolean }) =>
@@ -54,6 +55,12 @@ export function Header() {
           </NavLink>
           <NavLink to="/contacts" className={navLinkClass}>
             Contacts
+          </NavLink>
+          <NavLink
+            to="/website"
+            className={({ isActive }) => navLinkClass({ isActive: isActive || isWebsiteActive })}
+          >
+            Website
           </NavLink>
         </nav>
       </div>
@@ -117,6 +124,15 @@ export function Header() {
                 onClick={() => setMobileNavOpen(false)}
               >
                 Contacts
+              </NavLink>
+              <NavLink
+                to="/website"
+                className={({ isActive }) =>
+                  mobileNavLinkClass({ isActive: isActive || isWebsiteActive })
+                }
+                onClick={() => setMobileNavOpen(false)}
+              >
+                Website
               </NavLink>
               <NavLink
                 to="/members"

@@ -70,6 +70,7 @@ export const EventsDto = {
     budget_id: t.Optional(t.Union([t.String(), t.Null()])),
     scenario_id: t.Optional(t.Union([t.String(), t.Null()])),
     planning_notes: t.Optional(t.Union([t.String(), t.Null()])),
+    show_on_website: t.Optional(t.Boolean()),
   }),
 
   createMilestoneBody: t.Object({

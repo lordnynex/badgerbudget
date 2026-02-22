@@ -30,5 +30,6 @@ export const MembersDto = {
     emergency_contact_name: t.Optional(t.Union([t.String(), t.Null()])),
     emergency_contact_phone: t.Optional(t.Union([t.String(), t.Null()])),
     photo: t.Optional(t.Union([t.String(), t.Null()])),
+    show_on_website: t.Optional(t.Boolean()),
   }),
 };

@@ -10,6 +10,7 @@ import { MeetingsApiClient } from "./MeetingsApiClient";
 import { MeetingTemplatesApiClient } from "./MeetingTemplatesApiClient";
 import { DocumentsApiClient } from "./DocumentsApiClient";
 import { CommitteesApiClient } from "./CommitteesApiClient";
+import { WebsiteApiClient } from "./WebsiteApiClient";
 
 const events = new EventsApiClient();
 const budgets = new BudgetsApiClient();
@@ -23,6 +24,7 @@ const meetings = new MeetingsApiClient();
 const meetingTemplates = new MeetingTemplatesApiClient();
 const documents = new DocumentsApiClient();
 const committees = new CommitteesApiClient();
+const website = new WebsiteApiClient();
 
 /**
  * Composed API client mirroring backend service structure.
@@ -41,6 +43,7 @@ export const api = {
   meetingTemplates,
   documents,
   committees,
+  website,
 };
 
 export { client, unwrap, buildSearchParams } from "./client";

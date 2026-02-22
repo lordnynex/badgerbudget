@@ -1,0 +1,114 @@
+import type { DataSource } from "typeorm";
+import { BlogPost } from "../entities";
+import { uuid } from "./utils";
+
+const EMPTY_DOC = JSON.stringify({ type: "doc", content: [{ type: "paragraph" }] });
+
+export interface BlogPostPayload {
+  slug: string;
+  title: string;
+  excerpt?: string | null;
+  body?: string;
+  published_at?: string | null;
+  meta_title?: string | null;
+  meta_description?: string | null;
+}
+
+export interface BlogPostResponse {
+  id: string;
+  slug: string;
+  title: string;
+  excerpt: string | null;
+  body: string;
+  published_at: string | null;
+  meta_title: string | null;
+  meta_description: string | null;
+  created_at: string | undefined;
+  updated_at: string | undefined;
+}
+
+export class BlogService {
+  constructor(private ds: DataSource) {}
+
+  async listPublished(limit = 50): Promise<BlogPostResponse[]> {
+    const posts = await this.ds.getRepository(BlogPost).find({
+      where: {},
+      order: { publishedAt: "DESC", createdAt: "DESC" },
+      take: limit,
+    });
+    return posts
+      .filter((p) => p.publishedAt != null)
+      .map((p) => this.toResponse(p));
+  }
+
+  async listAll(): Promise<BlogPostResponse[]> {
+    const posts = await this.ds.getRepository(BlogPost).find({
+      order: { createdAt: "DESC" },
+    });
+    return posts.map((p) => this.toResponse(p));
+  }
+
+  async getBySlug(slug: string): Promise<BlogPostResponse | null> {
+    const post = await this.ds.getRepository(BlogPost).findOne({ where: { slug } });
+    return post ? this.toResponse(post) : null;
+  }
+
+  async getById(id: string): Promise<BlogPostResponse | null> {
+    const post = await this.ds.getRepository(BlogPost).findOne({ where: { id } });
+    return post ? this.toResponse(post) : null;
+  }
+
+  async create(body: BlogPostPayload): Promise<BlogPostResponse> {
+    const now = new Date().toISOString();
+    const post = this.ds.getRepository(BlogPost).create({
+      id: uuid(),
+      slug: body.slug,
+      title: body.title,
+      excerpt: body.excerpt ?? null,
+      body: body.body ?? EMPTY_DOC,
+      publishedAt: body.published_at ?? null,
+      metaTitle: body.meta_title ?? null,
+      metaDescription: body.meta_description ?? null,
+      createdAt: now,
+      updatedAt: now,
+    });
+    await this.ds.getRepository(BlogPost).save(post);
+    return this.toResponse(post);
+  }
+
+  async update(id: string, body: Partial<BlogPostPayload>): Promise<BlogPostResponse | null> {
+    const post = await this.ds.getRepository(BlogPost).findOne({ where: { id } });
+    if (!post) return null;
+    const now = new Date().toISOString();
+    if (body.slug !== undefined) post.slug = body.slug;
+    if (body.title !== undefined) post.title = body.title;
+    if (body.excerpt !== undefined) post.excerpt = body.excerpt;
+    if (body.body !== undefined) post.body = body.body;
+    if (body.published_at !== undefined) post.publishedAt = body.published_at;
+    if (body.meta_title !== undefined) post.metaTitle = body.meta_title;
+    if (body.meta_description !== undefined) post.metaDescription = body.meta_description;
+    post.updatedAt = now;
+    await this.ds.getRepository(BlogPost).save(post);
+    return this.toResponse(post);
+  }
+
+  async delete(id: string): Promise<boolean> {
+    const result = await this.ds.getRepository(BlogPost).delete({ id });
+    return (result.affected ?? 0) > 0;
+  }
+
+  private toResponse(p: BlogPost): BlogPostResponse {
+    return {
+      id: p.id,
+      slug: p.slug,
+      title: p.title,
+      excerpt: p.excerpt ?? null,
+      body: p.body,
+      published_at: p.publishedAt ?? null,
+      meta_title: p.metaTitle ?? null,
+      meta_description: p.metaDescription ?? null,
+      created_at: p.createdAt ?? undefined,
+      updated_at: p.updatedAt ?? undefined,
+    };
+  }
+}

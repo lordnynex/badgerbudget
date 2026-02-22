@@ -26,6 +26,17 @@ import { VendorsPanel } from "@/components/contacts/VendorsPanel";
 import { ContactsLayout } from "@/components/layout/ContactsLayout";
 import { EventsLayout } from "@/components/layout/EventsLayout";
 import { MeetingsLayout } from "@/components/layout/MeetingsLayout";
+import { WebsiteLayout } from "@/components/layout/WebsiteLayout";
+import {
+  WebsitePagesPanel,
+  WebsiteBlogPanel,
+  WebsiteEventsFeedPanel,
+  WebsiteMemberProfilesPanel,
+  WebsiteGalleriesPanel,
+  WebsiteMenusPanel,
+  WebsiteContactSubmissionsPanel,
+  WebsiteSettingsPanel,
+} from "@/components/website";
 import { MeetingsPanel } from "@/components/meetings/MeetingsPanel";
 import { CreateMeetingPage } from "@/components/meetings/CreateMeetingPage";
 import { MeetingDetailPage } from "@/components/meetings/MeetingDetailPage";
@@ -517,6 +528,80 @@ function AppContent() {
                       <ContactDetailPage />
                     </Suspense>
                   </IdParamGuard>
+                }
+              />
+            </Route>
+            <Route
+              path="/website"
+              element={
+                <main className="space-y-6 p-4 md:p-6">
+                  <WebsiteLayout />
+                </main>
+              }
+            >
+              <Route index element={<Navigate to="/website/pages" replace />} />
+              <Route
+                path="pages"
+                element={
+                  <Suspense fallback={<PageLoading />}>
+                    <WebsitePagesPanel />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="blog"
+                element={
+                  <Suspense fallback={<PageLoading />}>
+                    <WebsiteBlogPanel />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="events-feed"
+                element={
+                  <Suspense fallback={<PageLoading />}>
+                    <WebsiteEventsFeedPanel />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="member-profiles"
+                element={
+                  <Suspense fallback={<PageLoading />}>
+                    <WebsiteMemberProfilesPanel />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="galleries"
+                element={
+                  <Suspense fallback={<PageLoading />}>
+                    <WebsiteGalleriesPanel />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="menus"
+                element={
+                  <Suspense fallback={<PageLoading />}>
+                    <WebsiteMenusPanel />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="contact-submissions"
+                element={
+                  <Suspense fallback={<PageLoading />}>
+                    <WebsiteContactSubmissionsPanel />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="settings"
+                element={
+                  <Suspense fallback={<PageLoading />}>
+                    <WebsiteSettingsPanel />
+                  </Suspense>
                 }
               />
             </Route>

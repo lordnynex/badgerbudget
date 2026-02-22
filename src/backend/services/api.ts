@@ -12,6 +12,11 @@ import { MeetingsService } from "./MeetingsService";
 import { MeetingTemplatesService } from "./MeetingTemplatesService";
 import { DocumentsService } from "./DocumentsService";
 import { CommitteesService } from "./CommitteesService";
+import { SitePagesService } from "./SitePagesService";
+import { SiteSettingsService } from "./SiteSettingsService";
+import { SiteMenusService } from "./SiteMenusService";
+import { BlogService } from "./BlogService";
+import { ContactSubmissionsService } from "./ContactSubmissionsService";
 
 export function createApi(db: DbLike, ds: DataSource) {
   const eventsService = new EventsService(db, ds);
@@ -40,6 +45,11 @@ export function createApi(db: DbLike, ds: DataSource) {
     meetingTemplates: meetingTemplatesService,
     documents: documentsService,
     committees: committeesService,
+    sitePages: new SitePagesService(ds),
+    siteSettings: new SiteSettingsService(ds),
+    siteMenus: new SiteMenusService(ds),
+    blog: new BlogService(ds),
+    contactSubmissions: new ContactSubmissionsService(ds),
   };
 }
 
