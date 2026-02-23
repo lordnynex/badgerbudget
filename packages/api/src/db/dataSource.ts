@@ -77,7 +77,11 @@ import { AddBlogPosts1740000018000 } from "./migrations/1740000018000-AddBlogPos
 import { AddContactSubmissions1740000019000 } from "./migrations/1740000019000-AddContactSubmissions.ts";
 import { AddIncidents1740000020000 } from "./migrations/1740000020000-AddIncidents.ts";
 
-const projectRoot = join(import.meta.dir, "../../../..");
+export function getProjectRoot(): string {
+  return process.env.DATA_DIR ?? join(import.meta.dir, "../../../..");
+}
+
+const projectRoot = getProjectRoot();
 const dbPath = join(projectRoot, "data", "badger.db");
 
 export const dataSourceOptions: DataSourceOptions = {

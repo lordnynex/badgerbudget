@@ -18,7 +18,7 @@ async function main() {
   const fetch = createFetchHandler({
     api,
     createContext,
-    serveFrontend: true,
+    serveFrontend: false,
     projectRoot,
   });
 
@@ -27,7 +27,7 @@ async function main() {
     fetch: async (request, server) => fetch(request, server),
   });
 
-  logger.info({ url: `http://localhost:${port}/` }, "Server running");
+  logger.info({ url: `http://localhost:${port}/`, mode: "api-only" }, "Server running");
 }
 
 main();

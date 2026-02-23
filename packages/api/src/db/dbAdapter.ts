@@ -1,7 +1,7 @@
 import type { DataSource } from "typeorm";
 import { join } from "path";
 import { mkdir } from "fs/promises";
-import { getDataSource } from "./dataSource";
+import { getDataSource, getProjectRoot } from "./dataSource";
 
 export interface DbLike {
   query(sql: string, ...bound: unknown[]): {
@@ -41,7 +41,7 @@ function makeDbLike(ds: DataSource): DbLike {
  */
 export async function getDbInstance(): Promise<DbLike> {
   if (!globalForDb.__badgerDbInstancePromise) {
-    const dataDir = join(import.meta.dir, "../../../..", "data");
+    const dataDir = join(getProjectRoot(), "data");
     await mkdir(dataDir, { recursive: true });
     const ds = await getDataSource();
     globalForDb.__badgerDbInstancePromise = Promise.resolve(makeDbLike(ds));
