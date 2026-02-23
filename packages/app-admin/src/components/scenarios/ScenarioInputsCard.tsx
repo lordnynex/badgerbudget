@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { EditableNumberInput } from "@/components/inputs/EditableNumberInput";
 import { useAppState } from "@/state/AppState";
-import { api } from "@/data/api";
+import { useApi } from "@/data/api";
 import { Check } from "lucide-react";
 import type { Inputs } from "@/types/budget";
 
@@ -25,6 +25,7 @@ const DEFAULT_INPUTS: Inputs = {
 };
 
 export function ScenarioInputsCard() {
+  const api = useApi();
   const { currentScenario, selectedScenarioId, refreshScenario } = useAppState();
   const [inputs, setInputs] = useState<Inputs>(DEFAULT_INPUTS);
   const [saving, setSaving] = useState(false);

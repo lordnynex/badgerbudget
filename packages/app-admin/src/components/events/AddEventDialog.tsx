@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { api } from "@/data/api";
+import { trpc } from "@/trpc";
 import { EVENT_TYPE_LABELS } from "@/lib/event-constants";
 import type { EventType } from "@/types/event";
 
@@ -42,6 +42,7 @@ export function AddEventDialog({
   const [eventDate, setEventDate] = useState("");
   const [description, setDescription] = useState("");
   const [saving, setSaving] = useState(false);
+  const createEventMutation = trpc.admin.events.create.useMutation();
 
   useEffect(() => {
     if (open) {
@@ -63,7 +64,7 @@ export function AddEventDialog({
 
     setSaving(true);
     try {
-      const event = await api.events.create({
+      const event = await createEventMutation.mutateAsync({
         name: trimmedName,
         event_type: eventType,
         year: year === "" ? undefined : Number(year),

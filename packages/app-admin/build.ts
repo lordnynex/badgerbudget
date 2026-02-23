@@ -11,16 +11,17 @@ if (existsSync(outdir)) {
 
 const entrypoints = [path.join(process.cwd(), "src", "index.html")];
 
+const isDev = process.env.BUILD_DEV === "1";
 const result = await Bun.build({
   entrypoints,
   outdir,
   plugins: [plugin],
-  minify: true,
+  minify: !isDev,
   target: "browser",
   sourcemap: "linked",
   publicPath: "/admin/",
   define: {
-    "process.env.NODE_ENV": JSON.stringify("production"),
+    "process.env.NODE_ENV": JSON.stringify(isDev ? "development" : "production"),
   },
 });
 

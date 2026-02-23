@@ -15,12 +15,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { api } from "@/data/api";
+import { useApi } from "@/data/api";
 import type { MailingBatchRecipient } from "@/types/contact";
 import { contactsToVCardFileAsync } from "@/lib/vcard";
 import { generatePdfLabels } from "@/lib/pdf-labels";
 import { ArrowLeft, ChevronDown } from "lucide-react";
-import { useMailingBatchSuspense, useInvalidateQueries } from "@/queries/hooks";
+import { useMailingBatchSuspense, useInvalidateQueries, unwrapSuspenseData } from "@/queries/hooks";
 
 function recipientToContact(r: MailingBatchRecipient): Parameters<typeof contactsToVCardFileAsync>[0][number] {
   return {
@@ -61,6 +61,7 @@ function recipientToContact(r: MailingBatchRecipient): Parameters<typeof contact
 }
 
 export function MailingBatchPage() {
+  const api = useApi();
   const { batchId } = useParams<{ batchId: string }>();
   if (!batchId) return null;
   return <MailingBatchContent batchId={batchId} />;
@@ -69,7 +70,7 @@ export function MailingBatchPage() {
 function MailingBatchContent({ batchId }: { batchId: string }) {
   const navigate = useNavigate();
   const invalidate = useInvalidateQueries();
-  const { data: batch } = useMailingBatchSuspense(batchId);
+  const batch = unwrapSuspenseData(useMailingBatchSuspense(batchId));
   const [pdfFontSize, setPdfFontSize] = useState(10);
   const [pdfIncludeOrg, setPdfIncludeOrg] = useState(false);
 

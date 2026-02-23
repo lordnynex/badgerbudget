@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "bun run build.ts",
-    "dev": "bun run build && bun run dev-server.ts"
+    "dev": "BUILD_DEV=1 bun run build && bun run dev-server.ts"
   },
   "dependencies": {
     "@badgerbudget/api": "workspace:*",
@@ -17,6 +17,7 @@
     "react-router-dom": "^7.13.0"
   },
   "devDependencies": {
+    "@tanstack/react-query-devtools": "^5.91.3",
     "@types/bun": "latest",
     "@types/react": "^19",
     "@types/react-dom": "^19",

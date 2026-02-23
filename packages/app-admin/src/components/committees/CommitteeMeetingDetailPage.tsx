@@ -4,6 +4,7 @@ import {
   useCommitteeMeetingSuspense,
   useCommitteeSuspense,
   useInvalidateQueries,
+  unwrapSuspenseData,
 } from "@/queries/hooks";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,20 +34,20 @@ import {
   Trash2,
   Video,
 } from "lucide-react";
-import { api } from "@/data/api";
+import { useApi } from "@/data/api";
 import { formatDateOnly } from "@/lib/date-utils";
 
 export function CommitteeMeetingDetailPage() {
+  const api = useApi();
   const { id: committeeId, meetingId } = useParams<{
     id: string;
     meetingId: string;
   }>();
   const navigate = useNavigate();
-  const { data: committee } = useCommitteeSuspense(committeeId!);
-  const { data: meeting } = useCommitteeMeetingSuspense(
-    committeeId!,
-    meetingId!
-  );
+  const committee = unwrapSuspenseData(useCommitteeSuspense(committeeId!))!;
+  const meeting = unwrapSuspenseData(
+    useCommitteeMeetingSuspense(committeeId!, meetingId!)
+  )!;
   const invalidate = useInvalidateQueries();
 
   const [editingMetadata, setEditingMetadata] = useState(false);

@@ -9,22 +9,25 @@ import { StrictMode, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import { QueryClientProvider } from "@tanstack/react-query";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { createQueryClient } from "./queryClient";
 import { trpc, createTrpcClient } from "./trpc";
-import { setTrpcClient } from "./data/api";
+import { TrpcClientProvider } from "./data/api";
 import App from "./App";
 
 const queryClient = createQueryClient();
 
 function AppWithProviders() {
   const [trpcClient] = useState(() => createTrpcClient());
-  setTrpcClient(trpcClient);
   return (
     <trpc.Provider client={trpcClient} queryClient={queryClient}>
       <QueryClientProvider client={queryClient}>
-        <BrowserRouter basename="/admin">
-          <App />
-        </BrowserRouter>
+        <TrpcClientProvider client={trpcClient}>
+          <BrowserRouter basename="/admin">
+            <App />
+          </BrowserRouter>
+        </TrpcClientProvider>
+        <ReactQueryDevtools initialIsOpen={false} />
       </QueryClientProvider>
     </trpc.Provider>
   );

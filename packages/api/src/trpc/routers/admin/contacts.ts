@@ -6,9 +6,17 @@ const contactSearchParams = z.object({
   q: z.string().optional(),
   status: z.enum(["active", "deleted", "all"]).optional(),
   hasPostalAddress: z.boolean().optional(),
+  hasEmail: z.boolean().optional(),
   tagIds: z.array(z.string()).optional(),
+  organization: z.string().optional(),
+  role: z.string().optional(),
+  hellenic: z.boolean().optional(),
+  excludeDeceased: z.boolean().optional(),
   limit: z.number().optional(),
   offset: z.number().optional(),
+  page: z.number().optional(),
+  sort: z.string().optional(),
+  sortDir: z.enum(["asc", "desc"]).optional(),
 });
 
 export const contactsRouter = t.router({
@@ -45,4 +53,6 @@ export const contactsRouter = t.router({
   restore: t.procedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => ctx.api.contacts.restore(input.id)),
+
+  listTags: t.procedure.query(async ({ ctx }) => ctx.api.contacts.tags.list()),
 });

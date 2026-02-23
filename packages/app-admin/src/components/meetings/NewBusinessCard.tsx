@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus } from "lucide-react";
-import { api } from "@/data/api";
+import { useApi } from "@/data/api";
 import { useInvalidateQueries } from "@/queries/hooks";
 
 interface NewBusinessCardProps {
@@ -11,6 +11,7 @@ interface NewBusinessCardProps {
 }
 
 export function NewBusinessCard({ meetingId }: NewBusinessCardProps) {
+  const api = useApi();
   const invalidate = useInvalidateQueries();
   const [adding, setAdding] = useState(false);
   const [description, setDescription] = useState("");

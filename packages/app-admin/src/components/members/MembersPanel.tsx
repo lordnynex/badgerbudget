@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { useMembersSuspense, useInvalidateQueries } from "@/queries/hooks";
+import { useMembersSuspense, useInvalidateQueries, unwrapSuspenseData } from "@/queries/hooks";
 import { MemberCard } from "./MemberCard";
 import { MembersExportDropdown } from "./MembersExportDropdown";
 import { UpcomingBirthdaysSection } from "./UpcomingBirthdaysSection";
@@ -13,7 +13,7 @@ export function MembersPanel() {
   const navigate = useNavigate();
   const [addOpen, setAddOpen] = useState(false);
   const invalidate = useInvalidateQueries();
-  const { data: members } = useMembersSuspense();
+  const members = unwrapSuspenseData(useMembersSuspense()) ?? [];
 
   const officers = members.filter((m) => m.position && m.position !== "Member");
   const regularMembers = members.filter((m) => !m.position || m.position === "Member");

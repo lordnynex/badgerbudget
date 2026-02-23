@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Outlet, useNavigate, NavLink } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { api } from "@/data/api";
+import { useApi } from "@/data/api";
 import { queryKeys } from "@/queries/keys";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,7 @@ const navLinkClass = ({ isActive }: { isActive: boolean }, collapsed?: boolean) 
 
 
 export function ContactsLayout() {
+  const api = useApi();
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
   const { data: lists = [] } = useQuery({

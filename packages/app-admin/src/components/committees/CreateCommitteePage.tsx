@@ -12,15 +12,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useMembersSuspense, useInvalidateQueries } from "@/queries/hooks";
+import { useMembersSuspense, useInvalidateQueries, unwrapSuspenseData } from "@/queries/hooks";
 import { MemberSelectCombobox } from "@/components/members/MemberSelectCombobox";
 import { ArrowLeft, X } from "lucide-react";
-import { api } from "@/data/api";
+import { useApi } from "@/data/api";
 import type { Member } from "@/types/budget";
 
 export function CreateCommitteePage() {
+  const api = useApi();
   const navigate = useNavigate();
-  const { data: members = [] } = useMembersSuspense();
+  const members = unwrapSuspenseData(useMembersSuspense()) ?? [];
   const invalidate = useInvalidateQueries();
 
   const [name, setName] = useState("");

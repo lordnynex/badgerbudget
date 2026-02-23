@@ -4,11 +4,12 @@ import {
   useCommitteeMeetingSuspense,
   useCommitteeSuspense,
   useInvalidateQueries,
+  unwrapSuspenseData,
 } from "@/queries/hooks";
 import { Button } from "@/components/ui/button";
 import { RichDocumentEditor } from "@/components/meetings/RichDocumentEditor";
 import { ArrowLeft, Save, FileDown } from "lucide-react";
-import { api } from "@/data/api";
+import { useApi } from "@/data/api";
 
 type DocumentType = "agenda" | "minutes";
 
@@ -17,16 +18,16 @@ export function CommitteeMeetingDocumentEditPage({
 }: {
   documentType: DocumentType;
 }) {
+  const api = useApi();
   const { id: committeeId, meetingId } = useParams<{
     id: string;
     meetingId: string;
   }>();
   const navigate = useNavigate();
-  const { data: committee } = useCommitteeSuspense(committeeId!);
-  const { data: meeting } = useCommitteeMeetingSuspense(
-    committeeId!,
-    meetingId!
-  );
+  const committee = unwrapSuspenseData(useCommitteeSuspense(committeeId!))!;
+  const meeting = unwrapSuspenseData(
+    useCommitteeMeetingSuspense(committeeId!, meetingId!)
+  )!;
   const invalidate = useInvalidateQueries();
 
   const documentId =

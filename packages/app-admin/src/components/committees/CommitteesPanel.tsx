@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { useCommitteesSuspense } from "@/queries/hooks";
+import { useCommitteesSuspense, unwrapSuspenseData } from "@/queries/hooks";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { formatDateOnly } from "@/lib/date-utils";
@@ -43,7 +43,7 @@ function CommitteeRow({ c }: { c: CommitteeSummary }) {
 }
 
 export function CommitteesPanel() {
-  const { data: committees } = useCommitteesSuspense();
+  const committees = unwrapSuspenseData(useCommitteesSuspense()) ?? [];
   const [filter, setFilter] = useState<"all" | "active" | "closed">("all");
 
   const filtered =

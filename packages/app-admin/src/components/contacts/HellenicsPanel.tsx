@@ -10,13 +10,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { api } from "@/data/api";
+import { useApi } from "@/data/api";
 import { contactsToVCardFileAsync } from "@/lib/vcard";
 import { BookOpen, Plus, Search, Download, List } from "lucide-react";
 import { AddContactDialog } from "./AddContactDialog";
 import { AddToMailingListDialog } from "./AddToMailingListDialog";
 import { ContactDirectoryTable } from "./ContactDirectoryTable";
-import { useContactsSuspense, useInvalidateQueries } from "@/queries/hooks";
+import { useContactsSuspense, useInvalidateQueries, unwrapSuspenseData } from "@/queries/hooks";
 import type { ContactSearchParams } from "@/types/contact";
 
 function useDebounce<T>(value: T, delay: number): T {
@@ -29,6 +29,7 @@ function useDebounce<T>(value: T, delay: number): T {
 }
 
 export function HellenicsPanel() {
+  const api = useApi();
   const navigate = useNavigate();
   const invalidate = useInvalidateQueries();
   const [search, setSearch] = useState("");
@@ -52,9 +53,9 @@ export function HellenicsPanel() {
     limit: 25,
   };
 
-  const { data: result } = useContactsSuspense(params);
-  const contacts = result.contacts;
-  const total = result.total;
+  const result = unwrapSuspenseData(useContactsSuspense(params));
+  const contacts = result?.contacts ?? [];
+  const total = result?.total ?? 0;
 
   const refresh = () => invalidate.invalidateContacts();
 

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
-import { useCommitteeSuspense } from "@/queries/hooks";
+import { useCommitteeSuspense, unwrapSuspenseData } from "@/queries/hooks";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,12 +15,13 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { useMeetingTemplatesOptional } from "@/queries/hooks";
 import { useInvalidateQueries } from "@/queries/hooks";
 import { ArrowLeft } from "lucide-react";
-import { api } from "@/data/api";
+import { useApi } from "@/data/api";
 
 export function CreateCommitteeMeetingPage() {
+  const api = useApi();
   const { id: committeeId } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { data: committee } = useCommitteeSuspense(committeeId!);
+  const committee = unwrapSuspenseData(useCommitteeSuspense(committeeId!))!;
   const { data: templates = [] } = useMeetingTemplatesOptional("agenda");
   const invalidate = useInvalidateQueries();
 

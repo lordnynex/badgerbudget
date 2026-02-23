@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
-import { useMeetingSuspense, useInvalidateQueries } from "@/queries/hooks";
+import { useMeetingSuspense, useInvalidateQueries, unwrapSuspenseData } from "@/queries/hooks";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DatePicker } from "@/components/ui/date-picker";
@@ -34,13 +34,14 @@ import {
   Video,
   X,
 } from "lucide-react";
-import { api } from "@/data/api";
+import { useApi } from "@/data/api";
 import { formatDateOnly } from "@/lib/date-utils";
 
 export function MeetingDetailPage() {
+  const api = useApi();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { data: meeting } = useMeetingSuspense(id!);
+  const meeting = unwrapSuspenseData(useMeetingSuspense(id!))!;
   const invalidate = useInvalidateQueries();
 
   const [editingMetadata, setEditingMetadata] = useState(false);

@@ -5,7 +5,7 @@ import {
   useReducer,
   type ReactNode,
 } from "react";
-import { api } from "@/data/api";
+import { trpc } from "@/trpc";
 import type { Budget, Inputs, LineItem, Scenario } from "@/types/budget";
 
 const DEFAULT_CATEGORIES = [
@@ -183,42 +183,69 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     dispatch({ type: "SET_CURRENT_SCENARIO", payload: null });
   }, []);
 
-  const refreshBudget = useCallback(async (id: string) => {
-    const budget = await api.budgets.get(id);
-    if (state.selectedBudgetId === id) {
-      dispatch({ type: "SET_CURRENT_BUDGET", payload: budget });
-    }
-  }, [state.selectedBudgetId]);
+  const utils = trpc.useUtils();
+  const updateScenarioInputsMutation = trpc.admin.scenarios.update.useMutation({
+    onSuccess: () => utils.admin.scenarios.list.invalidate(),
+  });
+  const addLineItemMutation = trpc.admin.budgets.addLineItem.useMutation({
+    onSuccess: () => utils.admin.budgets.list.invalidate(),
+  });
+  const updateLineItemMutation = trpc.admin.budgets.updateLineItem.useMutation({
+    onSuccess: () => utils.admin.budgets.list.invalidate(),
+  });
+  const deleteLineItemMutation = trpc.admin.budgets.deleteLineItem.useMutation({
+    onSuccess: () => utils.admin.budgets.list.invalidate(),
+  });
 
-  const refreshScenario = useCallback(async (id: string) => {
-    const scenario = await api.scenarios.get(id);
-    if (state.selectedScenarioId === id) {
-      dispatch({ type: "SET_CURRENT_SCENARIO", payload: scenario });
-    }
-  }, [state.selectedScenarioId]);
+  const refreshBudget = useCallback(
+    async (id: string) => {
+      const budget = await utils.admin.budgets.get.fetch({ id });
+      if (state.selectedBudgetId === id) {
+        dispatch({ type: "SET_CURRENT_BUDGET", payload: budget as Budget });
+      }
+    },
+    [state.selectedBudgetId, utils]
+  );
+
+  const refreshScenario = useCallback(
+    async (id: string) => {
+      const scenario = await utils.admin.scenarios.get.fetch({ id });
+      if (state.selectedScenarioId === id) {
+        dispatch({ type: "SET_CURRENT_SCENARIO", payload: scenario as Scenario });
+      }
+    },
+    [state.selectedScenarioId, utils]
+  );
 
   const refreshBudgets = useCallback(async () => {
-    const list = await api.budgets.list();
+    const list = await utils.admin.budgets.list.fetch();
     dispatch({ type: "SET_BUDGETS", payload: list });
-  }, []);
+  }, [utils]);
 
   const refreshScenarios = useCallback(async () => {
-    const list = await api.scenarios.list();
+    const list = await utils.admin.scenarios.list.fetch();
     dispatch({ type: "SET_SCENARIOS", payload: list });
-  }, []);
+  }, [utils]);
 
-  const updateScenarioInputs = useCallback(async (scenarioId: string, inputs: Partial<Inputs>) => {
-    const current = { ...DEFAULT_INPUTS, ...(state.currentScenario?.inputs ?? {}) };
-    const merged = { ...current, ...inputs };
-    await api.scenarios.update(scenarioId, { inputs: merged });
-    dispatch({ type: "UPDATE_SCENARIO_INPUTS_LOCAL", payload: inputs });
-  }, [state.currentScenario]);
+  const updateScenarioInputs = useCallback(
+    async (scenarioId: string, inputs: Partial<Inputs>) => {
+      const current = { ...DEFAULT_INPUTS, ...(state.currentScenario?.inputs ?? {}) };
+      const merged = { ...current, ...inputs };
+      await updateScenarioInputsMutation.mutateAsync({
+        id: scenarioId,
+        inputs: merged,
+      });
+      dispatch({ type: "UPDATE_SCENARIO_INPUTS_LOCAL", payload: inputs });
+    },
+    [state.currentScenario, updateScenarioInputsMutation]
+  );
 
   const addLineItem = useCallback(
     async (budgetId: string, item?: Partial<LineItem>) => {
       const budget = state.currentBudget;
       if (!budget || budget.id !== budgetId) return;
-      const created = await api.budgets.addLineItem(budgetId, {
+      const created = await addLineItemMutation.mutateAsync({
+        budgetId,
         name: item?.name ?? "New Item",
         category: item?.category ?? state.categories[0] ?? "Miscellaneous",
         comments: item?.comments,
@@ -226,23 +253,26 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
         quantity: item?.quantity ?? 1,
         historicalCosts: item?.historicalCosts,
       });
-      dispatch({ type: "ADD_LINE_ITEM_LOCAL", payload: created });
+      dispatch({ type: "ADD_LINE_ITEM_LOCAL", payload: created as LineItem });
     },
-    [state.currentBudget, state.categories]
+    [state.currentBudget, state.categories, addLineItemMutation]
   );
 
   const updateLineItem = useCallback(
     async (budgetId: string, id: string, updates: Partial<LineItem>) => {
-      await api.budgets.updateLineItem(budgetId, id, updates);
+      await updateLineItemMutation.mutateAsync({ budgetId, itemId: id, ...updates });
       dispatch({ type: "UPDATE_LINE_ITEM_LOCAL", payload: { id, updates } });
     },
-    []
+    [updateLineItemMutation]
   );
 
-  const deleteLineItem = useCallback(async (budgetId: string, id: string) => {
-    await api.budgets.deleteLineItem(budgetId, id);
-    dispatch({ type: "DELETE_LINE_ITEM_LOCAL", payload: id });
-  }, []);
+  const deleteLineItem = useCallback(
+    async (budgetId: string, id: string) => {
+      await deleteLineItemMutation.mutateAsync({ budgetId, itemId: id });
+      dispatch({ type: "DELETE_LINE_ITEM_LOCAL", payload: id });
+    },
+    [deleteLineItemMutation]
+  );
 
   const addCategory = useCallback((name: string) => {
     dispatch({ type: "ADD_CATEGORY", payload: name });

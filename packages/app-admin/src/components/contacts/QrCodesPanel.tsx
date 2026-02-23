@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,9 +17,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { api } from "@/data/api";
+import { useApi } from "@/data/api";
 import type { QrCode, QrCodeConfig } from "@/types/qrCode";
-import { useQrCodesSuspense, useInvalidateQueries } from "@/queries/hooks";
+import { useQrCodesSuspense, useInvalidateQueries, unwrapSuspenseData } from "@/queries/hooks";
 import { useNavigate } from "react-router-dom";
 import { Plus, Pencil, Trash2, Download, ExternalLink } from "lucide-react";
 
@@ -32,7 +32,8 @@ const DEFAULT_CONFIG: QrCodeConfig = {
 };
 
 export function QrCodesPanel() {
-  const { data: codes = [] } = useQrCodesSuspense();
+  const api = useApi();
+  const codes = unwrapSuspenseData(useQrCodesSuspense()) ?? [];
   const invalidate = useInvalidateQueries();
   const [createOpen, setCreateOpen] = useState(false);
   const [editing, setEditing] = useState<QrCode | null>(null);
@@ -118,8 +119,18 @@ function QrCodeCard({
   onEdit: () => void;
   onDelete: () => void;
 }) {
+  const api = useApi();
   const navigate = useNavigate();
-  const imageUrl = api.qrCodes.getImageUrl(qr.id);
+  const [imageUrl, setImageUrl] = useState<string>("");
+  useEffect(() => {
+    let cancelled = false;
+    api.qrCodes.getImageUrl(qr.id).then((u) => {
+      if (!cancelled) setImageUrl(u);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [qr.id, api]);
 
   const handleCardClick = () => navigate(`/contacts/qr-codes/${qr.id}`);
   const handleEdit = (e: React.MouseEvent) => {
@@ -132,6 +143,7 @@ function QrCodeCard({
   };
   const handleDownload = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (!imageUrl) return;
     const a = document.createElement("a");
     a.href = imageUrl;
     a.download = `${qr.name || "qr-code"}.${qr.config?.format ?? "png"}`;
@@ -168,7 +180,7 @@ function QrCodeCard({
       <div className="flex items-center gap-3">
         <div className="flex size-24 shrink-0 items-center justify-center rounded border bg-white p-1">
           <img
-            src={imageUrl}
+            src={imageUrl || undefined}
             alt={`QR code for ${qr.name || qr.url}`}
             className="size-full object-contain"
           />
@@ -203,6 +215,7 @@ function CreateQrCodeDialog({
   onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
 }) {
+  const api = useApi();
   const [name, setName] = useState("");
   const [url, setUrl] = useState("");
   const [config, setConfig] = useState<QrCodeConfig>({ ...DEFAULT_CONFIG });
@@ -273,6 +286,7 @@ function EditQrCodeDialog({
   onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
 }) {
+  const api = useApi();
   const [name, setName] = useState(qr.name ?? "");
   const [url, setUrl] = useState(qr.url);
   const [config, setConfig] = useState<QrCodeConfig>(qr.config ?? { ...DEFAULT_CONFIG });
@@ -498,6 +512,7 @@ function DeleteQrCodeDialog({
   onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
 }) {
+  const api = useApi();
   const [deleting, setDeleting] = useState(false);
 
   const handleDelete = async () => {

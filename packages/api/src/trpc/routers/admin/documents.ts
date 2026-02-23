@@ -26,4 +26,12 @@ export const documentsRouter = t.router({
   restore: t.procedure
     .input(z.object({ id: z.string(), versionId: z.string() }))
     .mutation(({ ctx, input }) => ctx.api.documents.restore(input.id, input.versionId)),
+
+  exportPdf: t.procedure
+    .input(z.object({ id: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const buffer = await ctx.api.documents.exportPdf(input.id);
+      if (!buffer) throw new TRPCError({ code: "NOT_FOUND" });
+      return { base64: Buffer.from(buffer).toString("base64") };
+    }),
 });

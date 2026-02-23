@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { api } from "@/data/api";
+import { useApi } from "@/data/api";
 import type { ContactSearchParams } from "@/types/contact";
 import { contactsToVCardFileAsync } from "@/lib/vcard";
 import { Link } from "react-router-dom";
@@ -21,7 +21,7 @@ import { AddToMailingListDialog } from "./AddToMailingListDialog";
 import { ContactsExportDropdown } from "./ContactsExportDropdown";
 import { downloadContactsCsv, downloadContactsPdf } from "./contactUtils";
 import { ContactDirectoryTable } from "./ContactDirectoryTable";
-import { useContactsSuspense, useInvalidateQueries } from "@/queries/hooks";
+import { useContactsSuspense, useInvalidateQueries, unwrapSuspenseData } from "@/queries/hooks";
 
 function useDebounce<T>(value: T, delay: number): T {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -33,6 +33,7 @@ function useDebounce<T>(value: T, delay: number): T {
 }
 
 export function ContactsPanel() {
+  const api = useApi();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();
@@ -62,9 +63,9 @@ export function ContactsPanel() {
     limit: 25,
   };
 
-  const { data: result } = useContactsSuspense(params);
-  const contacts = result.contacts;
-  const total = result.total;
+  const result = unwrapSuspenseData(useContactsSuspense(params));
+  const contacts = result?.contacts ?? [];
+  const total = result?.total ?? 0;
 
   const refresh = () => invalidate.invalidateContacts();
 

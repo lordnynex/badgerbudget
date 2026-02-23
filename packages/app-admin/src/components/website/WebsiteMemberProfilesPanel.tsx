@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api } from "@/data/api";
+import { useApi } from "@/data/api";
 import { queryKeys } from "@/queries/keys";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users } from "lucide-react";
@@ -13,6 +13,7 @@ interface MemberWithShow {
 }
 
 export function WebsiteMemberProfilesPanel() {
+  const api = useApi();
   const queryClient = useQueryClient();
   const { data: members = [], isLoading } = useQuery({
     queryKey: queryKeys.members,

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useEventsSuspense, useInvalidateQueries } from "@/queries/hooks";
+import { useEventsSuspense, useInvalidateQueries, unwrapSuspenseData } from "@/queries/hooks";
 import { EVENT_TYPE_LABELS } from "@/lib/event-constants";
 import { Calendar, ChevronRight, BarChart3, Plus } from "lucide-react";
 import { AddEventDialog } from "./AddEventDialog";
@@ -16,7 +16,7 @@ export function EventsPanel({ type }: EventsPanelProps) {
   const navigate = useNavigate();
   const invalidate = useInvalidateQueries();
   const [addOpen, setAddOpen] = useState(false);
-  const { data: events } = useEventsSuspense(type);
+  const events = unwrapSuspenseData(useEventsSuspense(type)) ?? [];
 
   const title = type ? EVENT_TYPE_LABELS[type] : "Events";
   const description = type

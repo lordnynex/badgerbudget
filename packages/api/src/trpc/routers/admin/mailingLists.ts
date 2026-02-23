@@ -52,4 +52,17 @@ export const mailingListsRouter = t.router({
   getStats: t.procedure
     .input(z.object({ id: z.string() }))
     .query(({ ctx, input }) => ctx.api.mailingLists.getStats(input.id)),
+
+  getIncluded: t.procedure
+    .input(
+      z.object({
+        listId: z.string(),
+        page: z.number(),
+        limit: z.number(),
+        q: z.string().optional(),
+      })
+    )
+    .query(({ ctx, input }) =>
+      ctx.api.mailingLists.getIncludedPaginated(input.listId, input.page, input.limit, input.q)
+    ),
 });

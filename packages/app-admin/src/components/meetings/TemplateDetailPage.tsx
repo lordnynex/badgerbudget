@@ -1,17 +1,17 @@
 import { useRef, useState, useEffect, useCallback } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
-import { useMeetingTemplateSuspense } from "@/queries/hooks";
-import { useInvalidateQueries } from "@/queries/hooks";
+import { useMeetingTemplateSuspense, useInvalidateQueries, unwrapSuspenseData } from "@/queries/hooks";
 import { Button } from "@/components/ui/button";
 import { RichDocumentEditor } from "./RichDocumentEditor";
 import { ExportPdfButton } from "./ExportPdfButton";
 import { ArrowLeft, Save, Trash2 } from "lucide-react";
-import { api } from "@/data/api";
+import { useApi } from "@/data/api";
 
 export function TemplateDetailPage() {
+  const api = useApi();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { data: template } = useMeetingTemplateSuspense(id!);
+  const template = unwrapSuspenseData(useMeetingTemplateSuspense(id!))!;
   const invalidate = useInvalidateQueries();
   const printRef = useRef<HTMLDivElement>(null);
 

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { useMeetingsSuspense } from "@/queries/hooks";
+import { useMeetingsSuspense, unwrapSuspenseData } from "@/queries/hooks";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -77,7 +77,7 @@ function MeetingsTable({ meetings }: { meetings: MeetingSummary[] }) {
 }
 
 export function MeetingsPanel() {
-  const { data: meetings } = useMeetingsSuspense();
+  const meetings = unwrapSuspenseData(useMeetingsSuspense()) ?? [];
   const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState("");
   const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");

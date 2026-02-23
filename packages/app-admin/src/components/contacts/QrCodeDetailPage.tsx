@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { api } from "@/data/api";
-import { useQrCodeSuspense, useInvalidateQueries } from "@/queries/hooks";
+import { useApi } from "@/data/api";
+import { useQrCodeSuspense, useInvalidateQueries, unwrapSuspenseData } from "@/queries/hooks";
 import { ArrowLeft, Download, ExternalLink, Pencil, Trash2 } from "lucide-react";
 import {
   Dialog,
@@ -32,23 +32,35 @@ const DEFAULT_CONFIG: QrCodeConfig = {
 };
 
 export function QrCodeDetailPage() {
+  const api = useApi();
   const { id } = useParams<{ id: string }>();
   if (!id) return null;
   return <QrCodeDetailContent id={id} />;
 }
 
 function QrCodeDetailContent({ id }: { id: string }) {
+  const api = useApi();
   const navigate = useNavigate();
   const invalidate = useInvalidateQueries();
-  const { data: qr } = useQrCodeSuspense(id);
+  const qr = unwrapSuspenseData(useQrCodeSuspense(id))!;
   const [displaySize, setDisplaySize] = useState(256);
+  const [imageUrl, setImageUrl] = useState<string>("");
   const [editing, setEditing] = useState(false);
   const [deleting, setDeleting] = useState(false);
-
-  const imageUrl = api.qrCodes.getImageUrl(id, displaySize);
   const format = qr.config?.format ?? "png";
 
+  useEffect(() => {
+    let cancelled = false;
+    api.qrCodes.getImageUrl(id, displaySize).then((u) => {
+      if (!cancelled) setImageUrl(u);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [id, displaySize, api]);
+
   const handleDownload = () => {
+    if (!imageUrl) return;
     const a = document.createElement("a");
     a.href = imageUrl;
     a.download = `${qr.name || "qr-code"}.${format}`;
@@ -107,7 +119,7 @@ function QrCodeDetailContent({ id }: { id: string }) {
             <div className="flex flex-col gap-4">
               <div className="rounded-lg border bg-white p-4">
                 <img
-                  src={imageUrl}
+                  src={imageUrl || undefined}
                   alt={`QR code for ${qr.name || qr.url}`}
                   width={displaySize}
                   height={displaySize}

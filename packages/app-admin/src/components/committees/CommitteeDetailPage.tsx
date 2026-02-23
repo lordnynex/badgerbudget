@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
-import { useCommitteeSuspense, useInvalidateQueries } from "@/queries/hooks";
-import { useMembersSuspense } from "@/queries/hooks";
+import { useCommitteeSuspense, useMembersSuspense, useInvalidateQueries, unwrapSuspenseData } from "@/queries/hooks";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,15 +24,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MemberCard } from "@/components/members/MemberCard";
 import { MemberSelectCombobox } from "@/components/members/MemberSelectCombobox";
 import { ArrowLeft, Pencil, X, Plus, Calendar, Trash2 } from "lucide-react";
-import { api } from "@/data/api";
+import { useApi } from "@/data/api";
 import { formatDateOnly } from "@/lib/date-utils";
 import type { Member } from "@/types/budget";
 
 export function CommitteeDetailPage() {
+  const api = useApi();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { data: committee } = useCommitteeSuspense(id!);
-  const { data: members = [] } = useMembersSuspense();
+  const committee = unwrapSuspenseData(useCommitteeSuspense(id!))!;
+  const members = unwrapSuspenseData(useMembersSuspense()) ?? [];
   const invalidate = useInvalidateQueries();
 
   const [editing, setEditing] = useState(false);

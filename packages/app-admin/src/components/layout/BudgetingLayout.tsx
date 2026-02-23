@@ -18,7 +18,7 @@ import { BudgetScenarioLayout } from "./BudgetScenarioLayout";
 import { ProjectionsSubNav } from "./ProjectionsSubNav";
 import { useBudgetsOptional, useScenariosOptional, useInvalidateQueries } from "@/queries/hooks";
 import { useAppState } from "@/state/AppState";
-import { api } from "@/data/api";
+import { trpc } from "@/trpc";
 
 const navLinkClass = ({ isActive }: { isActive: boolean }, collapsed?: boolean) =>
   cn(
@@ -43,6 +43,18 @@ export function BudgetingLayout({ onPrint, onEmail }: BudgetingLayoutProps) {
   const { data: scenarios = [], isLoading: scenariosLoading } = useScenariosOptional();
   const invalidate = useInvalidateQueries();
   const { refreshBudgets, refreshScenarios } = useAppState();
+  const createBudgetMutation = trpc.admin.budgets.create.useMutation({
+    onSuccess: () => {
+      invalidate.invalidateBudgets();
+      refreshBudgets();
+    },
+  });
+  const createScenarioMutation = trpc.admin.scenarios.create.useMutation({
+    onSuccess: () => {
+      invalidate.invalidateScenarios();
+      refreshScenarios();
+    },
+  });
 
   const [budgetCreateOpen, setBudgetCreateOpen] = useState(false);
   const [newBudgetName, setNewBudgetName] = useState("");
@@ -61,7 +73,7 @@ export function BudgetingLayout({ onPrint, onEmail }: BudgetingLayoutProps) {
 
   const handleCreateBudget = async () => {
     if (!newBudgetName.trim()) return;
-    const created = await api.budgets.create({
+    const created = await createBudgetMutation.mutateAsync({
       name: newBudgetName.trim(),
       year: newBudgetYear,
       description: newBudgetDescription.trim() || undefined,
@@ -70,21 +82,19 @@ export function BudgetingLayout({ onPrint, onEmail }: BudgetingLayoutProps) {
     setNewBudgetYear(new Date().getFullYear());
     setNewBudgetDescription("");
     setBudgetCreateOpen(false);
-    invalidate.invalidateBudgets();
     await refreshBudgets();
     navigate(`/budgeting/budget/${created.id}`);
   };
 
   const handleCreateScenario = async () => {
     if (!newScenarioName.trim()) return;
-    const created = await api.scenarios.create({
+    const created = await createScenarioMutation.mutateAsync({
       name: newScenarioName.trim(),
       description: newScenarioDescription.trim() || undefined,
     });
     setNewScenarioName("");
     setNewScenarioDescription("");
     setScenarioCreateOpen(false);
-    invalidate.invalidateScenarios();
     await refreshScenarios();
     navigate(`/budgeting/scenarios/${created.id}`);
   };

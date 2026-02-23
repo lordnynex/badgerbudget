@@ -10,9 +10,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Plus, Trash2, Pencil, Check } from "lucide-react";
-import { api } from "@/data/api";
+import { useApi } from "@/data/api";
 import { useQuery } from "@tanstack/react-query";
-import { api } from "@/data/api";
 import { queryKeys } from "@/queries/keys";
 import { useInvalidateQueries } from "@/queries/hooks";
 import type { MeetingActionItem } from "@/shared/types/meeting";
@@ -23,6 +22,7 @@ interface ActionItemsCardProps {
 }
 
 export function ActionItemsCard({ meetingId, actionItems }: ActionItemsCardProps) {
+  const api = useApi();
   const { data: members = [] } = useQuery({
     queryKey: queryKeys.members,
     queryFn: () => api.members.list(),

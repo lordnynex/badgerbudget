@@ -11,13 +11,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { DatePicker } from "@/components/ui/date-picker";
-import { api } from "@/data/api";
+import { useApi } from "@/data/api";
 import { useMeetingsOptional } from "@/queries/hooks";
 import { useMeetingTemplatesOptional } from "@/queries/hooks";
 import { useInvalidateQueries } from "@/queries/hooks";
 import { ArrowLeft } from "lucide-react";
 
 export function CreateMeetingPage() {
+  const api = useApi();
   const navigate = useNavigate();
   const invalidate = useInvalidateQueries();
   const { data: meetings = [] } = useMeetingsOptional();

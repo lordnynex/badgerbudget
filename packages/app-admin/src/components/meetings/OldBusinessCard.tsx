@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Trash2, Pencil, Check } from "lucide-react";
-import { api } from "@/data/api";
+import { useApi } from "@/data/api";
 import { useInvalidateQueries } from "@/queries/hooks";
 import type { OldBusinessItem } from "@/shared/types/meeting";
 
@@ -13,6 +13,7 @@ interface OldBusinessCardProps {
 }
 
 export function OldBusinessCard({ meetingId, oldBusiness }: OldBusinessCardProps) {
+  const api = useApi();
   const invalidate = useInvalidateQueries();
   const [adding, setAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);

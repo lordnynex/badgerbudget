@@ -1,9 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
-import { api } from "@/data/api";
+import { useApi } from "@/data/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Mail } from "lucide-react";
 
 export function WebsiteContactSubmissionsPanel() {
+  const api = useApi();
   const { data: contactSubmissions = [], isLoading: loadingContact } = useQuery({
     queryKey: ["website", "contact-submissions"],
     queryFn: () => api.website.listContactSubmissions(),

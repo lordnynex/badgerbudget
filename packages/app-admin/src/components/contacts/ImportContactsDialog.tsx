@@ -9,7 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { parseVCardFile, parsedToContactPayload, type ParsedVCardContact } from "@/lib/vcard";
-import { api } from "@/data/api";
+import { useApi } from "@/data/api";
 import type { Contact } from "@/types/contact";
 import { Upload, FileText, Mail } from "lucide-react";
 
@@ -28,6 +28,7 @@ interface PstPreviewItem {
 }
 
 export function ImportContactsDialog({ open, onOpenChange, onSuccess }: ImportContactsDialogProps) {
+  const api = useApi();
   const [mode, setMode] = useState<ImportMode>(null);
   const [parsed, setParsed] = useState<ParsedVCardContact[]>([]);
   const [pstPreview, setPstPreview] = useState<PstPreviewItem[]>([]);

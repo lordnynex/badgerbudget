@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Users, User, Phone, Mail, MapPin, Trash2 } from "lucide-react";
-import { api } from "@/data/api";
+import { useApi } from "@/data/api";
 import { ALL_MEMBERS_ID } from "@/shared/lib/constants";
 import { formatBirthday, formatMemberSince } from "./memberUtils";
 import type { Member } from "@/types/budget";
@@ -24,6 +24,7 @@ export function MemberChipPopover({
   onRemove,
   removeContextLabel = "assignment",
 }: MemberChipPopoverProps) {
+  const api = useApi();
   const [open, setOpen] = useState(false);
   const [member, setMember] = useState<Member | null>(null);
   const [loading, setLoading] = useState(false);

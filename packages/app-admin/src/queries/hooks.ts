@@ -1,336 +1,242 @@
-import {
-  useSuspenseQuery,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
-import { api } from "@/data/api";
-import type {
-  Contact,
-  ContactSearchParams,
-  MailingList,
-  ListPreview,
-  MailingListStats,
-  MailingListIncludedPage,
-} from "@/types/contact";
-import type { Budget, BudgetSummary, Scenario, ScenarioSummary } from "@/types/budget";
-import { queryKeys } from "./keys";
+import { trpc } from "@/trpc";
+import type { ContactSearchParams } from "@/types/contact";
+import type { Contact } from "@/types/contact";
+import type { MeetingTemplate } from "@/shared/types/meeting";
 
-// —— Budgets & scenarios (used only on projections / budget / scenarios pages)
+/**
+ * tRPC v11 useSuspenseQuery returns [data, queryResult]; older setups may return { data }.
+ * Use this to get the procedure output from either shape.
+ */
+export function unwrapSuspenseData<T>(returnValue: [T, unknown] | { data?: T }): T | undefined {
+  return Array.isArray(returnValue) ? returnValue[0] : (returnValue as { data?: T }).data;
+}
+
+// —— Budgets & scenarios
 export function useBudgetsSuspense() {
-  return useSuspenseQuery<BudgetSummary[]>({
-    queryKey: queryKeys.budgets,
-    queryFn: async () => (await api.budgets.list()) as unknown as BudgetSummary[],
-  });
+  return trpc.admin.budgets.list.useSuspenseQuery();
 }
 
 export function useScenariosSuspense() {
-  return useSuspenseQuery<ScenarioSummary[]>({
-    queryKey: queryKeys.scenarios,
-    queryFn: async () => (await api.scenarios.list()) as unknown as ScenarioSummary[],
-  });
+  return trpc.admin.scenarios.list.useSuspenseQuery();
 }
 
-/** Optional fetch (e.g. for event edit dialog dropdowns when not on budget page). */
 export function useBudgetsOptional() {
-  return useQuery({
-    queryKey: queryKeys.budgets,
-    queryFn: () => api.budgets.list(),
-  });
+  return trpc.admin.budgets.list.useQuery();
 }
 
 export function useScenariosOptional() {
-  return useQuery({
-    queryKey: queryKeys.scenarios,
-    queryFn: () => api.scenarios.list(),
-  });
+  return trpc.admin.scenarios.list.useQuery();
 }
 
-/** Call only when id is non-null (e.g. inside a component rendered when id exists). */
 export function useBudgetSuspense(id: string) {
-  return useSuspenseQuery<Budget>({
-    queryKey: queryKeys.budget(id),
-    queryFn: async () => (await api.budgets.get(id)) as unknown as Budget,
-  });
+  return trpc.admin.budgets.get.useSuspenseQuery({ id });
 }
 
-/** Call only when id is non-null. */
 export function useScenarioSuspense(id: string) {
-  return useSuspenseQuery<Scenario>({
-    queryKey: queryKeys.scenario(id),
-    queryFn: async () => (await api.scenarios.get(id)) as unknown as Scenario,
-  });
+  return trpc.admin.scenarios.get.useSuspenseQuery({ id });
 }
 
 // —— Events
 export function useEventsSuspense(type?: string) {
-  return useSuspenseQuery({
-    queryKey: queryKeys.events(type),
-    queryFn: () => api.events.list(type ? { type } : undefined),
-  });
+  return trpc.admin.events.list.useSuspenseQuery(
+    type ? { type: type as "badger" | "anniversary" | "pioneer_run" | "rides" } : undefined
+  );
 }
 
 export function useEventSuspense(id: string) {
-  return useSuspenseQuery({
-    queryKey: queryKeys.event(id),
-    queryFn: () => api.events.get(id),
-  });
+  return trpc.admin.events.get.useSuspenseQuery({ id });
 }
 
 // —— Members
 export function useMembersSuspense() {
-  return useSuspenseQuery({
-    queryKey: queryKeys.members,
-    queryFn: () => api.members.list(),
-  });
+  return trpc.admin.members.list.useSuspenseQuery();
 }
 
 export function useMemberSuspense(id: string) {
-  return useSuspenseQuery({
-    queryKey: queryKeys.member(id),
-    queryFn: () => api.members.get(id),
-  });
+  return trpc.admin.members.get.useSuspenseQuery({ id });
 }
 
-// —— Contacts (list has params)
-export function useContactsSuspense(params: ContactSearchParams) {
-  return useSuspenseQuery({
-    queryKey: queryKeys.contacts(params as Record<string, unknown>),
-    queryFn: () => api.contacts.list(params),
-  });
+// —— Contacts
+export function useContactsSuspense(params?: ContactSearchParams) {
+  return trpc.admin.contacts.list.useSuspenseQuery((params ?? {}) as Record<string, unknown>);
 }
 
 export function useContactSuspense(id: string) {
-  return useSuspenseQuery({
-    queryKey: queryKeys.contact(id),
-    queryFn: () => api.contacts.get(id),
-  });
+  return trpc.admin.contacts.get.useSuspenseQuery({ id });
 }
 
 export function useContactTags() {
-  return useQuery({
-    queryKey: queryKeys.contactTags,
-    queryFn: () => api.contacts.tags.list(),
-  });
+  return trpc.admin.contacts.listTags.useQuery();
 }
 
 // —— Mailing lists
 export function useMailingListsSuspense() {
-  return useSuspenseQuery({
-    queryKey: queryKeys.mailingLists,
-    queryFn: () => api.mailingLists.list(),
-  });
+  return trpc.admin.mailingLists.list.useSuspenseQuery();
 }
 
-/** Call only when id is non-null. */
 export function useMailingListSuspense(id: string) {
-  return useSuspenseQuery<MailingList | null>({
-    queryKey: queryKeys.mailingList(id),
-    queryFn: async () => (await api.mailingLists.get(id)) as MailingList | null,
-  });
+  return trpc.admin.mailingLists.get.useSuspenseQuery({ id });
 }
 
 export function useMailingListPreview(id: string | null) {
-  return useQuery<ListPreview | null>({
-    queryKey: queryKeys.mailingListPreview(id ?? ""),
-    queryFn: async () =>
-      (await api.mailingLists.preview(id!)) as ListPreview | null,
-    enabled: !!id,
-  });
+  return trpc.admin.mailingLists.preview.useQuery(
+    { id: id! },
+    { enabled: !!id }
+  );
 }
 
 export function useMailingListStats(id: string | null) {
-  return useQuery<MailingListStats | null>({
-    queryKey: queryKeys.mailingListStats(id ?? ""),
-    queryFn: async () =>
-      (await api.mailingLists.getStats(id!)) as MailingListStats | null,
-    enabled: !!id,
-  });
+  return trpc.admin.mailingLists.getStats.useQuery(
+    { id: id! },
+    { enabled: !!id }
+  );
 }
 
 export function useMailingListIncluded(
   id: string | null,
   page: number,
   limit: number,
-  q?: string,
+  q?: string
 ) {
-  return useQuery<MailingListIncludedPage | null>({
-    queryKey: queryKeys.mailingListIncluded(id ?? "", page, limit, q),
-    queryFn: () => api.mailingLists.getIncluded(id!, { page, limit, q }),
-    enabled: !!id,
-  });
+  return trpc.admin.mailingLists.getIncluded.useQuery(
+    { listId: id!, page, limit, q },
+    { enabled: !!id }
+  );
 }
 
 // —— QR codes
 export function useQrCodesSuspense() {
-  return useSuspenseQuery({
-    queryKey: queryKeys.qrCodes,
-    queryFn: () => api.qrCodes.list(),
-  });
+  return trpc.admin.qrCodes.list.useSuspenseQuery();
 }
 
 export function useQrCodeSuspense(id: string) {
-  return useSuspenseQuery({
-    queryKey: queryKeys.qrCode(id),
-    queryFn: () => api.qrCodes.get(id),
-  });
+  return trpc.admin.qrCodes.get.useSuspenseQuery({ id });
 }
 
 // —— Meetings
 export function useMeetingsSuspense(sort?: "date" | "meeting_number") {
-  return useSuspenseQuery({
-    queryKey: queryKeys.meetings(sort),
-    queryFn: () => api.meetings.list(sort ? { sort } : undefined),
-  });
+  return trpc.admin.meetings.list.useSuspenseQuery(
+    sort ? { sort } : undefined
+  );
 }
 
 export function useMeetingSuspense(id: string) {
-  return useSuspenseQuery({
-    queryKey: queryKeys.meeting(id),
-    queryFn: () => api.meetings.get(id),
-  });
+  return trpc.admin.meetings.get.useSuspenseQuery({ id });
 }
 
 export function useMeetingsOptional(sort?: "date" | "meeting_number") {
-  return useQuery({
-    queryKey: queryKeys.meetings(sort),
-    queryFn: () => api.meetings.list(sort ? { sort } : undefined),
-  });
+  return trpc.admin.meetings.list.useQuery(sort ? { sort } : undefined);
 }
 
 export function useOldBusinessSuspense() {
-  return useSuspenseQuery({
-    queryKey: queryKeys.oldBusiness,
-    queryFn: () => api.meetings.listOldBusiness(),
-  });
+  return trpc.admin.meetings.listOldBusiness.useSuspenseQuery();
 }
 
 export function useMotionsList(page: number, perPage: number, q?: string) {
-  return useQuery({
-    queryKey: queryKeys.motionsList(page, perPage, q),
-    queryFn: () => api.meetings.listMotions({ page, per_page: perPage, q }),
+  return trpc.admin.meetings.listMotions.useQuery({
+    page,
+    per_page: perPage,
+    q,
   });
 }
 
 // —— Committees
 export function useCommitteesSuspense(sort?: "formed_date" | "name") {
-  return useSuspenseQuery({
-    queryKey: queryKeys.committees(sort),
-    queryFn: () => api.committees.list(sort ? { sort } : undefined),
-  });
+  return trpc.admin.committees.list.useSuspenseQuery(
+    sort ? { sort } : undefined
+  );
 }
 
 export function useCommitteeSuspense(id: string) {
-  return useSuspenseQuery({
-    queryKey: queryKeys.committee(id),
-    queryFn: () => api.committees.get(id),
-  });
+  return trpc.admin.committees.get.useSuspenseQuery({ id });
 }
 
 export function useCommitteeMeetingsSuspense(committeeId: string) {
-  return useSuspenseQuery({
-    queryKey: queryKeys.committeeMeetings(committeeId),
-    queryFn: () =>
-      api.committees.listMeetings(committeeId).then((r) => r ?? []),
-  });
+  return trpc.admin.committees.listMeetings.useSuspenseQuery({ committeeId });
 }
 
 export function useCommitteeMeetingSuspense(committeeId: string, meetingId: string) {
-  return useSuspenseQuery({
-    queryKey: queryKeys.committeeMeeting(committeeId, meetingId),
-    queryFn: () => api.committees.getMeeting(committeeId, meetingId),
+  return trpc.admin.committees.getMeeting.useSuspenseQuery({
+    committeeId,
+    meetingId,
   });
 }
 
 // —— Meeting templates
 export function useMeetingTemplatesSuspense(type?: "agenda" | "minutes") {
-  return useSuspenseQuery({
-    queryKey: queryKeys.meetingTemplates(type),
-    queryFn: () => api.meetingTemplates.list(type ? { type } : undefined),
-  });
+  return trpc.admin.meetingTemplates.list.useSuspenseQuery(
+    type ? { type } : undefined
+  );
 }
 
 export function useMeetingTemplatesOptional(type?: "agenda" | "minutes") {
-  return useQuery({
-    queryKey: queryKeys.meetingTemplates(type),
-    queryFn: () => api.meetingTemplates.list(type ? { type } : undefined),
-  });
+  return trpc.admin.meetingTemplates.list.useQuery(
+    type ? { type } : undefined
+  );
 }
 
 export function useMeetingTemplateSuspense(id: string) {
-  return useSuspenseQuery({
-    queryKey: queryKeys.meetingTemplate(id),
-    queryFn: () => api.meetingTemplates.get(id),
-  });
+  return trpc.admin.meetingTemplates.get.useSuspenseQuery({ id });
 }
 
 // —— Mailing batches
 export function useMailingBatchSuspense(id: string) {
-  return useSuspenseQuery({
-    queryKey: queryKeys.mailingBatch(id),
-    queryFn: () => api.mailingBatches.get(id),
-  });
+  return trpc.admin.mailingBatches.get.useSuspenseQuery({ id });
 }
 
-// —— Mutations (invalidate cache after success)
+// —— Cache invalidation and optimistic updates (uses tRPC utils → TanStack Query)
 export function useInvalidateQueries() {
-  const qc = useQueryClient();
+  const utils = trpc.useUtils();
   return {
-    invalidateBudgets: () =>
-      qc.invalidateQueries({ queryKey: queryKeys.budgets }),
-    invalidateBudget: (id: string) =>
-      qc.invalidateQueries({ queryKey: queryKeys.budget(id) }),
-    invalidateScenarios: () =>
-      qc.invalidateQueries({ queryKey: queryKeys.scenarios }),
+    invalidateBudgets: () => utils.admin.budgets.list.invalidate(),
+    invalidateBudget: (id: string) => utils.admin.budgets.get.invalidate({ id }),
+    invalidateScenarios: () => utils.admin.scenarios.list.invalidate(),
     invalidateScenario: (id: string) =>
-      qc.invalidateQueries({ queryKey: queryKeys.scenario(id) }),
-    invalidateEvents: () =>
-      qc.invalidateQueries({ queryKey: queryKeys.events() }),
-    invalidateEvent: (id: string) =>
-      qc.invalidateQueries({ queryKey: queryKeys.event(id) }),
-    invalidateMembers: () =>
-      qc.invalidateQueries({ queryKey: queryKeys.members }),
+      utils.admin.scenarios.get.invalidate({ id }),
+    invalidateEvents: () => utils.admin.events.list.invalidate(),
+    invalidateEvent: (id: string) => utils.admin.events.get.invalidate({ id }),
+    invalidateMembers: () => utils.admin.members.list.invalidate(),
     invalidateMember: (id: string) =>
-      qc.invalidateQueries({ queryKey: queryKeys.member(id) }),
-    invalidateContacts: () => qc.invalidateQueries({ queryKey: ["contacts"] }),
+      utils.admin.members.get.invalidate({ id }),
+    invalidateContacts: () => utils.admin.contacts.list.invalidate(),
     invalidateContact: (id: string) =>
-      qc.invalidateQueries({ queryKey: queryKeys.contact(id) }),
+      utils.admin.contacts.get.invalidate({ id }),
     setContactData: (id: string, data: Contact) =>
-      qc.setQueryData(queryKeys.contact(id), data),
-    invalidateMailingLists: () =>
-      qc.invalidateQueries({ queryKey: queryKeys.mailingLists }),
+      utils.admin.contacts.get.setData({ id }, data),
+    invalidateMailingLists: () => utils.admin.mailingLists.list.invalidate(),
     invalidateMailingList: (id: string) => {
-      qc.invalidateQueries({ queryKey: queryKeys.mailingList(id) });
-      qc.invalidateQueries({ queryKey: queryKeys.mailingListPreview(id) });
-      qc.invalidateQueries({ queryKey: queryKeys.mailingListStats(id) });
-      qc.invalidateQueries({ queryKey: ["mailingList", id, "included"] });
+      utils.admin.mailingLists.get.invalidate({ id });
+      utils.admin.mailingLists.preview.invalidate({ id });
+      utils.admin.mailingLists.getStats.invalidate({ id });
+      utils.admin.mailingLists.getIncluded.invalidate();
     },
     invalidateMailingBatches: () =>
-      qc.invalidateQueries({ queryKey: queryKeys.mailingBatches }),
+      utils.admin.mailingBatches.list.invalidate(),
     invalidateMailingBatch: (id: string) =>
-      qc.invalidateQueries({ queryKey: queryKeys.mailingBatch(id) }),
-    invalidateQrCodes: () =>
-      qc.invalidateQueries({ queryKey: queryKeys.qrCodes }),
+      utils.admin.mailingBatches.get.invalidate({ id }),
+    invalidateQrCodes: () => utils.admin.qrCodes.list.invalidate(),
     invalidateQrCode: (id: string) =>
-      qc.invalidateQueries({ queryKey: queryKeys.qrCode(id) }),
-    invalidateMeetings: () =>
-      qc.invalidateQueries({ queryKey: queryKeys.meetings() }),
+      utils.admin.qrCodes.get.invalidate({ id }),
+    invalidateMeetings: () => utils.admin.meetings.list.invalidate(),
     invalidateMeeting: (id: string) =>
-      qc.invalidateQueries({ queryKey: queryKeys.meeting(id) }),
+      utils.admin.meetings.get.invalidate({ id }),
     invalidateOldBusiness: () =>
-      qc.invalidateQueries({ queryKey: queryKeys.oldBusiness }),
+      utils.admin.meetings.listOldBusiness.invalidate(),
     invalidateMeetingTemplates: () =>
-      qc.invalidateQueries({ queryKey: queryKeys.meetingTemplates() }),
+      utils.admin.meetingTemplates.list.invalidate(),
     invalidateMeetingTemplate: (id: string) =>
-      qc.invalidateQueries({ queryKey: queryKeys.meetingTemplate(id) }),
-    setMeetingTemplateData: (id: string, data: import("@/shared/types/meeting").MeetingTemplate) =>
-      qc.setQueryData(queryKeys.meetingTemplate(id), data),
-    invalidateCommittees: () =>
-      qc.invalidateQueries({ queryKey: queryKeys.committees() }),
+      utils.admin.meetingTemplates.get.invalidate({ id }),
+    setMeetingTemplateData: (id: string, data: MeetingTemplate) =>
+      utils.admin.meetingTemplates.get.setData({ id }, data),
+    invalidateCommittees: () => utils.admin.committees.list.invalidate(),
     invalidateCommittee: (id: string) =>
-      qc.invalidateQueries({ queryKey: queryKeys.committee(id) }),
+      utils.admin.committees.get.invalidate({ id }),
     invalidateCommitteeMeetings: (committeeId: string) =>
-      qc.invalidateQueries({ queryKey: queryKeys.committeeMeetings(committeeId) }),
+      utils.admin.committees.listMeetings.invalidate({ committeeId }),
     invalidateCommitteeMeeting: (committeeId: string, meetingId: string) =>
-      qc.invalidateQueries({ queryKey: queryKeys.committeeMeeting(committeeId, meetingId) }),
+      utils.admin.committees.getMeeting.invalidate({
+        committeeId,
+        meetingId,
+      }),
   };
 }

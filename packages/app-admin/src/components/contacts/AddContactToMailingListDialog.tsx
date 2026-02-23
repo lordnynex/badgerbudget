@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { api } from "@/data/api";
+import { useApi } from "@/data/api";
 import type { Contact } from "@/types/contact";
 
 interface AddContactToMailingListDialogProps {
@@ -19,6 +19,7 @@ interface AddContactToMailingListDialogProps {
 }
 
 export function AddContactToMailingListDialog({ open, onOpenChange, listId, onSuccess }: AddContactToMailingListDialogProps) {
+  const api = useApi();
   const [search, setSearch] = useState("");
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());

@@ -44,4 +44,16 @@ export const meetingsRouter = t.router({
   delete: t.procedure
     .input(z.object({ id: z.string(), delete_agenda: z.boolean().optional(), delete_minutes: z.boolean().optional() }))
     .mutation(({ ctx, input }) => ctx.api.meetings.delete(input.id, input.delete_agenda, input.delete_minutes)),
+
+  listOldBusiness: t.procedure.query(({ ctx }) => ctx.api.meetings.listOldBusiness()),
+
+  listMotions: t.procedure
+    .input(
+      z.object({
+        page: z.number().optional(),
+        per_page: z.number().optional(),
+        q: z.string().optional(),
+      }).optional()
+    )
+    .query(({ ctx, input }) => ctx.api.meetings.listMotions(input ?? {})),
 });

@@ -2,9 +2,9 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { api } from "@/data/api";
+import { useApi } from "@/data/api";
 import { extractEmbedUrlFromHtml, getMapEmbedUrl } from "@/lib/maps";
-import { useEventSuspense, useBudgetsOptional, useScenariosOptional } from "@/queries/hooks";
+import { useEventSuspense, useBudgetsOptional, useScenariosOptional, unwrapSuspenseData } from "@/queries/hooks";
 import { queryKeys } from "@/queries/keys";
 import { EventDetailsCard } from "./EventDetailsCard";
 import { EventLocationCard } from "./EventLocationCard";
@@ -29,9 +29,10 @@ export function EventDetailPage() {
 }
 
 function EventDetailContent({ id }: { id: string }) {
+  const api = useApi();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { data: event } = useEventSuspense(id);
+  const event = unwrapSuspenseData(useEventSuspense(id))!;
   const { data: budgets = [] } = useBudgetsOptional();
   const { data: scenarios = [] } = useScenariosOptional();
   const [editOpen, setEditOpen] = useState(false);

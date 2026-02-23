@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { api } from "@/data/api";
-import { useMemberSuspense, useInvalidateQueries } from "@/queries/hooks";
+import { useApi } from "@/data/api";
+import { useMemberSuspense, useInvalidateQueries, unwrapSuspenseData } from "@/queries/hooks";
+import type { Member } from "@/types/budget";
 import { MemberProfileCard } from "./MemberProfileCard";
 import { MemberEmergencyContactCard } from "./MemberEmergencyContactCard";
 import { MemberPhotoLightbox } from "./MemberPhotoLightbox";
@@ -11,15 +12,17 @@ import { EditMemberDialog } from "./EditMemberDialog";
 import { ArrowLeft, Pencil, Trash2 } from "lucide-react";
 
 export function MemberDetailPage() {
+  const api = useApi();
   const { id } = useParams<{ id: string }>();
   if (!id) return null;
   return <MemberDetailContent id={id} />;
 }
 
 function MemberDetailContent({ id }: { id: string }) {
+  const api = useApi();
   const navigate = useNavigate();
   const invalidate = useInvalidateQueries();
-  const { data: member } = useMemberSuspense(id);
+  const member = unwrapSuspenseData(useMemberSuspense(id))! as Member;
   const [editOpen, setEditOpen] = useState(false);
   const [photoLightboxOpen, setPhotoLightboxOpen] = useState(false);
 

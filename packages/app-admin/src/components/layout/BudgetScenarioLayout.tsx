@@ -6,6 +6,7 @@ import {
   useScenariosSuspense,
   useBudgetSuspense,
   useScenarioSuspense,
+  unwrapSuspenseData,
 } from "@/queries/hooks";
 import { PageLoading } from "./PageLoading";
 
@@ -17,8 +18,8 @@ import { PageLoading } from "./PageLoading";
 const PROJECTIONS_PATH = "/budgeting/projections";
 
 function BudgetScenarioListsSync({ children }: { children: ReactNode }) {
-  const { data: budgets } = useBudgetsSuspense();
-  const { data: scenarios } = useScenariosSuspense();
+  const budgets = unwrapSuspenseData(useBudgetsSuspense()) ?? [];
+  const scenarios = unwrapSuspenseData(useScenariosSuspense()) ?? [];
   const { dispatch, selectedBudgetId, selectedScenarioId } = useAppState();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -118,8 +119,8 @@ function BudgetScenarioDataSync({
   scenarioId: string;
   children: ReactNode;
 }) {
-  const { data: budget } = useBudgetSuspense(budgetId);
-  const { data: scenario } = useScenarioSuspense(scenarioId);
+  const budget = unwrapSuspenseData(useBudgetSuspense(budgetId))!;
+  const scenario = unwrapSuspenseData(useScenarioSuspense(scenarioId))!;
   const { dispatch } = useAppState();
 
   useEffect(() => {

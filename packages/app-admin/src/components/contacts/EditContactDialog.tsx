@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { api } from "@/data/api";
+import { useApi } from "@/data/api";
 import { isValidPhoneNumber, normalizePhoneForStorage } from "@/lib/phone";
 import type { Contact } from "@/types/contact";
 
@@ -29,6 +29,7 @@ interface EditContactDialogProps {
 }
 
 export function EditContactDialog({ open, onOpenChange, contact, onSuccess }: EditContactDialogProps) {
+  const api = useApi();
   const [displayName, setDisplayName] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");

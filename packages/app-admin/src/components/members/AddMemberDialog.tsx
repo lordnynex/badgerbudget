@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { api } from "@/data/api";
+import { useApi } from "@/data/api";
 import { MEMBER_POSITIONS } from "@/types/budget";
 import { MONTHS } from "./memberUtils";
 import { fileToBase64 } from "./memberUtils";
@@ -29,6 +29,7 @@ interface AddMemberDialogProps {
 }
 
 export function AddMemberDialog({ open, onOpenChange, onSuccess }: AddMemberDialogProps) {
+  const api = useApi();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");

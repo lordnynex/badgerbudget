@@ -22,7 +22,7 @@ import { Check, ChevronDown, Flag, Pencil, Plus, Trash2, UserPlus } from "lucide
 import { formatDueDate, getLastDayOfMonth, MONTHS } from "./eventUtils";
 import { MemberChipPopover } from "@/components/members/MemberChipPopover";
 import { MemberSelectCombobox } from "@/components/members/MemberSelectCombobox";
-import { api } from "@/data/api";
+import { useApi } from "@/data/api";
 import type { Event, EventPlanningMilestone } from "@/types/budget";
 import type { Member } from "@/types/budget";
 
@@ -55,6 +55,7 @@ export function EventMilestonesCard({
   onAddMember,
   onRemoveMember,
 }: EventMilestonesCardProps) {
+  const api = useApi();
   const [open, setOpen] = useState(false);
   const [members, setMembers] = useState<Member[]>([]);
   const [addMemberMilestoneId, setAddMemberMilestoneId] = useState<string | null>(null);

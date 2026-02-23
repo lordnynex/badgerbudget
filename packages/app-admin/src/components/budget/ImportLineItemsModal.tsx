@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { api } from "@/data/api";
+import { useApi } from "@/data/api";
 import type { BudgetSummary, LineItem } from "@/types/budget";
 import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -35,6 +35,7 @@ export function ImportLineItemsModal({
   budgets,
   onImport,
 }: ImportLineItemsModalProps) {
+  const api = useApi();
   const [sourceBudgetId, setSourceBudgetId] = useState<string>("");
   const [sourceLineItems, setSourceLineItems] = useState<LineItem[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());

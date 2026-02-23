@@ -5,29 +5,47 @@ import { Header } from "@/components/layout/Header";
 import { Main } from "@/components/layout/Main";
 import { BudgetingLayout } from "@/components/layout/BudgetingLayout";
 import { PageLoading } from "@/components/layout/PageLoading";
-import { NotFoundPage } from "@/components/layout/NotFoundPage";
-import { HomePage } from "@/components/layout/HomePage";
 import { IdParamGuard } from "@/components/layout/IdParamGuard";
-import { EventDetailPage } from "@/components/events/EventDetailPage";
-import { EventsPanel } from "@/components/events/EventsPanel";
-import { MembersPanel } from "@/components/members/MembersPanel";
-import { MemberDetailPage } from "@/components/members/MemberDetailPage";
-import { ContactsPanel } from "@/components/contacts/ContactsPanel";
-import { ContactDetailPage } from "@/components/contacts/ContactDetailPage";
-import { MailingListsPanel } from "@/components/contacts/MailingListsPanel";
-import { QrCodesPanel } from "@/components/contacts/QrCodesPanel";
-import { QrCodeDetailPage } from "@/components/contacts/QrCodeDetailPage";
-import { MailingPanel } from "@/components/contacts/MailingPanel";
-import { EmailPanel } from "@/components/contacts/EmailPanel";
-import { AssetsPanel } from "@/components/contacts/AssetsPanel";
-import { HellenicsPanel } from "@/components/contacts/HellenicsPanel";
-import { ActualSpendPanel } from "@/components/budget/ActualSpendPanel";
-import { VendorsPanel } from "@/components/contacts/VendorsPanel";
 import { ContactsLayout } from "@/components/layout/ContactsLayout";
 import { EventsLayout } from "@/components/layout/EventsLayout";
 import { MeetingsLayout } from "@/components/layout/MeetingsLayout";
 import { WebsiteLayout } from "@/components/layout/WebsiteLayout";
 import {
+  HomePage,
+  NotFoundPage,
+  EventsPage,
+  EventDetailPage,
+  MembersPanel,
+  MemberDetailPage,
+  ContactsPanel,
+  ContactDetailPage,
+  MailingListsPanel,
+  QrCodesPanel,
+  QrCodeDetailPage,
+  MailingPanel,
+  EmailPanel,
+  AssetsPanel,
+  HellenicsPanel,
+  VendorsPanel,
+  ActualSpendPanel,
+  MeetingsPanel,
+  CreateMeetingPage,
+  MeetingDetailPage,
+  MeetingDocumentEditPage,
+  TemplatesPanel,
+  TemplateDetailPage,
+  BylawsPage,
+  RobertsRulesPage,
+  OldBusinessPanel,
+  MotionsPanel,
+  CommitteesPanel,
+  CommitteeDetailPage,
+  CreateCommitteePage,
+  CreateCommitteeMeetingPage,
+  CommitteeMeetingDetailPage,
+  CommitteeMeetingDocumentEditPage,
+  PrintView,
+  EmailView,
   WebsitePagesPanel,
   WebsiteBlogPanel,
   WebsiteEventsFeedPanel,
@@ -36,27 +54,7 @@ import {
   WebsiteMenusPanel,
   WebsiteContactSubmissionsPanel,
   WebsiteSettingsPanel,
-} from "@/components/website";
-import { MeetingsPanel } from "@/components/meetings/MeetingsPanel";
-import { CreateMeetingPage } from "@/components/meetings/CreateMeetingPage";
-import { MeetingDetailPage } from "@/components/meetings/MeetingDetailPage";
-import { MeetingDocumentEditPage } from "@/components/meetings/MeetingDocumentEditPage";
-import { TemplatesPanel } from "@/components/meetings/TemplatesPanel";
-import { TemplateDetailPage } from "@/components/meetings/TemplateDetailPage";
-import { BylawsPage } from "@/components/meetings/BylawsPage";
-import { RobertsRulesPage } from "@/components/meetings/RobertsRulesPage";
-import { OldBusinessPanel } from "@/components/meetings/OldBusinessPanel";
-import { MotionsPanel } from "@/components/meetings/MotionsPanel";
-import {
-  CommitteesPanel,
-  CommitteeDetailPage,
-  CreateCommitteePage,
-  CreateCommitteeMeetingPage,
-  CommitteeMeetingDetailPage,
-  CommitteeMeetingDocumentEditPage,
-} from "@/components/committees";
-import { PrintView } from "@/components/export/PrintView";
-import { EmailView } from "@/components/export/EmailView";
+} from "@/pages";
 import {
   Dialog,
   DialogContent,
@@ -643,11 +641,6 @@ function AppContent() {
       </Dialog>
     </>
   );
-}
-
-/** Events page: loads events list (suspense), optionally filtered by type. */
-function EventsPage({ type }: { type?: "badger" | "anniversary" | "pioneer_run" | "rides" }) {
-  return <EventsPanel type={type} />;
 }
 
 function App() {

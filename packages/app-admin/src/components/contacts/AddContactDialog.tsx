@@ -16,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { api } from "@/data/api";
+import { useApi } from "@/data/api";
 import { isValidPhoneNumber, normalizePhoneForStorage } from "@/lib/phone";
 import type { Contact } from "@/types/contact";
 
@@ -29,6 +29,7 @@ interface AddContactDialogProps {
 }
 
 export function AddContactDialog({ open, onOpenChange, onSuccess, defaultHellenic }: AddContactDialogProps) {
+  const api = useApi();
   const [type, setType] = useState<Contact["type"]>("person");
   const [displayName, setDisplayName] = useState("");
   const [firstName, setFirstName] = useState("");

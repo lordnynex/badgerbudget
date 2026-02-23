@@ -18,23 +18,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { api } from "@/data/api";
+import { useApi } from "@/data/api";
 import type { MailingList, ListPreview } from "@/types/contact";
 import { contactsToVCardFileAsync } from "@/lib/vcard";
 import { ArrowLeft, Plus, Pencil, Trash2, Download, Printer, Users, MapPin, Copy, ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { AddContactToMailingListDialog } from "./AddContactToMailingListDialog";
 import { ContactDirectoryTable } from "./ContactDirectoryTable";
 import { CreateMailLabelsDialog } from "./CreateMailLabelsDialog";
-import { useMailingListsSuspense, useEventsSuspense, useMailingListSuspense, useMailingListPreview, useMailingListStats, useMailingListIncluded, useInvalidateQueries } from "@/queries/hooks";
+import { useMailingListsSuspense, useEventsSuspense, useMailingListSuspense, useMailingListPreview, useMailingListStats, useMailingListIncluded, useInvalidateQueries, unwrapSuspenseData } from "@/queries/hooks";
 import { PageLoading } from "@/components/layout/PageLoading";
 
 export function MailingListsPanel() {
+  const api = useApi();
   const { listId } = useParams<{ listId?: string }>();
   const navigate = useNavigate();
   const invalidate = useInvalidateQueries();
-  const { data: listsData } = useMailingListsSuspense();
+  const listsData = unwrapSuspenseData(useMailingListsSuspense());
   const lists = Array.isArray(listsData) ? listsData : [];
-  const { data: eventsData } = useEventsSuspense();
+  const eventsData = unwrapSuspenseData(useEventsSuspense());
   const events: Array<{ id: string; name: string }> = Array.isArray(eventsData) ? eventsData : [];
   const [searchParams, setSearchParams] = useSearchParams();
   const [createOpen, setCreateOpen] = useState(searchParams.get("create") === "1");
@@ -223,7 +224,7 @@ function MailingListDetail({
   invalidate: ReturnType<typeof useInvalidateQueries>;
 }) {
   const navigate = useNavigate();
-  const { data: selectedList } = useMailingListSuspense(listId);
+  const selectedList = unwrapSuspenseData(useMailingListSuspense(listId));
   const { data: preview } = useMailingListPreview(listId);
   const [editOpen, setEditOpen] = useState(false);
   const [editName, setEditName] = useState(selectedList?.name ?? "");

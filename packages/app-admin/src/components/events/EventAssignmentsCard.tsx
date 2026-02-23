@@ -22,7 +22,7 @@ import { ChevronDown, ClipboardList, Plus, Trash2, UserPlus } from "lucide-react
 import { MemberChipPopover } from "@/components/members/MemberChipPopover";
 import { MemberSelectCombobox } from "@/components/members/MemberSelectCombobox";
 import { ALL_MEMBERS_ID } from "@/shared/lib/constants";
-import { api } from "@/data/api";
+import { useApi } from "@/data/api";
 import type { Event, EventAssignment, EventAssignmentCategory, Member } from "@/types/budget";
 
 const CATEGORY_LABELS: Record<EventAssignmentCategory, string> = {
@@ -45,6 +45,7 @@ export function EventAssignmentsCard({
   onAddMember,
   onRemoveMember,
 }: EventAssignmentsCardProps) {
+  const api = useApi();
   const [addRoleOpen, setAddRoleOpen] = useState(false);
   const [addMemberOpen, setAddMemberOpen] = useState<string | null>(null);
   const [roleName, setRoleName] = useState("");

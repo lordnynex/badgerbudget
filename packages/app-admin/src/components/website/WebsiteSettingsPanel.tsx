@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api } from "@/data/api";
+import { useApi } from "@/data/api";
 import { queryKeys } from "@/queries/keys";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Settings } from "lucide-react";
 
 export function WebsiteSettingsPanel() {
+  const api = useApi();
   const queryClient = useQueryClient();
   const { data: settings, isLoading } = useQuery({
     queryKey: queryKeys.websiteSettings,

@@ -1,7 +1,7 @@
-import { api } from "./trpcBridge";
+import { useApi } from "./trpcBridge";
 
-export { api };
-export { setTrpcClient } from "./trpcRef";
+export { useApi };
+export { TrpcClientProvider, useTrpcClient } from "./trpcClientContext";
 export { buildSearchParams } from "./clientCompat";
 
 /** For compatibility with code that unwraps Eden-style responses. tRPC throws on error so we just return the value. */

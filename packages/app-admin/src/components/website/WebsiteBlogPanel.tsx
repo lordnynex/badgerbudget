@@ -1,9 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
-import { api } from "@/data/api";
+import { useApi } from "@/data/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BookOpen } from "lucide-react";
 
 export function WebsiteBlogPanel() {
+  const api = useApi();
   const { data: posts = [], isLoading } = useQuery({
     queryKey: ["website", "blog", "admin"],
     queryFn: () => api.website.listBlogAll(),

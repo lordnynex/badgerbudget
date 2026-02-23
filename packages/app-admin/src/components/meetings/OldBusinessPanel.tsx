@@ -1,12 +1,10 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { useOldBusinessSuspense } from "@/queries/hooks";
-import { useMeetingsOptional } from "@/queries/hooks";
-import { useInvalidateQueries } from "@/queries/hooks";
+import { useOldBusinessSuspense, useMeetingsOptional, useInvalidateQueries, unwrapSuspenseData } from "@/queries/hooks";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Trash2, Pencil, Check } from "lucide-react";
-import { api } from "@/data/api";
+import { useApi } from "@/data/api";
 import type { OldBusinessItemWithMeeting } from "@/shared/types/meeting";
 import {
   Dialog,
@@ -25,7 +23,8 @@ import { Label } from "@/components/ui/label";
 import { formatDateOnly } from "@/lib/date-utils";
 
 export function OldBusinessPanel() {
-  const { data: items = [] } = useOldBusinessSuspense();
+  const api = useApi();
+  const items = unwrapSuspenseData(useOldBusinessSuspense()) ?? [];
   const { data: meetings = [] } = useMeetingsOptional();
   const invalidate = useInvalidateQueries();
   const [createOpen, setCreateOpen] = useState(false);

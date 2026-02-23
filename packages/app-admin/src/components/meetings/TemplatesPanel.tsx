@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useMeetingTemplatesSuspense } from "@/queries/hooks";
+import { useMeetingTemplatesSuspense, useInvalidateQueries, unwrapSuspenseData } from "@/queries/hooks";
 import { Button } from "@/components/ui/button";
 import { Plus, FileText } from "lucide-react";
 import {
@@ -18,15 +18,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { api } from "@/data/api";
-import { useInvalidateQueries } from "@/queries/hooks";
+import { useApi } from "@/data/api";
 import { RichDocumentEditor } from "./RichDocumentEditor";
 
 const EMPTY_DOC = JSON.stringify({ type: "doc", content: [{ type: "paragraph" }] });
 
 export function TemplatesPanel() {
+  const api = useApi();
   const navigate = useNavigate();
-  const { data: templates } = useMeetingTemplatesSuspense();
+  const templates = unwrapSuspenseData(useMeetingTemplatesSuspense()) ?? [];
   const invalidate = useInvalidateQueries();
   const [createOpen, setCreateOpen] = useState(false);
   const [name, setName] = useState("");

@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { api } from "@/data/api";
+import { useApi } from "@/data/api";
 import type { MailingList } from "@/types/contact";
 
 interface AddToMailingListDialogProps {
@@ -25,6 +25,7 @@ interface AddToMailingListDialogProps {
 }
 
 export function AddToMailingListDialog({ open, onOpenChange, contactIds, onSuccess }: AddToMailingListDialogProps) {
+  const api = useApi();
   const [lists, setLists] = useState<MailingList[]>([]);
   const [selectedListId, setSelectedListId] = useState<string>("");
   const [saving, setSaving] = useState(false);

@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { ArrowLeft, Check, Pencil, Plus, Trash2 } from "lucide-react";
 import { useAppState } from "@/state/AppState";
 import { useInvalidateQueries } from "@/queries/hooks";
-import { api } from "@/data/api";
+import { useApi } from "@/data/api";
 import {
   Dialog,
   DialogContent,
@@ -19,6 +19,7 @@ import {
 import { ScenarioInputsCard } from "./ScenarioInputsCard";
 
 export function ScenariosPanel() {
+  const api = useApi();
   const { id: scenarioId } = useParams<{ id?: string }>();
   const navigate = useNavigate();
   const {

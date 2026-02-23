@@ -11,7 +11,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Plus, Trash2, FileCheck, Users } from "lucide-react";
-import { api } from "@/data/api";
+import { useApi } from "@/data/api";
 import { MemberChipPopover } from "@/components/members/MemberChipPopover";
 import type { EventAttendee, RideMemberAttendee } from "@/types/event";
 import type { Contact } from "@/types/contact";
@@ -40,6 +40,7 @@ export function RideAttendeesCard({
   onUpdateMemberWaiver,
   onRemoveMember,
 }: RideAttendeesCardProps) {
+  const api = useApi();
   const [addOpen, setAddOpen] = useState(false);
   const [addMemberOpen, setAddMemberOpen] = useState(false);
   const [search, setSearch] = useState("");

@@ -1,11 +1,10 @@
 import { useState, useCallback, useEffect } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
-import { useMeetingSuspense } from "@/queries/hooks";
-import { useInvalidateQueries } from "@/queries/hooks";
+import { useMeetingSuspense, useInvalidateQueries, unwrapSuspenseData } from "@/queries/hooks";
 import { Button } from "@/components/ui/button";
 import { RichDocumentEditor } from "./RichDocumentEditor";
 import { ArrowLeft, Save, FileDown } from "lucide-react";
-import { api } from "@/data/api";
+import { useApi } from "@/data/api";
 
 type DocumentType = "agenda" | "minutes";
 
@@ -14,9 +13,10 @@ export function MeetingDocumentEditPage({
 }: {
   documentType: DocumentType;
 }) {
+  const api = useApi();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { data: meeting } = useMeetingSuspense(id!);
+  const meeting = unwrapSuspenseData(useMeetingSuspense(id!))!;
   const invalidate = useInvalidateQueries();
 
   const documentId =

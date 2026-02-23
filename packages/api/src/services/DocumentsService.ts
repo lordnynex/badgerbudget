@@ -1,6 +1,7 @@
 import type { DataSource } from "typeorm";
 import { Document, DocumentVersion } from "../entities";
 import { uuid } from "./utils";
+import { tiptapJsonToPdf } from "../lib/tiptapToPdf";
 
 const EMPTY_DOC = JSON.stringify({ type: "doc", content: [{ type: "paragraph" }] });
 
@@ -123,5 +124,11 @@ export class DocumentsService {
     if (!version) return null;
 
     return this.update(documentId, { content: version.content });
+  }
+
+  async exportPdf(documentId: string): Promise<Buffer | null> {
+    const doc = await this.get(documentId);
+    if (!doc) return null;
+    return tiptapJsonToPdf(doc.content);
   }
 }

@@ -10,7 +10,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Plus, Trash2, Pencil } from "lucide-react";
-import { api } from "@/data/api";
+import { useApi } from "@/data/api";
 import { useQuery } from "@tanstack/react-query";
 import { queryKeys } from "@/queries/keys";
 import { useInvalidateQueries } from "@/queries/hooks";
@@ -23,6 +23,7 @@ interface MotionsCardProps {
 }
 
 export function MotionsCard({ meetingId, motions }: MotionsCardProps) {
+  const api = useApi();
   const { data: members = [] } = useQuery({
     queryKey: queryKeys.members,
     queryFn: () => api.members.list(),

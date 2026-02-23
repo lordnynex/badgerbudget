@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { ArrowLeft, Pencil, Plus } from "lucide-react";
 import { useAppState } from "@/state/AppState";
 import { useInvalidateQueries } from "@/queries/hooks";
-import { api } from "@/data/api";
+import { trpc } from "@/trpc";
 import {
   Dialog,
   DialogContent,
@@ -28,6 +28,18 @@ export function BudgetsPanel() {
     refreshBudget,
   } = useAppState();
   const invalidate = useInvalidateQueries();
+  const createBudgetMutation = trpc.admin.budgets.create.useMutation({
+    onSuccess: () => invalidate.invalidateBudgets(),
+  });
+  const deleteBudgetMutation = trpc.admin.budgets.delete.useMutation({
+    onSuccess: () => invalidate.invalidateBudgets(),
+  });
+  const updateBudgetMutation = trpc.admin.budgets.update.useMutation({
+    onSuccess: (_, vars) => {
+      invalidate.invalidateBudgets();
+      invalidate.invalidateBudget(vars.id);
+    },
+  });
   const [createOpen, setCreateOpen] = useState(false);
   const [newName, setNewName] = useState("");
   const [newYear, setNewYear] = useState(new Date().getFullYear());
@@ -39,7 +51,7 @@ export function BudgetsPanel() {
 
   const handleCreate = async () => {
     if (!newName.trim()) return;
-    const created = await api.budgets.create({
+    const created = await createBudgetMutation.mutateAsync({
       name: newName.trim(),
       year: newYear,
       description: newDescription.trim() || undefined,
@@ -48,15 +60,13 @@ export function BudgetsPanel() {
     setNewYear(new Date().getFullYear());
     setNewDescription("");
     setCreateOpen(false);
-    invalidate.invalidateBudgets();
     await refreshBudgets();
     navigate(`/budgeting/budget/${created.id}`);
   };
 
   const handleDelete = async (id: string) => {
     if (!window.confirm("Delete this budget and all its line items?")) return;
-    await api.budgets.delete(id);
-    invalidate.invalidateBudgets();
+    await deleteBudgetMutation.mutateAsync({ id });
     await refreshBudgets();
     navigate("/budgeting/budget");
   };
@@ -70,12 +80,11 @@ export function BudgetsPanel() {
 
   const handleSaveEdit = async () => {
     if (!editingBudget || !editName.trim()) return;
-    await api.budgets.update(editingBudget.id, {
+    await updateBudgetMutation.mutateAsync({
+      id: editingBudget.id,
       name: editName.trim(),
       description: editDescription.trim(),
     });
-    invalidate.invalidateBudgets();
-    invalidate.invalidateBudget(editingBudget.id);
     await refreshBudgets();
     if (currentBudget?.id === editingBudget.id) {
       await refreshBudget(editingBudget.id);

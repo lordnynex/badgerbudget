@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate, useLocation, Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { api } from "@/data/api";
+import { useApi } from "@/data/api";
 import type {
   MailingList,
   ContactEmail,
@@ -17,7 +17,7 @@ import { ArrowLeft, Pencil, Download, Trash2, RotateCcw, Plus, Trash2Icon, User,
 import { EditContactDialog } from "./EditContactDialog";
 import { ContactPhotoCarousel } from "./ContactPhotoCarousel";
 import { ContactPhotoLightbox } from "./ContactPhotoLightbox";
-import { useContactSuspense, useInvalidateQueries } from "@/queries/hooks";
+import { useContactSuspense, useInvalidateQueries, unwrapSuspenseData } from "@/queries/hooks";
 import { useQuery } from "@tanstack/react-query";
 import { queryKeys } from "@/queries/keys";
 import {
@@ -39,6 +39,7 @@ import {
 } from "@/components/ui/select";
 
 export function ContactDetailPage() {
+  const api = useApi();
   const { id } = useParams<{ id: string }>();
   if (!id) return null;
   return <ContactDetailContent id={id} />;
@@ -48,7 +49,7 @@ function ContactDetailContent({ id }: { id: string }) {
   const navigate = useNavigate();
   const location = useLocation();
   const invalidate = useInvalidateQueries();
-  const { data: contact } = useContactSuspense(id);
+  const contact = unwrapSuspenseData(useContactSuspense(id))!;
   const [editOpen, setEditOpen] = useState(false);
   const [listsWithContact, setListsWithContact] = useState<MailingList[]>([]);
   const [addNoteOpen, setAddNoteOpen] = useState(false);
