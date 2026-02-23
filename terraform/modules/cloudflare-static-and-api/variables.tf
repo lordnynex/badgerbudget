@@ -44,3 +44,9 @@ variable "enable_api" {
   description = "Create DNS record for the API"
   default     = true
 }
+
+variable "cache_edge_ttl_seconds" {
+  type        = number
+  description = "Edge cache TTL in seconds for the static frontend (e.g. 3600 = 1 hour)"
+  default     = 3600
+}

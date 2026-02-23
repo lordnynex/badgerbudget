@@ -161,6 +161,12 @@ variable "cloudflare_api_proxied" {
   default     = false
 }
 
+variable "cloudflare_cache_edge_ttl_seconds" {
+  type        = number
+  description = "Edge cache TTL in seconds for the static frontend (e.g. 3600 = 1 hour)"
+  default     = 3600
+}
+
 # Tags
 variable "tags" {
   type        = map(string)

@@ -61,7 +61,7 @@ resource "cloudflare_ruleset" "cache_frontend" {
       action_parameters = {
         edge_ttl = {
           mode    = "override_origin"
-          default = 3600
+          default = var.cache_edge_ttl_seconds
         }
         browser_ttl = {
           mode = "respect_origin"

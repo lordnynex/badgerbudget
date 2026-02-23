@@ -34,10 +34,11 @@ instance_profile_name_prefix = "satyrsmc"
 cicd_username = "satyrsmc-cicd"
 
 # Cloudflare (nynex.io test subdomain)
-cloudflare_zone_domain   = "nynex.io"
-cloudflare_frontend_host = "satyrs.nynex.io"
-cloudflare_api_host      = "satyrs-api.nynex.io"
-cloudflare_api_proxied   = false
+cloudflare_zone_domain             = "nynex.io"
+cloudflare_frontend_host           = "satyrs.nynex.io"
+cloudflare_api_host                = "satyrs-api.nynex.io"
+cloudflare_api_proxied             = false
+cloudflare_cache_edge_ttl_seconds  = 3600
 
 # Optional tags
 tags = {}

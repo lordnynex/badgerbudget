@@ -137,14 +137,15 @@ module "cloudflare" {
   source = "./modules/cloudflare-static-and-api"
   count  = var.enable_cloudflare ? 1 : 0
 
-  zone_domain         = var.cloudflare_zone_domain
-  frontend_host       = var.cloudflare_frontend_host
-  frontend_origin_host = local.static_bucket_endpoint
-  api_host            = var.cloudflare_api_host
-  api_origin_host     = local.app_runner_hostname
-  api_proxied         = var.cloudflare_api_proxied
-  enable_frontend     = var.create_static_hosting_bucket
-  enable_api          = var.create_app_runner && var.create_ecr_repository
+  zone_domain              = var.cloudflare_zone_domain
+  frontend_host            = var.cloudflare_frontend_host
+  frontend_origin_host     = local.static_bucket_endpoint
+  api_host                 = var.cloudflare_api_host
+  api_origin_host          = local.app_runner_hostname
+  api_proxied              = var.cloudflare_api_proxied
+  cache_edge_ttl_seconds   = var.cloudflare_cache_edge_ttl_seconds
+  enable_frontend          = var.create_static_hosting_bucket
+  enable_api               = var.create_app_runner && var.create_ecr_repository
 }
 
 # ---------------------------------------------------------------------------
