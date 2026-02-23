@@ -1,27 +1,29 @@
 {
-  "name": "bun-react-template",
+  "name": "badgerbudget",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "bun run build && bun src/index.ts",
-    "start": "NODE_ENV=production bun src/index.ts",
-    "build": "bun run build.ts",
-    "test": "bun test src/",
-    "migrate": "bun src/scripts/migrate.ts",
-    "backfill-member-photos": "bun scripts/backfill-member-photos.ts",
-    "deduplicate-contact-addresses": "bun scripts/deduplicate-contact-addresses.ts"
+    "dev": "BUILD_DEV=1 bun run build && bun run --cwd packages/api dev",
+    "start": "bun run --cwd packages/api start",
+    "build": "bun run build:web && bun run build:admin",
+    "build:web": "bun run --cwd packages/web build",
+    "build:admin": "bun run --cwd packages/app-admin build",
+    "test": "bun test packages/api/src/",
+    "migrate": "bun run --cwd packages/api migrate"
   },
   "dependencies": {
-    "@elysiajs/cors": "^1.4.1",
-    "@elysiajs/eden": "^1.4.8",
-    "@elysiajs/static": "^1.4.7",
     "@radix-ui/react-dropdown-menu": "^2.1.16",
     "@radix-ui/react-label": "^2.1.7",
     "@radix-ui/react-popover": "^1.1.15",
     "@radix-ui/react-select": "^2.2.6",
     "@radix-ui/react-slot": "^1.2.3",
     "@tanstack/react-query": "^5.90.21",
+    "@badgerbudget/api": "workspace:*",
+    "@trpc/client": "^11.0.0-rc.0",
+    "@trpc/react-query": "^11.0.0-rc.0",
+    "@trpc/server": "^11.0.0-rc.0",
+    "zod": "^3.24.0",
     "@tiptap/extension-dropcursor": "^3.20.0",
     "@tiptap/extension-gapcursor": "^3.20.0",
     "@tiptap/extension-heading": "^3.20.0",
@@ -45,7 +47,6 @@
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "dejavu-fonts-ttf": "^2.37.3",
-    "elysia": "^1.4.25",
     "jspdf": "^4.1.0",
     "lucide-react": "^0.545.0",
     "pino": "^10.3.1",
@@ -71,5 +72,8 @@
     "@types/react-dom": "^19",
     "tailwindcss": "^4.1.11",
     "tw-animate-css": "^1.4.0"
-  }
+  },
+  "workspaces": [
+    "packages/*"
+  ]
 }

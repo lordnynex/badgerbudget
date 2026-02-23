@@ -1,33 +1,56 @@
-# bun-react-tailwind-shadcn-template
+# Badger Budget
 
-To install dependencies:
+Monorepo: API (tRPC), public website, and admin app.
+
+## Structure
+
+- **packages/api** – tRPC server (Bun). Database, services, `website` router (public), `admin` router (protected). Serves tRPC at `/trpc`, static at `/` (web) and `/admin` (app-admin).
+- **packages/web** – Public React app. Base path `/`. Uses `trpc.website.*` only. `src/pages/` for pages, `src/components/` for UI.
+- **packages/app-admin** – Admin React app. Base path `/admin`. Uses full tRPC client. `src/pages/` for page components, `src/components/` for shared UI.
+
+## Install
 
 ```bash
 bun install
 ```
 
-To start a development server:
+## Build
+
+Build both frontends (required before running the server):
 
 ```bash
-bun dev
+bun run build
 ```
 
-To run for production:
+Or build individually: `bun run build:web`, `bun run build:admin`.
+
+## Run
 
 ```bash
-bun start
+bun run dev
 ```
 
-## Database migrations
+Starts the API server on http://localhost:3000. Serves the public site at `/`, admin at `/admin`, and tRPC at `/trpc`.
 
-Schema changes are managed with TypeORM migrations. Migrations run automatically on server startup. To run migrations manually (e.g. in CI or before deployment):
+Production:
+
+```bash
+bun run start
+```
+
+## Migrations
+
+Migrations live in `packages/api/src/db/migrations/` and run automatically on API server startup. To run them manually:
 
 ```bash
 bun run migrate
 ```
 
-This initializes the database and applies any pending migrations, then exits. See `src/backend/db/migrations/README.md` for details on adding new migrations.
+## Scripts
 
----
-
-This project was created using `bun init` in bun v1.3.9. [Bun](https://bun.com) is a fast all-in-one JavaScript runtime.
+- `dev` – build then run API server
+- `start` – run API server (production)
+- `build` – build web and app-admin
+- `migrate` – run DB migrations (from packages/api)
+- `backfill-member-photos` – see scripts/
+- `deduplicate-contact-addresses` – see scripts/

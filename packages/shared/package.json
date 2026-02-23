@@ -1,0 +1,28 @@
+{
+  "name": "@badgerbudget/shared",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./lib/constants": "./lib/constants.ts",
+    "./lib/pst": "./lib/pst.ts",
+    "./types/contact": "./types/contact.ts",
+    "./types/meeting": "./types/meeting.ts",
+    "./types/committee": "./types/committee.ts",
+    "./types/document": "./types/document.ts",
+    "./types/website": "./types/website.ts",
+    "./types/member": "./types/member.ts",
+    "./types/event": "./types/event.ts",
+    "./types/budget": "./types/budget.ts",
+    "./types/budget-domain": "./types/budget-domain.ts",
+    "./types/scenario": "./types/scenario.ts",
+    "./types/state": "./types/state.ts",
+    "./types/qrCode": "./types/qrCode.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "dependencies": {
+    "pst-extractor": "^1.12.0"
+  }
+}
