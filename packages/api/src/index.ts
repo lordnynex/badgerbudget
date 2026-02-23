@@ -80,6 +80,44 @@ async function main() {
         });
       }
 
+      // GET /api/events/:eventId/photos/:photoId?size=thumbnail|display|full
+      const eventPhotoMatch = path.match(/^\/api\/events\/([^/]+)\/photos\/([^/]+)$/);
+      if (request.method === "GET" && eventPhotoMatch) {
+        const eventId = eventPhotoMatch[1];
+        const photoId = eventPhotoMatch[2];
+        const size = (url.searchParams.get("size") as "thumbnail" | "display" | "full") ?? "full";
+        const buffer = await api.events.getPhoto(eventId, photoId, size);
+        const durationMs = Math.round(performance.now() - start);
+        const ip = server?.requestIP?.(request)?.address ?? "unknown";
+        if (!buffer) {
+          logger.info({ method: request.method, path, status: 404, durationMs, ip }, "http request");
+          return new Response("Not Found", { status: 404 });
+        }
+        logger.info({ method: request.method, path, status: 200, durationMs, ip }, "http request");
+        return new Response(new Uint8Array(buffer), {
+          headers: { "Content-Type": "image/jpeg", "Cache-Control": "private, max-age=3600" },
+        });
+      }
+
+      // GET /api/events/:eventId/assets/:assetId?size=thumbnail|display|full
+      const eventAssetMatch = path.match(/^\/api\/events\/([^/]+)\/assets\/([^/]+)$/);
+      if (request.method === "GET" && eventAssetMatch) {
+        const eventId = eventAssetMatch[1];
+        const assetId = eventAssetMatch[2];
+        const size = (url.searchParams.get("size") as "thumbnail" | "display" | "full") ?? "full";
+        const buffer = await api.events.getAsset(eventId, assetId, size);
+        const durationMs = Math.round(performance.now() - start);
+        const ip = server?.requestIP?.(request)?.address ?? "unknown";
+        if (!buffer) {
+          logger.info({ method: request.method, path, status: 404, durationMs, ip }, "http request");
+          return new Response("Not Found", { status: 404 });
+        }
+        logger.info({ method: request.method, path, status: 200, durationMs, ip }, "http request");
+        return new Response(new Uint8Array(buffer), {
+          headers: { "Content-Type": "image/jpeg", "Cache-Control": "private, max-age=3600" },
+        });
+      }
+
       if (path.startsWith("/admin")) {
         const filePath = path === "/admin" || path === "/admin/"
           ? join(adminDist, "index.html")
