@@ -157,8 +157,8 @@ variable "cloudflare_api_host" {
 
 variable "cloudflare_api_proxied" {
   type        = bool
-  description = "Proxy API traffic through Cloudflare (false = DNS only, recommended for App Runner)"
-  default     = false
+  description = "Proxy API traffic through Cloudflare (true = traffic via Cloudflare; false = DNS only)"
+  default     = true
 }
 
 variable "cloudflare_cache_edge_ttl_seconds" {

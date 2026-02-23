@@ -41,7 +41,7 @@ ses_domain = "satyrsmc.nynex.io"
 cloudflare_zone_domain            = "nynex.io"
 cloudflare_frontend_host          = "satyrs.nynex.io"
 cloudflare_api_host               = "satyrs-api.nynex.io"
-cloudflare_api_proxied            = false
+cloudflare_api_proxied            = true
 cloudflare_cache_edge_ttl_seconds = 3600
 
 # Optional tags
