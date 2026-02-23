@@ -27,45 +27,18 @@ locals {
 # ---------------------------------------------------------------------------
 # ECR repository (optional)
 # ---------------------------------------------------------------------------
-resource "aws_ecr_repository" "api" {
-  count = var.create_ecr_repository ? 1 : 0
+module "ecr" {
+  source = "./modules/ecr"
+  count  = var.create_ecr_repository ? 1 : 0
 
-  name                 = var.ecr_repository_name
-  image_tag_mutability = "MUTABLE"
-
-  image_scanning_configuration {
-    scan_on_push = true
-  }
-
-  tags = var.tags
-}
-
-resource "aws_ecr_lifecycle_policy" "api" {
-  count = var.create_ecr_repository ? 1 : 0
-
-  repository = aws_ecr_repository.api[0].name
-
-  policy = jsonencode({
-    rules = [
-      {
-        rulePriority = 1
-        description  = "Keep last ${var.ecr_image_retention_count} images"
-        selection = {
-          tagStatus   = "any"
-          countType   = "imageCountMoreThan"
-          countNumber = var.ecr_image_retention_count
-        }
-        action = {
-          type = "expire"
-        }
-      }
-    ]
-  })
+  repository_name         = var.ecr_repository_name
+  image_retention_count   = var.ecr_image_retention_count
+  tags                    = var.tags
 }
 
 locals {
-  ecr_repository_arn = var.create_ecr_repository ? aws_ecr_repository.api[0].arn : null
-  ecr_repository_url = var.create_ecr_repository ? aws_ecr_repository.api[0].repository_url : null
+  ecr_repository_arn = var.create_ecr_repository ? module.ecr[0].repository_arn : null
+  ecr_repository_url = var.create_ecr_repository ? module.ecr[0].repository_url : null
 }
 
 # ---------------------------------------------------------------------------
@@ -88,65 +61,41 @@ module "instance_profile" {
 
   name_prefix         = var.instance_profile_name_prefix
   s3_bucket_arns      = local.static_bucket_arns_for_profile
-  ecr_repository_arns = var.create_ecr_repository ? [aws_ecr_repository.api[0].arn] : []
+  ecr_repository_arns = var.create_ecr_repository ? [module.ecr[0].repository_arn] : []
   ses_identity_arns   = var.enable_ses ? [module.ses[0].domain_identity_arn] : []
   tags                = var.tags
 }
 
 # ---------------------------------------------------------------------------
-# App Runner auto scaling (optional, used when App Runner service is created)
+# App Runner (optional; requires ECR)
 # ---------------------------------------------------------------------------
-resource "aws_apprunner_auto_scaling_configuration_version" "api" {
-  count = var.create_app_runner && var.create_ecr_repository ? 1 : 0
+module "app_runner" {
+  source = "./modules/app-runner"
+  count  = var.create_app_runner && var.create_ecr_repository ? 1 : 0
 
-  auto_scaling_configuration_name = "${var.app_runner_service_name}-scaling"
-  max_concurrency                 = var.app_runner_max_concurrency
-  max_size                        = var.app_runner_max_size
-  min_size                        = var.app_runner_min_size
-}
-
-# ---------------------------------------------------------------------------
-# App Runner (optional)
-# ---------------------------------------------------------------------------
-resource "aws_apprunner_service" "api" {
-  count = var.create_app_runner && var.create_ecr_repository ? 1 : 0
-
-  service_name = var.app_runner_service_name
-
-  auto_scaling_configuration_arn = aws_apprunner_auto_scaling_configuration_version.api[0].arn
-
-  source_configuration {
-    authentication_configuration {
-      access_role_arn = module.instance_profile.role_arn
-    }
-    image_repository {
-      image_identifier      = "${aws_ecr_repository.api[0].repository_url}:${var.app_runner_image_tag}"
-      image_repository_type = "ECR"
-
-      image_configuration {
-        port = tostring(var.app_runner_port)
-        runtime_environment_variables = var.enable_ses ? {
-          AWS_REGION     = var.aws_region
-          SES_FROM_EMAIL = "noreply@${local.ses_domain}"
-        } : {}
-      }
-    }
-    auto_deployments_enabled = var.app_runner_auto_deployments_enabled
-  }
-
-  instance_configuration {
-    cpu               = var.app_runner_cpu
-    memory            = var.app_runner_memory
-    instance_role_arn = module.instance_profile.role_arn
-  }
-
-  tags = var.tags
+  service_name                   = var.app_runner_service_name
+  ecr_repository_url             = module.ecr[0].repository_url
+  image_tag                      = var.app_runner_image_tag
+  port                           = var.app_runner_port
+  cpu                            = var.app_runner_cpu
+  memory                         = var.app_runner_memory
+  min_size                       = var.app_runner_min_size
+  max_size                       = var.app_runner_max_size
+  max_concurrency                = var.app_runner_max_concurrency
+  auto_deployments_enabled       = var.app_runner_auto_deployments_enabled
+  instance_role_arn              = module.instance_profile.role_arn
+  access_role_arn                = module.instance_profile.role_arn
+  runtime_environment_variables  = var.enable_ses ? {
+    AWS_REGION     = var.aws_region
+    SES_FROM_EMAIL = "noreply@${local.ses_domain}"
+  } : {}
+  tags                           = var.tags
 }
 
 locals {
-  app_runner_service_arn   = var.create_app_runner && var.create_ecr_repository ? aws_apprunner_service.api[0].arn : null
-  app_runner_hostname     = var.create_app_runner && var.create_ecr_repository ? element(split("/", trimprefix(aws_apprunner_service.api[0].service_url, "https://")), 0) : ""
-  static_bucket_endpoint   = var.create_static_hosting_bucket ? module.static_hosting_bucket[0].website_endpoint : ""
+  app_runner_service_arn = var.create_app_runner && var.create_ecr_repository ? module.app_runner[0].service_arn : null
+  app_runner_hostname   = var.create_app_runner && var.create_ecr_repository ? module.app_runner[0].hostname : ""
+  static_bucket_endpoint = var.create_static_hosting_bucket ? module.static_hosting_bucket[0].website_endpoint : ""
 }
 
 # ---------------------------------------------------------------------------
@@ -174,7 +123,7 @@ module "cicd_user" {
   source = "./modules/cicd-user"
 
   username                     = var.cicd_username
-  ecr_repository_arns          = var.create_ecr_repository ? [aws_ecr_repository.api[0].arn] : []
+  ecr_repository_arns          = var.create_ecr_repository ? [module.ecr[0].repository_arn] : []
   s3_bucket_arns               = local.static_bucket_arns_for_profile
   app_runner_service_arn       = local.app_runner_service_arn != null ? local.app_runner_service_arn : ""
   app_runner_instance_role_arn = module.instance_profile.role_arn

@@ -28,7 +28,7 @@ output "ecr_repository_url" {
 
 output "app_runner_service_url" {
   description = "App Runner service URL (if created)"
-  value       = var.create_app_runner && var.create_ecr_repository ? aws_apprunner_service.api[0].service_url : null
+  value       = var.create_app_runner && var.create_ecr_repository ? module.app_runner[0].service_url : null
 }
 
 output "instance_profile_role_name" {
