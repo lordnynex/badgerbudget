@@ -20,7 +20,7 @@ locals {
 
 # Requires: DNS Write
 resource "cloudflare_dns_record" "frontend" {
-  count = var.enable_frontend && var.frontend_host != "" && var.frontend_origin_host != "" ? 1 : 0
+  count = var.enable_frontend && var.frontend_host != "" ? 1 : 0
 
   zone_id = local.zone_id
   name    = replace(var.frontend_host, ".${var.zone_domain}", "")
@@ -32,7 +32,7 @@ resource "cloudflare_dns_record" "frontend" {
 
 # Requires: DNS Write
 resource "cloudflare_dns_record" "api" {
-  count = var.enable_api && var.api_host != "" && var.api_origin_host != "" ? 1 : 0
+  count = var.enable_api && var.api_host != "" ? 1 : 0
 
   zone_id = local.zone_id
   name    = replace(var.api_host, ".${var.zone_domain}", "")
