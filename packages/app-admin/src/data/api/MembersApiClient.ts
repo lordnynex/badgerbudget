@@ -1,4 +1,4 @@
-import { client, getErrorMessage } from "./client";
+import type { TrpcClient } from "./trpcClientContext";
 import type { Member } from "@/types/budget";
 
 export type CreateMemberBody = {
@@ -15,36 +15,38 @@ export type CreateMemberBody = {
   photo?: string;
 };
 
-async function unwrapMembersResponse<T>(
-  promise: Promise<{ data?: unknown; error?: unknown; status: number }>,
-): Promise<T> {
-  const res = await promise;
-  if (res.error) throw new Error(getErrorMessage(res.error, res.status));
-  const data = res.data;
-  if (data instanceof Response) return data.json() as Promise<T>;
-  return data as T;
-}
-
 export class MembersApiClient {
+  constructor(private client: TrpcClient) {}
+
   list(): Promise<Member[]> {
-    return unwrapMembersResponse<Member[]>(client.api.members.get());
+    return this.client.admin.members.list.query();
   }
 
   get(id: string): Promise<Member> {
-    return unwrapMembersResponse<Member>(client.api.members({ id }).get());
+    return this.client.admin.members.get.query({ id });
   }
 
   create(body: CreateMemberBody) {
-    return unwrapMembersResponse<Member>(client.api.members.post(body));
+    return this.client.admin.members.create.mutate(body as never);
   }
 
   update(id: string, body: Record<string, unknown>) {
-    return unwrapMembersResponse<Member>(client.api.members({ id }).put(body));
+    return this.client.admin.members.update.mutate({ id, ...body } as never);
   }
 
   delete(id: string) {
-    return unwrapMembersResponse<{ ok: boolean }>(
-      client.api.members({ id }).delete(),
-    );
+    return this.client.admin.members.delete.mutate({ id });
+  }
+
+  async getPhoto(id: string, size?: string): Promise<Uint8Array | null> {
+    const b64 = await this.client.admin.members.getPhoto.query({
+      id,
+      size: size as "thumbnail" | "medium" | "full",
+    });
+    return b64
+      ? new Uint8Array(
+          Uint8Array.from(atob(b64), (c) => c.charCodeAt(0))
+        )
+      : null;
   }
 }

@@ -1,12 +1,14 @@
-import { client, unwrap } from "./client";
+import type { TrpcClient } from "./trpcClientContext";
 
 export class ScenariosApiClient {
+  constructor(private client: TrpcClient) {}
+
   list() {
-    return unwrap(client.api.scenarios.get());
+    return this.client.admin.scenarios.list.query();
   }
 
   get(id: string) {
-    return unwrap(client.api.scenarios({ id }).get());
+    return this.client.admin.scenarios.get.query({ id });
   }
 
   create(body: {
@@ -14,7 +16,7 @@ export class ScenariosApiClient {
     description?: string;
     inputs?: Record<string, unknown>;
   }) {
-    return unwrap(client.api.scenarios.post(body));
+    return this.client.admin.scenarios.create.mutate(body as never);
   }
 
   update(
@@ -23,12 +25,12 @@ export class ScenariosApiClient {
       name?: string;
       description?: string;
       inputs?: Record<string, unknown>;
-    },
+    }
   ) {
-    return unwrap(client.api.scenarios({ id }).put(body));
+    return this.client.admin.scenarios.update.mutate({ id, ...body } as never);
   }
 
   delete(id: string) {
-    return unwrap(client.api.scenarios({ id }).delete());
+    return this.client.admin.scenarios.delete.mutate({ id });
   }
 }

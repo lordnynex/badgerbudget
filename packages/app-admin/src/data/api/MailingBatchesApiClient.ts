@@ -1,31 +1,31 @@
-import { client, unwrap } from "./client";
+import type { TrpcClient } from "./trpcClientContext";
 
 export class MailingBatchesApiClient {
+  constructor(private client: TrpcClient) {}
+
   list() {
-    return unwrap(client.api["mailing-batches"].get());
+    return this.client.admin.mailingBatches.list.query();
   }
 
   get(id: string) {
-    return unwrap(client.api["mailing-batches"]({ id }).get());
+    return this.client.admin.mailingBatches.get.query({ id });
   }
 
   create(listId: string, name: string) {
-    return unwrap(
-      client.api["mailing-batches"].post({ list_id: listId, name }),
-    );
+    return this.client.admin.mailingBatches.create.mutate({ listId, name });
   }
 
   updateRecipientStatus(
     batchId: string,
     recipientId: string,
     status: string,
-    reason?: string,
+    reason?: string
   ) {
-    return unwrap(
-      client.api
-        ["mailing-batches"]({ id: batchId })
-        .recipients({ recipientId })
-        .put({ status, reason }),
-    );
+    return this.client.admin.mailingBatches.updateRecipientStatus.mutate({
+      batchId,
+      recipientId,
+      status,
+      reason,
+    });
   }
 }

@@ -1,4 +1,4 @@
-import { client, unwrap } from "./client";
+import type { TrpcClient } from "./trpcClientContext";
 import type {
   CommitteeDetail,
   CommitteeSummary,
@@ -7,16 +7,18 @@ import type {
 } from "@/shared/types/committee";
 
 export class CommitteesApiClient {
+  constructor(private client: TrpcClient) {}
+
   list(options?: { sort?: "formed_date" | "name" }) {
-    return unwrap(
-      client.api.committees.get(
-        options?.sort ? { query: { sort: options.sort } } : undefined
-      )
+    return this.client.admin.committees.list.query(
+      options?.sort ? { sort: options.sort } : undefined
     ) as Promise<CommitteeSummary[]>;
   }
 
-  get(id: string) {
-    return unwrap(client.api.committees({ id }).get()) as Promise<CommitteeDetail | null>;
+  get(id: string): Promise<CommitteeDetail | null> {
+    return this.client.admin.committees.get
+      .query({ id })
+      .catch(() => null) as Promise<CommitteeDetail | null>;
   }
 
   create(body: {
@@ -27,41 +29,42 @@ export class CommitteesApiClient {
     chairperson_member_id?: string | null;
     member_ids?: string[];
   }) {
-    return unwrap(client.api.committees.post(body)) as Promise<CommitteeDetail>;
+    return this.client.admin.committees.create.mutate(body as never);
   }
 
   update(id: string, body: Record<string, unknown>) {
-    return unwrap(client.api.committees({ id }).put(body)) as Promise<CommitteeDetail>;
+    return this.client.admin.committees.update.mutate({ id, ...body } as never);
   }
 
   delete(id: string) {
-    return unwrap(client.api.committees({ id }).delete()) as Promise<{ ok: boolean }>;
+    return this.client.admin.committees.delete.mutate({ id });
   }
 
   addMember(committeeId: string, memberId: string) {
-    return unwrap(
-      client.api.committees({ id: committeeId }).members.post({ member_id: memberId })
-    ) as Promise<CommitteeDetail>;
+    return this.client.admin.committees.addMember.mutate({
+      committeeId,
+      memberId,
+    });
   }
 
   removeMember(committeeId: string, memberId: string) {
-    return unwrap(
-      client.api.committees({ id: committeeId }).members({ memberId }).delete()
-    ) as Promise<CommitteeDetail>;
+    return this.client.admin.committees.removeMember.mutate({
+      committeeId,
+      memberId,
+    });
   }
 
-  updateMemberOrder(committeeId: string, memberIds: string[]) {
-    return unwrap(
-      client.api.committees({ id: committeeId }).members.order.put({
-        member_ids: memberIds,
-      })
-    ) as Promise<CommitteeDetail>;
+  reorderMembers(committeeId: string, memberIds: string[]) {
+    return this.client.admin.committees.reorderMembers.mutate({
+      committeeId,
+      memberIds,
+    });
   }
 
-  listMeetings(committeeId: string) {
-    return unwrap(
-      client.api.committees({ id: committeeId }).meetings.get()
-    ) as Promise<CommitteeMeetingSummary[] | null>;
+  listMeetings(committeeId: string): Promise<CommitteeMeetingSummary[]> {
+    return this.client.admin.committees.listMeetings.query({
+      committeeId,
+    }) as Promise<CommitteeMeetingSummary[]>;
   }
 
   createMeeting(
@@ -76,15 +79,19 @@ export class CommitteesApiClient {
       agenda_template_id?: string;
     }
   ) {
-    return unwrap(
-      client.api.committees({ id: committeeId }).meetings.post(body)
-    ) as Promise<CommitteeMeetingSummary>;
+    return this.client.admin.committees.createMeeting.mutate({
+      committeeId,
+      ...body,
+    } as never);
   }
 
-  getMeeting(committeeId: string, meetingId: string) {
-    return unwrap(
-      client.api.committees({ id: committeeId }).meetings({ meetingId }).get()
-    ) as Promise<CommitteeMeetingDetail | null>;
+  getMeeting(
+    committeeId: string,
+    meetingId: string
+  ): Promise<CommitteeMeetingDetail | null> {
+    return this.client.admin.committees.getMeeting
+      .query({ committeeId, meetingId })
+      .catch(() => null) as Promise<CommitteeMeetingDetail | null>;
   }
 
   updateMeeting(
@@ -92,14 +99,17 @@ export class CommitteesApiClient {
     meetingId: string,
     body: Record<string, unknown>
   ) {
-    return unwrap(
-      client.api.committees({ id: committeeId }).meetings({ meetingId }).put(body)
-    ) as Promise<CommitteeMeetingDetail>;
+    return this.client.admin.committees.updateMeeting.mutate({
+      committeeId,
+      meetingId,
+      ...body,
+    } as never);
   }
 
   deleteMeeting(committeeId: string, meetingId: string) {
-    return unwrap(
-      client.api.committees({ id: committeeId }).meetings({ meetingId }).delete()
-    ) as Promise<{ ok: boolean }>;
+    return this.client.admin.committees.deleteMeeting.mutate({
+      committeeId,
+      meetingId,
+    });
   }
 }

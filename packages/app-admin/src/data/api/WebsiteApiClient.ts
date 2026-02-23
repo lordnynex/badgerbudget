@@ -1,210 +1,101 @@
+import type { TrpcClient } from "./trpcClientContext";
 import type {
   SitePageResponse,
   SiteSettingsResponse,
   BlogPostResponse,
 } from "@/shared/types/website";
 
-async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(url, {
-    ...options,
-    headers: { "Content-Type": "application/json", ...options?.headers },
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error((err as { error?: string }).error ?? "Request failed");
-  }
-  if (res.status === 204) return undefined as T;
-  return res.json();
-}
-
 export class WebsiteApiClient {
+  constructor(private client: TrpcClient) {}
+
   listPages() {
-    return fetchJson<SitePageResponse[]>(`/api/website/pages`);
+    return this.client.admin.website.listPages.query();
   }
 
   getPageById(id: string) {
-    return fetchJson<SitePageResponse>(`/api/website/pages/${id}`);
+    return this.client.admin.website.getPageById.query({ id });
   }
 
   getPageBySlug(slug: string) {
-    return fetchJson<SitePageResponse>(`/api/website/pages/slug/${encodeURIComponent(slug)}`);
+    return this.client.website.getPageBySlug.query({ slug });
   }
 
-  createPage(body: {
-    slug: string;
-    title: string;
-    body?: string;
-    meta_title?: string | null;
-    meta_description?: string | null;
-  }) {
-    return fetchJson<SitePageResponse>(`/api/website/pages`, {
-      method: "POST",
-      body: JSON.stringify(body),
-    });
+  createPage(body: Record<string, unknown>) {
+    return this.client.admin.website.createPage.mutate(body as never);
   }
 
-  updatePage(
-    id: string,
-    body: {
-      slug?: string;
-      title?: string;
-      body?: string;
-      meta_title?: string | null;
-      meta_description?: string | null;
-    }
-  ) {
-    return fetchJson<SitePageResponse>(`/api/website/pages/${id}`, {
-      method: "PUT",
-      body: JSON.stringify(body),
-    });
+  updatePage(id: string, body: Record<string, unknown>) {
+    return this.client.admin.website.updatePage.mutate({ id, ...body } as never);
   }
 
   deletePage(id: string) {
-    return fetchJson<void>(`/api/website/pages/${id}`, { method: "DELETE" });
+    return this.client.admin.website.deletePage.mutate({ id });
   }
 
   getEventsFeed() {
-    return fetchJson<Array<{ id: string; name: string; year?: number | null; event_date?: string | null; event_type?: string }>>(
-      `/api/website/events`
-    );
+    return this.client.website.getEventsFeed.query();
   }
 
   getMembersFeed() {
-    return fetchJson<Array<{ id: string; name: string; position: string | null; photo_url: string | null; photo_thumbnail_url: string | null }>>(
-      `/api/website/members`
-    );
+    return this.client.website.getMembersFeed.query();
   }
 
-  getMenus() {
-    return fetchJson<Record<string, Array<{ id: string; menu_key: string; label: string; url: string | null; internal_ref: string | null; sort_order: number }>>>(
-      `/api/website/menus`
-    );
-  }
-
-  updateMenu(
-    key: string,
-    body: { items: Array<{ label: string; url?: string | null; internal_ref?: string | null; sort_order?: number }> }
-  ) {
-    return fetchJson<Array<{ id: string; menu_key: string; label: string; url: string | null; internal_ref: string | null; sort_order: number }>>(
-      `/api/website/menus/${encodeURIComponent(key)}`,
-      { method: "PUT", body: JSON.stringify(body) }
-    );
-  }
-
-  listBlogPublished() {
-    return fetchJson<BlogPostResponse[]>(`/api/website/blog`);
-  }
-
-  listBlogAll() {
-    return fetchJson<BlogPostResponse[]>(`/api/website/blog/admin`);
+  getBlogPublished() {
+    return this.client.website.getBlogPublished.query();
   }
 
   getBlogBySlug(slug: string) {
-    return fetchJson<BlogPostResponse>(`/api/website/blog/slug/${encodeURIComponent(slug)}`);
+    return this.client.website.getBlogBySlug.query({ slug });
+  }
+
+  getPages() {
+    return this.client.website.getPages.query();
+  }
+
+  listBlogAll() {
+    return this.client.admin.website.listBlogAll.query();
   }
 
   getBlogById(id: string) {
-    return fetchJson<BlogPostResponse>(`/api/website/blog/admin/${id}`);
+    return this.client.admin.website.getBlogById.query({ id });
   }
 
-  createBlogPost(body: {
-    slug: string;
-    title: string;
-    excerpt?: string | null;
-    body?: string;
-    published_at?: string | null;
-    meta_title?: string | null;
-    meta_description?: string | null;
-  }) {
-    return fetchJson<BlogPostResponse>(`/api/website/blog`, {
-      method: "POST",
-      body: JSON.stringify(body),
-    });
+  createBlogPost(body: Record<string, unknown>) {
+    return this.client.admin.website.createBlogPost.mutate(body as never);
   }
 
-  updateBlogPost(
-    id: string,
-    body: {
-      slug?: string;
-      title?: string;
-      excerpt?: string | null;
-      body?: string;
-      published_at?: string | null;
-      meta_title?: string | null;
-      meta_description?: string | null;
-    }
-  ) {
-    return fetchJson<BlogPostResponse>(`/api/website/blog/${id}`, {
-      method: "PUT",
-      body: JSON.stringify(body),
-    });
+  updateBlogPost(id: string, body: Record<string, unknown>) {
+    return this.client.admin.website.updateBlogPost.mutate({
+      id,
+      ...body,
+    } as never);
   }
 
   deleteBlogPost(id: string) {
-    return fetchJson<void>(`/api/website/blog/${id}`, { method: "DELETE" });
+    return this.client.admin.website.deleteBlogPost.mutate({ id });
   }
 
-  submitContact(body: { name: string; email: string; subject?: string | null; message: string }) {
-    return fetchJson<{ id: string; created: boolean }>(`/api/website/contact`, {
-      method: "POST",
-      body: JSON.stringify(body),
-    });
+  getMenus() {
+    return this.client.admin.website.getMenus.query();
   }
 
-  submitContactMember(body: {
-    member_id: string;
-    sender_name: string;
-    sender_email: string;
-    message: string;
-  }) {
-    return fetchJson<{ id: string; created: boolean }>(`/api/website/contact-member`, {
-      method: "POST",
-      body: JSON.stringify(body),
-    });
-  }
-
-  listContactSubmissions() {
-    return fetchJson<
-      Array<{
-        id: string;
-        name: string;
-        email: string;
-        subject: string | null;
-        message: string;
-        status: string;
-        created_at?: string;
-      }>
-    >(`/api/website/contact-submissions`);
-  }
-
-  listContactMemberSubmissions() {
-    return fetchJson<
-      Array<{
-        id: string;
-        member_id: string;
-        sender_name: string;
-        sender_email: string;
-        message: string;
-        status: string;
-        created_at?: string;
-      }>
-    >(`/api/website/contact-member-submissions`);
+  updateMenu(key: string, items: unknown[]) {
+    return this.client.admin.website.updateMenu.mutate({ key, items });
   }
 
   getSettings() {
-    return fetchJson<SiteSettingsResponse>(`/api/website/settings`);
+    return this.client.admin.website.getSettings.query();
   }
 
-  updateSettings(body: {
-    title?: string | null;
-    logo_url?: string | null;
-    footer_text?: string | null;
-    default_meta_description?: string | null;
-    contact_email?: string | null;
-  }) {
-    return fetchJson<SiteSettingsResponse>(`/api/website/settings`, {
-      method: "PUT",
-      body: JSON.stringify(body),
-    });
+  updateSettings(body: Record<string, unknown>) {
+    return this.client.admin.website.updateSettings.mutate(body as never);
+  }
+
+  listContactSubmissions() {
+    return this.client.admin.website.listContactSubmissions.query();
+  }
+
+  listContactMemberSubmissions() {
+    return this.client.admin.website.listContactMemberSubmissions.query();
   }
 }

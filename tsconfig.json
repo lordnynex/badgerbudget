@@ -35,7 +35,6 @@
       "@/export/*": ["./src/frontend/export/*"],
       "@/types/*": ["./src/shared/types/*"],
       "@/frontend/*": ["./src/frontend/*"],
-      "@/backend/*": ["./src/backend/*"],
       "@/shared/*": ["./src/shared/*"],
       "@/trpc": ["./src/frontend/trpc.ts"]
     },

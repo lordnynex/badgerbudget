@@ -1,33 +1,43 @@
-import { client, unwrap } from "./client";
+import type { TrpcClient } from "./trpcClientContext";
 import type { QrCode, QrCodeConfig } from "@/types/qrCode";
 
 export class QrCodesApiClient {
+  constructor(private client: TrpcClient) {}
+
   async list(): Promise<QrCode[]> {
-    const data = await unwrap(client.api["qr-codes"].get());
+    const data = await this.client.admin.qrCodes.list.query();
     return Array.isArray(data) ? data : [];
   }
 
   get(id: string) {
-    return unwrap(client.api["qr-codes"]({ id }).get());
+    return this.client.admin.qrCodes.get.query({ id });
   }
 
-  getImageUrl(id: string, size?: number): string {
-    const base = `/api/qr-codes/${id}/image`;
-    if (size != null && size >= 64 && size <= 2048) {
-      return `${base}?size=${size}`;
+  async getImageUrl(id: string, size?: number): Promise<string> {
+    const r = await this.client.admin.qrCodes.getImage.query({ id, size });
+    return `data:${r.contentType};base64,${r.base64}`;
+  }
+
+  create(body: {
+    name?: string | null;
+    url: string;
+    config?: QrCodeConfig | null;
+  }) {
+    return this.client.admin.qrCodes.create.mutate(body as never);
+  }
+
+  update(
+    id: string,
+    body: {
+      name?: string | null;
+      url?: string;
+      config?: QrCodeConfig | null;
     }
-    return base;
-  }
-
-  create(body: { name?: string | null; url: string; config?: QrCodeConfig | null }) {
-    return unwrap(client.api["qr-codes"].post(body));
-  }
-
-  update(id: string, body: { name?: string | null; url?: string; config?: QrCodeConfig | null }) {
-    return unwrap(client.api["qr-codes"]({ id }).put(body));
+  ) {
+    return this.client.admin.qrCodes.update.mutate({ id, ...body } as never);
   }
 
   delete(id: string) {
-    return unwrap(client.api["qr-codes"]({ id }).delete());
+    return this.client.admin.qrCodes.delete.mutate({ id });
   }
 }

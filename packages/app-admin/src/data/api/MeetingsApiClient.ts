@@ -1,30 +1,48 @@
-import { client, unwrap } from "./client";
-import type { MeetingDetail, MeetingSummary, MotionsListResponse, OldBusinessItemWithMeeting } from "@/shared/types/meeting";
+import type { TrpcClient } from "./trpcClientContext";
+import type {
+  MeetingDetail,
+  MeetingSummary,
+  MotionsListResponse,
+  OldBusinessItemWithMeeting,
+} from "@/shared/types/meeting";
+
+async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
+  const res = await fetch(url, {
+    ...options,
+    headers: { "Content-Type": "application/json", ...options?.headers },
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: res.statusText }));
+    throw new Error((err as { error?: string }).error ?? "Request failed");
+  }
+  return res.json();
+}
 
 export class MeetingsApiClient {
-  listOldBusiness() {
-    return unwrap(client.api.meetings["old-business"].get()) as Promise<OldBusinessItemWithMeeting[]>;
+  constructor(private client: TrpcClient) {}
+
+  listOldBusiness(): Promise<OldBusinessItemWithMeeting[]> {
+    return this.client.admin.meetings.listOldBusiness.query();
   }
 
-  listMotions(params: { page: number; per_page: number; q?: string }) {
-    const query: { page: number; per_page: number; q?: string } = {
-      page: params.page,
-      per_page: params.per_page,
-    };
-    if (params.q != null && params.q !== "") query.q = params.q;
-    return unwrap(client.api.meetings.motions.get({ query })) as Promise<MotionsListResponse>;
+  listMotions(params: {
+    page: number;
+    per_page: number;
+    q?: string;
+  }): Promise<MotionsListResponse> {
+    return this.client.admin.meetings.listMotions.query(params);
   }
 
   list(options?: { sort?: "date" | "meeting_number" }) {
-    return unwrap(
-      client.api.meetings.get(
-        options?.sort ? { query: { sort: options.sort } } : undefined
-      )
+    return this.client.admin.meetings.list.query(
+      options?.sort ? { sort: options.sort } : undefined
     ) as Promise<MeetingSummary[]>;
   }
 
-  get(id: string) {
-    return unwrap(client.api.meetings({ id }).get()) as Promise<MeetingDetail | null>;
+  get(id: string): Promise<MeetingDetail | null> {
+    return this.client.admin.meetings.get
+      .query({ id })
+      .catch(() => null) as Promise<MeetingDetail | null>;
   }
 
   create(body: {
@@ -36,28 +54,22 @@ export class MeetingsApiClient {
     minutes_content?: string | null;
     agenda_template_id?: string;
   }) {
-    return unwrap(client.api.meetings.post(body)) as Promise<MeetingSummary>;
+    return this.client.admin.meetings.create.mutate(body as never);
   }
 
   update(id: string, body: Record<string, unknown>) {
-    return unwrap(client.api.meetings({ id }).put(body)) as Promise<MeetingSummary>;
+    return this.client.admin.meetings.update.mutate({ id, ...body } as never);
   }
 
   delete(
     id: string,
     options?: { delete_agenda?: boolean; delete_minutes?: boolean }
   ) {
-    const query =
-      options &&
-      (options.delete_agenda !== undefined || options.delete_minutes !== undefined)
-        ? {
-            delete_agenda: options.delete_agenda,
-            delete_minutes: options.delete_minutes,
-          }
-        : undefined;
-    return unwrap(
-      client.api.meetings({ id }).delete(query ? { query } : undefined)
-    ) as Promise<{ ok: boolean }>;
+    return this.client.admin.meetings.delete.mutate({
+      id,
+      delete_agenda: options?.delete_agenda,
+      delete_minutes: options?.delete_minutes,
+    });
   }
 
   readonly motions = {
@@ -70,11 +82,26 @@ export class MeetingsApiClient {
         mover_member_id: string;
         seconder_member_id: string;
       }
-    ) => unwrap(client.api.meetings({ id: meetingId }).motions.post(body)),
-    update: (meetingId: string, mid: string, body: Record<string, unknown>) =>
-      unwrap(client.api.meetings({ id: meetingId }).motions({ mid }).put(body)),
+    ) =>
+      fetchJson<unknown>(`/api/meetings/${meetingId}/motions`, {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+    update: (
+      meetingId: string,
+      mid: string,
+      body: Record<string, unknown>
+    ) =>
+      fetchJson<unknown>(`/api/meetings/${meetingId}/motions/${mid}`, {
+        method: "PUT",
+        body: JSON.stringify(body),
+      }),
     delete: (meetingId: string, mid: string) =>
-      unwrap(client.api.meetings({ id: meetingId }).motions({ mid }).delete()),
+      fetch(`/api/meetings/${meetingId}/motions/${mid}`, {
+        method: "DELETE",
+      }).then((res) => {
+        if (!res.ok) throw new Error("Delete failed");
+      }),
   };
 
   readonly actionItems = {
@@ -87,19 +114,50 @@ export class MeetingsApiClient {
         order_index?: number;
       }
     ) =>
-      unwrap(client.api.meetings({ id: meetingId })["action-items"].post(body)),
-    update: (meetingId: string, aid: string, body: Record<string, unknown>) =>
-      unwrap(client.api.meetings({ id: meetingId })["action-items"]({ aid }).put(body)),
+      fetchJson<unknown>(`/api/meetings/${meetingId}/action-items`, {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+    update: (
+      meetingId: string,
+      aid: string,
+      body: Record<string, unknown>
+    ) =>
+      fetchJson<unknown>(`/api/meetings/${meetingId}/action-items/${aid}`, {
+        method: "PUT",
+        body: JSON.stringify(body),
+      }),
     delete: (meetingId: string, aid: string) =>
-      unwrap(client.api.meetings({ id: meetingId })["action-items"]({ aid }).delete()),
+      fetch(`/api/meetings/${meetingId}/action-items/${aid}`, {
+        method: "DELETE",
+      }).then((res) => {
+        if (!res.ok) throw new Error("Delete failed");
+      }),
   };
 
   readonly oldBusiness = {
-    create: (meetingId: string, body: { description: string; order_index?: number }) =>
-      unwrap(client.api.meetings({ id: meetingId })["old-business"].post(body)),
-    update: (meetingId: string, oid: string, body: Record<string, unknown>) =>
-      unwrap(client.api.meetings({ id: meetingId })["old-business"]({ oid }).put(body)),
+    create: (
+      meetingId: string,
+      body: { description: string; order_index?: number }
+    ) =>
+      fetchJson<unknown>(`/api/meetings/${meetingId}/old-business`, {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+    update: (
+      meetingId: string,
+      oid: string,
+      body: Record<string, unknown>
+    ) =>
+      fetchJson<unknown>(`/api/meetings/${meetingId}/old-business/${oid}`, {
+        method: "PUT",
+        body: JSON.stringify(body),
+      }),
     delete: (meetingId: string, oid: string) =>
-      unwrap(client.api.meetings({ id: meetingId })["old-business"]({ oid }).delete()),
+      fetch(`/api/meetings/${meetingId}/old-business/${oid}`, {
+        method: "DELETE",
+      }).then((res) => {
+        if (!res.ok) throw new Error("Delete failed");
+      }),
   };
 }

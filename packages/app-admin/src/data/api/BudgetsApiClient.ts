@@ -1,64 +1,47 @@
-import { client, unwrap } from "./client";
+import type { TrpcClient } from "./trpcClientContext";
 
 export class BudgetsApiClient {
+  constructor(private client: TrpcClient) {}
+
   list() {
-    return unwrap(client.api.budgets.get());
+    return this.client.admin.budgets.list.query();
   }
 
   get(id: string) {
-    return unwrap(client.api.budgets({ id }).get());
+    return this.client.admin.budgets.get.query({ id });
   }
 
   create(body: { name: string; year: number; description?: string }) {
-    return unwrap(client.api.budgets.post(body));
+    return this.client.admin.budgets.create.mutate(body);
   }
 
   update(
     id: string,
-    body: { name?: string; year?: number; description?: string },
+    body: { name?: string; year?: number; description?: string }
   ) {
-    return unwrap(client.api.budgets({ id }).put(body));
+    return this.client.admin.budgets.update.mutate({ id, ...body } as never);
   }
 
   delete(id: string) {
-    return unwrap(client.api.budgets({ id }).delete());
+    return this.client.admin.budgets.delete.mutate({ id });
   }
 
-  addLineItem(
-    budgetId: string,
-    body: {
-      name: string;
-      category: string;
-      comments?: string;
-      unitCost: number;
-      quantity: number;
-      historicalCosts?: Record<string, number>;
-    },
-  ) {
-    return unwrap(
-      client.api.budgets({ id: budgetId })["line-items"].post(body),
-    );
+  addLineItem(budgetId: string, body: Record<string, unknown>) {
+    return this.client.admin.budgets.addLineItem.mutate({
+      budgetId,
+      ...body,
+    } as never);
   }
 
-  updateLineItem(
-    budgetId: string,
-    itemId: string,
-    body: Record<string, unknown>,
-  ) {
-    return unwrap(
-      client.api
-        .budgets({ id: budgetId })
-        ["line-items"]({ itemId })
-        .put(body),
-    );
+  updateLineItem(budgetId: string, itemId: string, body: Record<string, unknown>) {
+    return this.client.admin.budgets.updateLineItem.mutate({
+      budgetId,
+      itemId,
+      ...body,
+    } as never);
   }
 
   deleteLineItem(budgetId: string, itemId: string) {
-    return unwrap(
-      client.api
-        .budgets({ id: budgetId })
-        ["line-items"]({ itemId })
-        .delete(),
-    );
+    return this.client.admin.budgets.deleteLineItem.mutate({ budgetId, itemId });
   }
 }
