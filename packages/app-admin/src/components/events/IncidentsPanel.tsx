@@ -4,6 +4,17 @@ import type { Incident } from "@badgerbudget/shared/types/event";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link } from "react-router-dom";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Pencil, Trash2 } from "lucide-react";
 
 interface IncidentsResponse {
   items: Incident[];
@@ -18,6 +29,15 @@ export function IncidentsPanel() {
   const perPage = 25;
   const [data, setData] = useState<IncidentsResponse | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const [editIncident, setEditIncident] = useState<Incident | null>(null);
+  const [type, setType] = useState("");
+  const [severity, setSeverity] = useState("");
+  const [summary, setSummary] = useState("");
+  const [details, setDetails] = useState("");
+  const [occurredAt, setOccurredAt] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const load = async (targetPage: number) => {
     setLoading(true);
@@ -35,6 +55,55 @@ export function IncidentsPanel() {
   }
 
   const totalPages = data ? Math.max(1, Math.ceil(data.total / data.per_page)) : 1;
+
+  const openEdit = (incident: Incident) => {
+    setEditIncident(incident);
+    setType(incident.type);
+    setSeverity(incident.severity);
+    setSummary(incident.summary);
+    setDetails(incident.details ?? "");
+    setOccurredAt(incident.occurred_at ?? "");
+  };
+
+  const resetEditState = () => {
+    setEditIncident(null);
+    setType("");
+    setSeverity("");
+    setSummary("");
+    setDetails("");
+    setOccurredAt("");
+    setSaving(false);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editIncident || !type || !severity || !summary) return;
+    setSaving(true);
+    try {
+      await api.events.incidents.update(editIncident.event_id, editIncident.id, {
+        type,
+        severity,
+        summary,
+        details,
+        occurred_at: occurredAt || null,
+      });
+      resetEditState();
+      void load(page);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async (incident: Incident) => {
+    if (!incident.event_id) return;
+    if (!confirm("Delete this incident?")) return;
+    setDeletingId(incident.id);
+    try {
+      await api.events.incidents.delete(incident.event_id, incident.id);
+      void load(page);
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -69,7 +138,7 @@ export function IncidentsPanel() {
                           variant="link"
                           className="h-auto p-0 text-sm font-medium"
                         >
-                          <Link to={`/events/${incident.event_id}`}>
+                          <Link to={`/events/${incident.event_id}#incidents`}>
                             {incident.event_name ?? incident.event_id}
                           </Link>
                         </Button>
@@ -88,9 +157,30 @@ export function IncidentsPanel() {
                         {incident.type} · {incident.severity}
                       </div>
                     </div>
-                    <div className="text-xs text-muted-foreground md:text-right md:w-[200px]">
-                      <div>Occurred: {incident.occurred_at ?? "—"}</div>
-                      <div>Logged: {incident.created_at ?? "—"}</div>
+                    <div className="flex items-center justify-between gap-3 md:justify-end md:w-[260px]">
+                      <div className="text-xs text-muted-foreground md:text-right">
+                        <div>Occurred: {incident.occurred_at ?? "—"}</div>
+                        <div>Logged: {incident.created_at ?? "—"}</div>
+                      </div>
+                      <div className="flex gap-1 shrink-0">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => openEdit(incident)}
+                        >
+                          <Pencil className="size-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive"
+                          onClick={() => void handleDelete(incident)}
+                          disabled={deletingId === incident.id}
+                        >
+                          <Trash2 className="size-4" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -127,6 +217,66 @@ export function IncidentsPanel() {
           )}
         </CardContent>
       </Card>
+
+      <Dialog
+        open={!!editIncident}
+        onOpenChange={(open) => {
+          if (!open) {
+            resetEditState();
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit incident</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>Type</Label>
+              <Input value={type} onChange={(e) => setType(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Severity</Label>
+              <Input value={severity} onChange={(e) => setSeverity(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Summary</Label>
+              <Input value={summary} onChange={(e) => setSummary(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Occurred at (optional)</Label>
+              <Input
+                type="datetime-local"
+                value={occurredAt}
+                onChange={(e) => setOccurredAt(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Details (optional)</Label>
+              <Textarea
+                value={details}
+                onChange={(e) => setDetails(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                resetEditState();
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => void handleSaveEdit()}
+              disabled={!type || !severity || !summary || saving}
+            >
+              Save changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
