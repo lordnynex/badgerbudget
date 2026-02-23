@@ -4,6 +4,8 @@ provider "aws" {
   region  = var.aws_region
 }
 
+provider "cloudflare" {}
+
 # ---------------------------------------------------------------------------
 # Static hosting S3 bucket (optional, reusable module)
 # ---------------------------------------------------------------------------
@@ -123,7 +125,26 @@ resource "aws_apprunner_service" "api" {
 }
 
 locals {
-  app_runner_service_arn = var.create_app_runner && var.create_ecr_repository ? aws_apprunner_service.api[0].arn : null
+  app_runner_service_arn   = var.create_app_runner && var.create_ecr_repository ? aws_apprunner_service.api[0].arn : null
+  app_runner_hostname     = var.create_app_runner && var.create_ecr_repository ? element(split("/", trimprefix(aws_apprunner_service.api[0].service_url, "https://")), 0) : ""
+  static_bucket_endpoint   = var.create_static_hosting_bucket ? module.static_hosting_bucket[0].website_endpoint : ""
+}
+
+# ---------------------------------------------------------------------------
+# Cloudflare (DNS + cache for frontend and API)
+# ---------------------------------------------------------------------------
+module "cloudflare" {
+  source = "./modules/cloudflare-static-and-api"
+  count  = var.enable_cloudflare ? 1 : 0
+
+  zone_domain         = var.cloudflare_zone_domain
+  frontend_host       = var.cloudflare_frontend_host
+  frontend_origin_host = local.static_bucket_endpoint
+  api_host            = var.cloudflare_api_host
+  api_origin_host     = local.app_runner_hostname
+  api_proxied         = var.cloudflare_api_proxied
+  enable_frontend     = var.create_static_hosting_bucket
+  enable_api          = var.create_app_runner && var.create_ecr_repository
 }
 
 # ---------------------------------------------------------------------------

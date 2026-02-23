@@ -35,3 +35,19 @@ output "instance_profile_role_name" {
   description = "Name of the IAM role used by App Runner"
   value       = module.instance_profile.role_name
 }
+
+# Cloudflare (when enable_cloudflare = true)
+output "cloudflare_frontend_url" {
+  description = "Frontend URL behind Cloudflare (e.g. https://satyrs.nynex.io)"
+  value       = length(module.cloudflare) > 0 ? module.cloudflare[0].frontend_url : null
+}
+
+output "cloudflare_api_url" {
+  description = "API URL behind Cloudflare DNS (e.g. https://satyrs-api.nynex.io)"
+  value       = length(module.cloudflare) > 0 ? module.cloudflare[0].api_url : null
+}
+
+output "static_origin_hostname" {
+  description = "S3 website endpoint hostname (origin for Cloudflare)"
+  value       = var.create_static_hosting_bucket ? module.static_hosting_bucket[0].website_endpoint : null
+}

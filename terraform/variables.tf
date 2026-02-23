@@ -130,6 +130,37 @@ variable "cicd_username" {
   default     = "satyrsmc-cicd"
 }
 
+# Cloudflare (DNS, proxy, cache for static site and API)
+variable "enable_cloudflare" {
+  type        = bool
+  description = "Create Cloudflare DNS records and cache rules for frontend/API"
+  default     = true
+}
+
+variable "cloudflare_zone_domain" {
+  type        = string
+  description = "Cloudflare zone domain (e.g. nynex.io) for DNS and cache"
+  default     = "nynex.io"
+}
+
+variable "cloudflare_frontend_host" {
+  type        = string
+  description = "Hostname for the static site behind Cloudflare (e.g. satyrs.nynex.io)"
+  default     = "satyrs.nynex.io"
+}
+
+variable "cloudflare_api_host" {
+  type        = string
+  description = "Hostname for the App Runner API (e.g. satyrs-api.nynex.io)"
+  default     = "satyrs-api.nynex.io"
+}
+
+variable "cloudflare_api_proxied" {
+  type        = bool
+  description = "Proxy API traffic through Cloudflare (false = DNS only, recommended for App Runner)"
+  default     = false
+}
+
 # Tags
 variable "tags" {
   type        = map(string)
