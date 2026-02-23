@@ -1,7 +1,7 @@
 import { trpc } from "@/trpc";
-import type { ContactSearchParams } from "@/types/contact";
-import type { Contact } from "@/types/contact";
-import type { MeetingTemplate } from "@/shared/types/meeting";
+import type { ContactSearchParams } from "@badgerbudget/shared/types/contact";
+import type { Contact } from "@badgerbudget/shared/types/contact";
+import type { MeetingTemplate } from "@badgerbudget/shared/types/meeting";
 
 /**
  * tRPC v11 useSuspenseQuery returns [data, queryResult]; older setups may return { data }.

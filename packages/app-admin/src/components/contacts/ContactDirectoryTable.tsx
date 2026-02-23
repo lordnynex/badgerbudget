@@ -1,4 +1,4 @@
-import type { Contact } from "@/types/contact";
+import type { Contact } from "@badgerbudget/shared/types/contact";
 import { formatAddress, getPrimaryAddress } from "./contactUtils";
 import { formatPhoneNumber } from "@/lib/phone";
 

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Trash2, Pencil, Check } from "lucide-react";
 import { useApi } from "@/data/api";
-import type { OldBusinessItemWithMeeting } from "@/shared/types/meeting";
+import type { OldBusinessItemWithMeeting } from "@badgerbudget/shared/types/meeting";
 import {
   Dialog,
   DialogContent,

@@ -8,7 +8,7 @@ import { ProfitMarginChart } from "@/components/charts/ProfitMarginChart";
 import { ProfitPerAttendeeChart } from "@/components/charts/ProfitPerAttendeeChart";
 import { CostCoverageChart } from "@/components/charts/CostCoverageChart";
 import { cn } from "@/lib/utils";
-import type { ScenarioMetrics } from "@/types/budget";
+import type { ScenarioMetrics } from "@badgerbudget/shared/types/budget";
 
 function getTabColor(metrics: ScenarioMetrics[]): "profit" | "breakEven" | "loss" {
   const anyMeetsTarget = metrics.some((m) => m.profitVsBreakEven >= 0);

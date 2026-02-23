@@ -18,7 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useApi } from "@/data/api";
-import type { QrCode, QrCodeConfig } from "@/types/qrCode";
+import type { QrCode, QrCodeConfig } from "@badgerbudget/shared/types/qrCode";
 import { useQrCodesSuspense, useInvalidateQueries, unwrapSuspenseData } from "@/queries/hooks";
 import { useNavigate } from "react-router-dom";
 import { Plus, Pencil, Trash2, Download, ExternalLink } from "lucide-react";

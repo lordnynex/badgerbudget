@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { useAppState } from "@/state/AppState";
-import type { ScenarioMetrics } from "@/types/budget";
+import type { ScenarioMetrics } from "@badgerbudget/shared/types/budget";
 
 interface SummarySectionProps {
   metrics: ScenarioMetrics[];

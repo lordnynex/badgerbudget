@@ -14,7 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { FileText, Plus, Pencil, Trash2 } from "lucide-react";
-import type { SitePageResponse } from "@/shared/types/website";
+import type { SitePageResponse } from "@badgerbudget/shared/types/website";
 
 function bodyToPlainText(body: string): string {
   try {

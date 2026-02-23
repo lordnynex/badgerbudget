@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { EventPackingCategory, EventPackingItem } from "@/types/budget";
+import type { EventPackingCategory, EventPackingItem } from "@badgerbudget/shared/types/budget";
 
 interface AddEditPackingItemDialogProps {
   open: boolean;

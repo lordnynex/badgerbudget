@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Trash2, Check } from "lucide-react";
-import type { LineItem } from "@/types/budget";
+import type { LineItem } from "@badgerbudget/shared/types/budget";
 
 interface LineItemRowProps {
   item: LineItem;

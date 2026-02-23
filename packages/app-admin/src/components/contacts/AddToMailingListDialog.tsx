@@ -15,7 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useApi } from "@/data/api";
-import type { MailingList } from "@/types/contact";
+import type { MailingList } from "@badgerbudget/shared/types/contact";
 
 interface AddToMailingListDialogProps {
   open: boolean;

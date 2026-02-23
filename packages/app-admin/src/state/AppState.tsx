@@ -6,7 +6,7 @@ import {
   type ReactNode,
 } from "react";
 import { trpc } from "@/trpc";
-import type { Budget, Inputs, LineItem, Scenario } from "@/types/budget";
+import type { Budget, Inputs, LineItem, Scenario } from "@badgerbudget/shared/types/budget";
 
 const DEFAULT_CATEGORIES = [
   "Venue",

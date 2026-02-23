@@ -1,4 +1,4 @@
-import type { EventType } from "@/types/event";
+import type { EventType } from "@badgerbudget/shared/types/event";
 
 export const FOOD_CATEGORIES = ["Food & Beverage", "Food", "Beverage"];
 export const EVENT_DAYS = 4;

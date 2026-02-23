@@ -16,7 +16,7 @@ import { useMembersSuspense, useInvalidateQueries, unwrapSuspenseData } from "@/
 import { MemberSelectCombobox } from "@/components/members/MemberSelectCombobox";
 import { ArrowLeft, X } from "lucide-react";
 import { useApi } from "@/data/api";
-import type { Member } from "@/types/budget";
+import type { Member } from "@badgerbudget/shared/types/budget";
 
 export function CreateCommitteePage() {
   const api = useApi();

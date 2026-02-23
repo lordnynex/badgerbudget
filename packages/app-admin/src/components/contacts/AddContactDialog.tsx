@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/select";
 import { useApi } from "@/data/api";
 import { isValidPhoneNumber, normalizePhoneForStorage } from "@/lib/phone";
-import type { Contact } from "@/types/contact";
+import type { Contact } from "@badgerbudget/shared/types/contact";
 
 interface AddContactDialogProps {
   open: boolean;

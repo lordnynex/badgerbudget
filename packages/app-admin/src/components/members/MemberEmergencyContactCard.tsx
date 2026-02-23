@@ -1,6 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertCircle, Phone } from "lucide-react";
-import type { Member } from "@/types/budget";
+import type { Member } from "@badgerbudget/shared/types/budget";
 
 interface MemberEmergencyContactCardProps {
   member: Member;

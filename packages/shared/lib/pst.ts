@@ -4,7 +4,7 @@
  */
 
 import { PSTFile, PSTFolder } from "pst-extractor";
-import type { Contact, ContactEmail, ContactPhone, ContactAddress } from "@/shared/types/contact";
+import type { Contact, ContactEmail, ContactPhone, ContactAddress } from "../types/contact";
 
 /** Minimal interface for PST contact items (IPM.Contact) from getNextChild */
 interface PstContactLike {

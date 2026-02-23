@@ -1,17 +1,1 @@
-{
-  "compilerOptions": {
-    "target": "ESNext",
-    "module": "ESNext",
-    "moduleResolution": "bundler",
-    "strict": true,
-    "skipLibCheck": true,
-    "noEmit": true,
-    "experimentalDecorators": true,
-    "emitDecoratorMetadata": true,
-    "baseUrl": ".",
-    "paths": {
-      "@/shared/*": ["../../src/shared/*"]
-    }
-  },
-  "include": ["src/**/*"]
-}
+{"compilerOptions":{"target":"ESNext","module":"ESNext","moduleResolution":"bundler","strict":true,"skipLibCheck":true,"noEmit":true,"experimentalDecorators":true,"emitDecoratorMetadata":true,"baseUrl":".","paths":{}},"include":["src/**/*"]}

@@ -14,7 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import type { QrCode, QrCodeConfig } from "@/types/qrCode";
+import type { QrCode, QrCodeConfig } from "@badgerbudget/shared/types/qrCode";
 
 const SIZE_PRESETS = [
   { label: "Small (128px)", value: 128 },

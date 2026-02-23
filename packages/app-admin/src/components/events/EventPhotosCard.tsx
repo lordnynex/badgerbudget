@@ -8,7 +8,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ImagePlus, Trash2, MoreVertical } from "lucide-react";
-import type { EventPhoto } from "@/types/event";
+import type { EventPhoto } from "@badgerbudget/shared/types/event";
 
 interface EventPhotosCardProps {
   eventId: string;

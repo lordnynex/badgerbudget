@@ -4,7 +4,7 @@ import type {
   CommitteeSummary,
   CommitteeMeetingSummary,
   CommitteeMeetingDetail,
-} from "@/shared/types/committee";
+} from "@badgerbudget/shared/types/committee";
 
 export class CommitteesApiClient {
   constructor(private client: TrpcClient) {}

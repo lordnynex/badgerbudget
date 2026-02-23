@@ -33,9 +33,7 @@
       "@/queries/*": ["./src/frontend/queries/*"],
       "@/lib/*": ["./src/frontend/lib/*"],
       "@/export/*": ["./src/frontend/export/*"],
-      "@/types/*": ["./src/shared/types/*"],
       "@/frontend/*": ["./src/frontend/*"],
-      "@/shared/*": ["./src/shared/*"],
       "@/trpc": ["./src/frontend/trpc.ts"]
     },
 

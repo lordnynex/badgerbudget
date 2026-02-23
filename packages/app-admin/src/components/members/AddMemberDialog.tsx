@@ -18,7 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useApi } from "@/data/api";
-import { MEMBER_POSITIONS } from "@/types/budget";
+import { MEMBER_POSITIONS } from "@badgerbudget/shared/types/budget";
 import { MONTHS } from "./memberUtils";
 import { fileToBase64 } from "./memberUtils";
 

@@ -15,7 +15,7 @@ import { useQuery } from "@tanstack/react-query";
 import { queryKeys } from "@/queries/keys";
 import { useInvalidateQueries } from "@/queries/hooks";
 import { MemberChip } from "@/components/members/MemberChip";
-import type { MeetingMotion } from "@/shared/types/meeting";
+import type { MeetingMotion } from "@badgerbudget/shared/types/meeting";
 
 interface MotionsCardProps {
   meetingId: string;

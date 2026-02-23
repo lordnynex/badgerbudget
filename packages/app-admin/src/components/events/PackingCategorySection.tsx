@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { PackingItemRow } from "./PackingItemRow";
-import type { EventPackingCategory, EventPackingItem } from "@/types/budget";
+import type { EventPackingCategory, EventPackingItem } from "@badgerbudget/shared/types/budget";
 
 interface PackingCategorySectionProps {
   category: EventPackingCategory;

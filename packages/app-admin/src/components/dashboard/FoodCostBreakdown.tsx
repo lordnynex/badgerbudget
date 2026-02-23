@@ -1,5 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import type { Inputs, LineItem } from "@/types/budget";
+import type { Inputs, LineItem } from "@badgerbudget/shared/types/budget";
 import { isFoodCategory, EVENT_DAYS } from "@/lib/event-constants";
 
 interface FoodCostBreakdownProps {

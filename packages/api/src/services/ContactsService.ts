@@ -12,7 +12,7 @@ import type {
   Tag,
   ContactSearchParams,
   ContactSearchResult,
-} from "../../../../src/shared/types/contact";
+} from "@badgerbudget/shared/types/contact";
 import {
   Contact as ContactEntity,
   ContactEmail as ContactEmailEntity,

@@ -6,7 +6,7 @@
 import { writeFileSync, unlinkSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
-import { extractContactsFromPst, type PstContactPayload } from "../../../src/shared/lib/pst";
+import { extractContactsFromPst, type PstContactPayload } from "@badgerbudget/shared/lib/pst";
 
 export type GetForDeduplication = () => Promise<
   Array<{ id: string; display_name: string; emails: string[]; addressKey: string; nameKey: string }>

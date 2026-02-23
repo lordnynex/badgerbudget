@@ -17,7 +17,7 @@ import { AddContactDialog } from "./AddContactDialog";
 import { AddToMailingListDialog } from "./AddToMailingListDialog";
 import { ContactDirectoryTable } from "./ContactDirectoryTable";
 import { useContactsSuspense, useInvalidateQueries, unwrapSuspenseData } from "@/queries/hooks";
-import type { ContactSearchParams } from "@/types/contact";
+import type { ContactSearchParams } from "@badgerbudget/shared/types/contact";
 
 function useDebounce<T>(value: T, delay: number): T {
   const [debouncedValue, setDebouncedValue] = useState(value);

@@ -1,7 +1,7 @@
 import type { DataSource } from "typeorm";
 import type { DbLike } from "../db/dbAdapter";
 import { Member } from "../entities";
-import { ALL_MEMBERS_ID } from "../../../../src/shared/lib/constants";
+import { ALL_MEMBERS_ID } from "@badgerbudget/shared/lib/constants";
 import { uuid, VALID_POSITIONS, parsePhotoToBlob, memberRowToApi } from "./utils";
 import { ImageService } from "./ImageService";
 

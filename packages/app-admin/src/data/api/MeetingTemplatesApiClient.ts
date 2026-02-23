@@ -1,5 +1,5 @@
 import type { TrpcClient } from "./trpcClientContext";
-import type { MeetingTemplate } from "@/shared/types/meeting";
+import type { MeetingTemplate } from "@badgerbudget/shared/types/meeting";
 
 export class MeetingTemplatesApiClient {
   constructor(private client: TrpcClient) {}

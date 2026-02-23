@@ -1,6 +1,6 @@
 import Chart from "react-apexcharts";
 import type { ApexOptions } from "apexcharts";
-import type { Inputs, LineItem, ScenarioMetrics } from "@/types/budget";
+import type { Inputs, LineItem, ScenarioMetrics } from "@badgerbudget/shared/types/budget";
 import {
   computeExportSummary,
   computeExportFoodCost,

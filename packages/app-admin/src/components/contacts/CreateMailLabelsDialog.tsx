@@ -16,7 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { generatePdfLabels, AVERY_LAYOUTS, type LabelRecipient } from "@/lib/pdf-labels";
-import type { Contact } from "@/types/contact";
+import type { Contact } from "@badgerbudget/shared/types/contact";
 
 interface CreateMailLabelsDialogProps {
   open: boolean;

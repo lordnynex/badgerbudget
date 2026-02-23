@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ExportCharts } from "./ExportCharts";
-import type { Inputs, LineItem, ScenarioMetrics } from "@/types/budget";
+import type { Inputs, LineItem, ScenarioMetrics } from "@badgerbudget/shared/types/budget";
 import {
   computeExportSummary,
   computeExportFoodCost,

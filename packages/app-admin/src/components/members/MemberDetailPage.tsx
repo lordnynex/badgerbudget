@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useApi } from "@/data/api";
 import { useMemberSuspense, useInvalidateQueries, unwrapSuspenseData } from "@/queries/hooks";
-import type { Member } from "@/types/budget";
+import type { Member } from "@badgerbudget/shared/types/budget";
 import { MemberProfileCard } from "./MemberProfileCard";
 import { MemberEmergencyContactCard } from "./MemberEmergencyContactCard";
 import { MemberPhotoLightbox } from "./MemberPhotoLightbox";

@@ -4,7 +4,7 @@ import type {
   ContactSearchParams,
   ContactSearchResult,
   ContactPhoto,
-} from "@/types/contact";
+} from "@badgerbudget/shared/types/contact";
 
 async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
   const res = await fetch(url, {

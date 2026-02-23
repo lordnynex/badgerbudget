@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/select";
 import { trpc } from "@/trpc";
 import { EVENT_TYPE_LABELS } from "@/lib/event-constants";
-import type { EventType } from "@/types/event";
+import type { EventType } from "@badgerbudget/shared/types/event";
 
 interface AddEventDialogProps {
   open: boolean;

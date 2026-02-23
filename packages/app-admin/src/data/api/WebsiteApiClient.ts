@@ -3,7 +3,7 @@ import type {
   SitePageResponse,
   SiteSettingsResponse,
   BlogPostResponse,
-} from "@/shared/types/website";
+} from "@badgerbudget/shared/types/website";
 
 export class WebsiteApiClient {
   constructor(private client: TrpcClient) {}
