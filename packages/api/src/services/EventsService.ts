@@ -17,6 +17,7 @@ import {
   EventAssignmentMember,
   Member,
   Contact,
+  Incident,
 } from "../entities";
 import { uuid, memberRowToApi } from "./utils";
 import { ImageService } from "./ImageService";
@@ -160,6 +161,7 @@ export class EventsService {
       where: { eventId: id },
       order: { sortOrder: "ASC", createdAt: "ASC" },
     });
+    const incidents = await this.getIncidents(id);
     return {
       id: e.id,
       name: e.name,
@@ -260,6 +262,7 @@ export class EventsService {
       ride_member_attendees: await this.getMemberAttendees(id),
       event_assets: await this.getAssets(id),
       ride_schedule_items: await this.getScheduleItems(id),
+      incidents,
     };
   }
 
@@ -335,6 +338,183 @@ export class EventsService {
       location: s.location ?? null,
       sort_order: s.sortOrder ?? 0,
     }));
+  }
+
+  private async getIncidents(eventId: string) {
+    const incidentRepo = this.ds.getRepository(Incident);
+    const incidents = await incidentRepo.find({
+      where: { eventId },
+      order: { occurredAt: "ASC", createdAt: "ASC" },
+    });
+
+    const contactIds = [
+      ...new Set(
+        incidents
+          .map((i) => i.contactId)
+          .filter((id): id is string => !!id)
+      ),
+    ];
+    const memberIds = [
+      ...new Set(
+        incidents
+          .map((i) => i.memberId)
+          .filter((id): id is string => !!id)
+      ),
+    ];
+
+    const contactRepo = this.ds.getRepository(Contact);
+    const memberRepo = this.ds.getRepository(Member);
+
+    const [contacts, members] = await Promise.all([
+      contactIds.length
+        ? contactRepo.find({
+            where: { id: In(contactIds) },
+            select: ["id", "displayName"],
+          })
+        : Promise.resolve([]),
+      memberIds.length
+        ? memberRepo.find({
+            where: { id: In(memberIds) },
+            select: ["id", "name", "photo", "photoThumbnail"],
+          })
+        : Promise.resolve([]),
+    ]);
+
+    const contactsMap = new Map<string, { id: string; display_name: string }>();
+    for (const c of contacts) {
+      contactsMap.set(c.id, { id: c.id, display_name: c.displayName });
+    }
+
+    const membersMap = new Map<
+      string,
+      { id: string; name: string; photo_thumbnail_url: string | null }
+    >();
+    for (const m of members) {
+      const api = memberEntityToApi(m);
+      membersMap.set(m.id, {
+        id: api.id,
+        name: api.name,
+        photo_thumbnail_url: api.photo_thumbnail_url,
+      });
+    }
+
+    return incidents.map((i) => ({
+      id: i.id,
+      event_id: i.eventId,
+      contact_id: i.contactId,
+      member_id: i.memberId,
+      type: i.type,
+      severity: i.severity,
+      summary: i.summary,
+      details: i.details ?? null,
+      occurred_at: i.occurredAt ?? null,
+      created_at: i.createdAt ?? undefined,
+      contact: i.contactId ? contactsMap.get(i.contactId) : undefined,
+      member: i.memberId
+        ? membersMap.get(i.memberId) && {
+            id: membersMap.get(i.memberId)!.id,
+            name: membersMap.get(i.memberId)!.name,
+          }
+        : undefined,
+    }));
+  }
+
+  async listIncidents(page: number, perPage: number) {
+    const repo = this.ds.getRepository(Incident);
+    const [rows, total] = await repo.findAndCount({
+      order: { createdAt: "DESC", occurredAt: "DESC" },
+      skip: (page - 1) * perPage,
+      take: perPage,
+    });
+
+    if (rows.length === 0) {
+      return { items: [] as Array<unknown>, page, per_page: perPage, total };
+    }
+
+    const eventIds = [...new Set(rows.map((r) => r.eventId))];
+    const events = await this.ds.getRepository(Event).find({
+      where: { id: In(eventIds) },
+      select: ["id", "name", "eventType"],
+    });
+    const eventsMap = new Map(events.map((e) => [e.id, e]));
+
+    const contactIds = [
+      ...new Set(
+        rows
+          .map((i) => i.contactId)
+          .filter((id): id is string => !!id)
+      ),
+    ];
+    const memberIds = [
+      ...new Set(
+        rows
+          .map((i) => i.memberId)
+          .filter((id): id is string => !!id)
+      ),
+    ];
+
+    const contactRepo = this.ds.getRepository(Contact);
+    const memberRepo = this.ds.getRepository(Member);
+
+    const [contacts, members] = await Promise.all([
+      contactIds.length
+        ? contactRepo.find({
+            where: { id: In(contactIds) },
+            select: ["id", "displayName"],
+          })
+        : Promise.resolve([]),
+      memberIds.length
+        ? memberRepo.find({
+            where: { id: In(memberIds) },
+            select: ["id", "name", "photo", "photoThumbnail"],
+          })
+        : Promise.resolve([]),
+    ]);
+
+    const contactsMap = new Map<string, { id: string; display_name: string }>();
+    for (const c of contacts) {
+      contactsMap.set(c.id, { id: c.id, display_name: c.displayName });
+    }
+
+    const membersMap = new Map<
+      string,
+      { id: string; name: string; photo_thumbnail_url: string | null }
+    >();
+    for (const m of members) {
+      const api = memberEntityToApi(m);
+      membersMap.set(m.id, {
+        id: api.id,
+        name: api.name,
+        photo_thumbnail_url: api.photo_thumbnail_url,
+      });
+    }
+
+    const items = rows.map((i) => {
+      const event = eventsMap.get(i.eventId);
+      return {
+        id: i.id,
+        event_id: i.eventId,
+        contact_id: i.contactId,
+        member_id: i.memberId,
+        type: i.type,
+        severity: i.severity,
+        summary: i.summary,
+        details: i.details ?? null,
+        occurred_at: i.occurredAt ?? null,
+        created_at: i.createdAt ?? undefined,
+        event_name: event?.name,
+        event_type: (event?.eventType ?? "badger") as "badger" | "anniversary" | "pioneer_run" | "rides",
+        contact: i.contactId ? contactsMap.get(i.contactId) : undefined,
+        member: i.memberId
+          ? membersMap.get(i.memberId) && {
+              id: membersMap.get(i.memberId)!.id,
+              name: membersMap.get(i.memberId)!.name,
+            }
+          : undefined,
+      };
+    });
+
+    return { items, page, per_page: perPage, total };
   }
 
   async create(body: {
@@ -612,6 +792,129 @@ export class EventsService {
     },
     delete: async (eventId: string, attendeeId: string) => {
       await this.db.run("DELETE FROM event_attendees WHERE id = ? AND event_id = ?", [attendeeId, eventId]);
+      return { ok: true };
+    },
+  };
+
+  incidents = {
+    create: async (
+      eventId: string,
+      body: {
+        type: string;
+        severity: string;
+        summary: string;
+        details?: string;
+        occurred_at?: string;
+        contact_id?: string;
+        member_id?: string;
+      }
+    ) => {
+      const event = await this.ds.getRepository(Event).findOne({
+        where: { id: eventId },
+      });
+      if (!event) return null;
+
+      if (body.contact_id) {
+        const contact = await this.ds
+          .getRepository(Contact)
+          .findOne({ where: { id: body.contact_id } });
+        if (!contact) return null;
+      }
+
+      if (body.member_id) {
+        const member = await this.ds
+          .getRepository(Member)
+          .findOne({ where: { id: body.member_id } });
+        if (!member) return null;
+      }
+
+      const id = uuid();
+      await this.db.run(
+        "INSERT INTO incidents (id, event_id, contact_id, member_id, type, severity, summary, details, occurred_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        [
+          id,
+          eventId,
+          body.contact_id ?? null,
+          body.member_id ?? null,
+          body.type,
+          body.severity,
+          body.summary,
+          body.details ?? null,
+          body.occurred_at ?? null,
+        ]
+      );
+
+      const incidents = await this.getIncidents(eventId);
+      return incidents.find((i) => i.id === id) ?? null;
+    },
+    update: async (
+      eventId: string,
+      incidentId: string,
+      body: {
+        type?: string;
+        severity?: string;
+        summary?: string;
+        details?: string;
+        occurred_at?: string | null;
+        contact_id?: string | null;
+        member_id?: string | null;
+      }
+    ) => {
+      const existing = await this.ds.getRepository(Incident).findOne({
+        where: { id: incidentId, eventId },
+      });
+      if (!existing) return null;
+
+      let contactId =
+        body.contact_id !== undefined ? body.contact_id : existing.contactId;
+      let memberId =
+        body.member_id !== undefined ? body.member_id : existing.memberId;
+
+      if (contactId) {
+        const contact = await this.ds
+          .getRepository(Contact)
+          .findOne({ where: { id: contactId } });
+        if (!contact) return null;
+      }
+
+      if (memberId) {
+        const member = await this.ds
+          .getRepository(Member)
+          .findOne({ where: { id: memberId } });
+        if (!member) return null;
+      }
+
+      const type = body.type ?? existing.type;
+      const severity = body.severity ?? existing.severity;
+      const summary = body.summary ?? existing.summary;
+      const details =
+        body.details !== undefined ? body.details : existing.details;
+      const occurred_at =
+        body.occurred_at !== undefined ? body.occurred_at : existing.occurredAt;
+
+      await this.db.run(
+        "UPDATE incidents SET contact_id = ?, member_id = ?, type = ?, severity = ?, summary = ?, details = ?, occurred_at = ? WHERE id = ? AND event_id = ?",
+        [
+          contactId ?? null,
+          memberId ?? null,
+          type,
+          severity,
+          summary,
+          details ?? null,
+          occurred_at ?? null,
+          incidentId,
+          eventId,
+        ]
+      );
+
+      const incidents = await this.getIncidents(eventId);
+      return incidents.find((i) => i.id === incidentId) ?? null;
+    },
+    delete: async (eventId: string, incidentId: string) => {
+      await this.db.run(
+        "DELETE FROM incidents WHERE id = ? AND event_id = ?",
+        [incidentId, eventId]
+      );
       return { ok: true };
     },
   };

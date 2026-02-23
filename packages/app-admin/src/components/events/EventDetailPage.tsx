@@ -1,11 +1,9 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { useApi } from "@/data/api";
 import { extractEmbedUrlFromHtml, getMapEmbedUrl } from "@/lib/maps";
-import { useEventSuspense, useBudgetsOptional, useScenariosOptional, unwrapSuspenseData } from "@/queries/hooks";
-import { queryKeys } from "@/queries/keys";
+import { useEventSuspense, useBudgetsOptional, useScenariosOptional, unwrapSuspenseData, useInvalidateQueries } from "@/queries/hooks";
 import { EventDetailsCard } from "./EventDetailsCard";
 import { EventLocationCard } from "./EventLocationCard";
 import { EventMilestonesCard } from "./EventMilestonesCard";
@@ -18,6 +16,7 @@ import { RideInfoCard } from "./RideInfoCard";
 import { RideScheduleCard } from "./RideScheduleCard";
 import { RideAttendeesCard } from "./RideAttendeesCard";
 import { RideAssetsCard } from "./RideAssetsCard";
+import { EventIncidentsCard } from "./EventIncidentsCard";
 import { EditEventDialog } from "./EditEventDialog";
 import { EventDetailSubNav } from "@/components/layout/EventDetailSubNav";
 import { ArrowLeft, Pencil, Trash2 } from "lucide-react";
@@ -31,7 +30,7 @@ export function EventDetailPage() {
 function EventDetailContent({ id }: { id: string }) {
   const api = useApi();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
+  const { invalidateEvent } = useInvalidateQueries();
   const event = unwrapSuspenseData(useEventSuspense(id))!;
   const { data: budgets = [] } = useBudgetsOptional();
   const { data: scenarios = [] } = useScenariosOptional();
@@ -82,7 +81,7 @@ function EventDetailContent({ id }: { id: string }) {
   }, [event]);
 
   const refresh = async () => {
-    await queryClient.refetchQueries({ queryKey: queryKeys.event(id) });
+    await invalidateEvent(id);
   };
 
   const handleSaveEdit = async () => {
@@ -161,6 +160,36 @@ function EventDetailContent({ id }: { id: string }) {
 
   const handleDeleteScheduleItem = async (scheduleId: string) => {
     await api.events.scheduleItems.delete(id, scheduleId);
+    refresh();
+  };
+
+  const handleAddIncident = async (payload: {
+    type: string;
+    severity: string;
+    summary: string;
+    details?: string;
+    occurred_at?: string;
+  }) => {
+    await api.events.incidents.create(id, payload);
+    refresh();
+  };
+
+  const handleUpdateIncident = async (
+    incidentId: string,
+    payload: {
+      type?: string;
+      severity?: string;
+      summary?: string;
+      details?: string;
+      occurred_at?: string | null;
+    }
+  ) => {
+    await api.events.incidents.update(id, incidentId, payload);
+    refresh();
+  };
+
+  const handleDeleteIncident = async (incidentId: string) => {
+    await api.events.incidents.delete(id, incidentId);
     refresh();
   };
 
@@ -356,6 +385,12 @@ function EventDetailContent({ id }: { id: string }) {
             assets={event.event_assets ?? []}
             onAdd={handleAddAsset}
             onDelete={handleDeleteAsset}
+          />
+          <EventIncidentsCard
+            incidents={event.incidents ?? []}
+            onAddIncident={handleAddIncident}
+            onUpdateIncident={handleUpdateIncident}
+            onDeleteIncident={handleDeleteIncident}
           />
         </>
       )}

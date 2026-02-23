@@ -15,6 +15,7 @@ import {
   NotFoundPage,
   EventsPage,
   EventDetailPage,
+  IncidentsPanel,
   MembersPanel,
   MemberDetailPage,
   ContactsPanel,
@@ -178,6 +179,14 @@ function AppContent() {
                 element={
                   <Suspense fallback={<PageLoading />}>
                     <EventsPage type="rides" />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="incidents"
+                element={
+                  <Suspense fallback={<PageLoading />}>
+                    <IncidentsPanel />
                   </Suspense>
                 }
               />

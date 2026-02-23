@@ -8,6 +8,7 @@ import { mailingListsRouter } from "./mailingLists";
 import { mailingBatchesRouter } from "./mailingBatches";
 import { qrCodesRouter } from "./qrCodes";
 import { meetingsRouter } from "./meetings";
+import { incidentsRouter } from "./incidents";
 import { meetingTemplatesRouter } from "./meetingTemplates";
 import { documentsRouter } from "./documents";
 import { committeesRouter } from "./committees";
@@ -27,4 +28,5 @@ export const adminRouter = t.router({
   documents: documentsRouter,
   committees: committeesRouter,
   website: websiteAdminRouter,
+  incidents: incidentsRouter,
 });

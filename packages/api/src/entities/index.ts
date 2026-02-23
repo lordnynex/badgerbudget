@@ -45,3 +45,4 @@ export { SiteMenuItem } from "./SiteMenuItem";
 export { BlogPost } from "./BlogPost";
 export { ContactSubmission } from "./ContactSubmission";
 export { ContactMemberSubmission } from "./ContactMemberSubmission";
+export { Incident } from "./Incident";

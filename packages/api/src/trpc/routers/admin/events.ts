@@ -4,6 +4,29 @@ import { TRPCError } from "@trpc/server";
 
 const eventType = z.enum(["badger", "anniversary", "pioneer_run", "rides"]);
 
+const incidentCreateInput = z.object({
+  eventId: z.string(),
+  type: z.string(),
+  severity: z.string(),
+  summary: z.string(),
+  details: z.string().optional(),
+  occurred_at: z.string().optional(),
+  contact_id: z.string().optional(),
+  member_id: z.string().optional(),
+});
+
+const incidentUpdateInput = z.object({
+  eventId: z.string(),
+  incidentId: z.string(),
+  type: z.string().optional(),
+  severity: z.string().optional(),
+  summary: z.string().optional(),
+  details: z.string().optional(),
+  occurred_at: z.string().nullable().optional(),
+  contact_id: z.string().nullable().optional(),
+  member_id: z.string().nullable().optional(),
+});
+
 export const eventsRouter = t.router({
   list: t.procedure
     .input(z.object({ type: eventType.optional() }).optional())
@@ -193,6 +216,30 @@ export const eventsRouter = t.router({
     .input(z.object({ eventId: z.string(), memberAttendeeId: z.string() }))
     .mutation(async ({ ctx, input }) => {
       await ctx.api.events.memberAttendees.delete(input.eventId, input.memberAttendeeId);
+      return { ok: true };
+    }),
+
+  // Incidents
+  createIncident: t.procedure
+    .input(incidentCreateInput)
+    .mutation(async ({ ctx, input }) => {
+      const { eventId, ...body } = input;
+      const out = await ctx.api.events.incidents.create(eventId, body);
+      if (!out) throw new TRPCError({ code: "NOT_FOUND" });
+      return out;
+    }),
+  updateIncident: t.procedure
+    .input(incidentUpdateInput)
+    .mutation(async ({ ctx, input }) => {
+      const { eventId, incidentId, ...body } = input;
+      const out = await ctx.api.events.incidents.update(eventId, incidentId, body);
+      if (!out) throw new TRPCError({ code: "NOT_FOUND" });
+      return out;
+    }),
+  deleteIncident: t.procedure
+    .input(z.object({ eventId: z.string(), incidentId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      await ctx.api.events.incidents.delete(input.eventId, input.incidentId);
       return { ok: true };
     }),
 

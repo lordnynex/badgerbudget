@@ -13,6 +13,7 @@ import { MeetingTemplatesApiClient } from "./MeetingTemplatesApiClient";
 import { DocumentsApiClient } from "./DocumentsApiClient";
 import { CommitteesApiClient } from "./CommitteesApiClient";
 import { WebsiteApiClient } from "./WebsiteApiClient";
+import { IncidentsApiClient } from "./IncidentsApiClient";
 
 export type { TrpcClient } from "./trpcClientContext";
 
@@ -31,6 +32,7 @@ export function buildApi(client: ReturnType<typeof useTrpcClient>) {
     documents: new DocumentsApiClient(client),
     committees: new CommitteesApiClient(client),
     website: new WebsiteApiClient(client),
+    incidents: new IncidentsApiClient(client),
   };
 }
 

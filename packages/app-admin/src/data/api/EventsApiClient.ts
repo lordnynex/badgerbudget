@@ -236,6 +236,48 @@ export class EventsApiClient {
       }),
   };
 
+  readonly incidents = {
+    create: async (
+      eventId: string,
+      body: {
+        type: string;
+        severity: string;
+        summary: string;
+        details?: string;
+        occurred_at?: string;
+        contact_id?: string;
+        member_id?: string;
+      }
+    ) =>
+      this.client.admin.events.createIncident.mutate({
+        eventId,
+        ...body,
+      }),
+    update: async (
+      eventId: string,
+      incidentId: string,
+      body: {
+        type?: string;
+        severity?: string;
+        summary?: string;
+        details?: string;
+        occurred_at?: string | null;
+        contact_id?: string | null;
+        member_id?: string | null;
+      }
+    ) =>
+      this.client.admin.events.updateIncident.mutate({
+        eventId,
+        incidentId,
+        ...body,
+      }),
+    delete: async (eventId: string, incidentId: string) =>
+      this.client.admin.events.deleteIncident.mutate({
+        eventId,
+        incidentId,
+      }),
+  };
+
   readonly memberAttendees = {
     add: async (
       eventId: string,

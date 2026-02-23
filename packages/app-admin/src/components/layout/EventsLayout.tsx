@@ -8,7 +8,7 @@ import {
   EVENT_TYPE_SLUGS,
   EVENT_TYPES,
 } from "@/lib/event-constants";
-import { PanelLeftClose, PanelLeftOpen, Menu, Calendar, Bike } from "lucide-react";
+import { PanelLeftClose, PanelLeftOpen, Menu, Calendar, Bike, AlertTriangle } from "lucide-react";
 
 const navLinkClass = ({ isActive }: { isActive: boolean }, collapsed?: boolean) =>
   cn(
@@ -75,21 +75,31 @@ export function EventsLayout() {
               <Calendar className="size-4 shrink-0" />
               {!collapsed && <span>All</span>}
             </NavLink>
-            {EVENT_TYPES.map((type) => {
-              const slug = EVENT_TYPE_SLUGS[type];
-              const Icon = typeIcons[type] ?? Calendar;
-              return (
-                <NavLink
-                  key={type}
-                  to={`/events/${slug}`}
-                  className={({ isActive }) => navLinkClass({ isActive }, collapsed)}
-                  title={collapsed ? EVENT_TYPE_LABELS[type] : undefined}
-                >
-                  <Icon className="size-4 shrink-0" />
-                  {!collapsed && <span>{EVENT_TYPE_LABELS[type]}</span>}
-                </NavLink>
-              );
-            })}
+            <div className={cn("space-y-0.5", !collapsed && "pl-4")}>
+              {EVENT_TYPES.map((type) => {
+                const slug = EVENT_TYPE_SLUGS[type];
+                const Icon = typeIcons[type] ?? Calendar;
+                return (
+                  <NavLink
+                    key={type}
+                    to={`/events/${slug}`}
+                    className={({ isActive }) => navLinkClass({ isActive }, collapsed)}
+                    title={collapsed ? EVENT_TYPE_LABELS[type] : undefined}
+                  >
+                    <Icon className="size-4 shrink-0" />
+                    {!collapsed && <span>{EVENT_TYPE_LABELS[type]}</span>}
+                  </NavLink>
+                );
+              })}
+            </div>
+            <NavLink
+              to="/events/incidents"
+              className={({ isActive }) => navLinkClass({ isActive }, collapsed)}
+              title={collapsed ? "Incidents" : undefined}
+            >
+              <AlertTriangle className="size-4 shrink-0" />
+              {!collapsed && <span>Incidents</span>}
+            </NavLink>
           </div>
         </nav>
       </aside>
@@ -125,21 +135,31 @@ export function EventsLayout() {
                       <Calendar className="size-4 shrink-0" />
                       <span>All</span>
                     </NavLink>
-                    {EVENT_TYPES.map((type) => {
-                      const slug = EVENT_TYPE_SLUGS[type];
-                      const Icon = typeIcons[type] ?? Calendar;
-                      return (
-                        <NavLink
-                          key={type}
-                          to={`/events/${slug}`}
-                          className={({ isActive }) => navLinkClass({ isActive }, false)}
-                          onClick={() => setMobileNavOpen(false)}
-                        >
-                          <Icon className="size-4 shrink-0" />
-                          <span>{EVENT_TYPE_LABELS[type]}</span>
-                        </NavLink>
-                      );
-                    })}
+                    <div className="space-y-0.5 pl-4">
+                      {EVENT_TYPES.map((type) => {
+                        const slug = EVENT_TYPE_SLUGS[type];
+                        const Icon = typeIcons[type] ?? Calendar;
+                        return (
+                          <NavLink
+                            key={type}
+                            to={`/events/${slug}`}
+                            className={({ isActive }) => navLinkClass({ isActive }, false)}
+                            onClick={() => setMobileNavOpen(false)}
+                          >
+                            <Icon className="size-4 shrink-0" />
+                            <span>{EVENT_TYPE_LABELS[type]}</span>
+                          </NavLink>
+                        );
+                      })}
+                    </div>
+                    <NavLink
+                      to="/events/incidents"
+                      className={({ isActive }) => navLinkClass({ isActive }, false)}
+                      onClick={() => setMobileNavOpen(false)}
+                    >
+                      <AlertTriangle className="size-4 shrink-0" />
+                      <span>Incidents</span>
+                    </NavLink>
                   </div>
                 </nav>
               </div>

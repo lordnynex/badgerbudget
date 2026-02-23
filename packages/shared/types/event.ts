@@ -100,6 +100,23 @@ export interface RideScheduleItem {
   sort_order: number;
 }
 
+export interface Incident {
+  id: string;
+  event_id: string;
+  contact_id: string | null;
+  member_id: string | null;
+  type: string;
+  severity: string;
+  summary: string;
+  details: string | null;
+  occurred_at: string | null;
+  created_at?: string;
+  contact?: { id: string; display_name: string };
+  member?: { id: string; name: string };
+  event_name?: string;
+  event_type?: EventType;
+}
+
 export interface EventPhoto {
   id: string;
   event_id: string;
@@ -140,6 +157,7 @@ export interface Event {
   ride_member_attendees?: RideMemberAttendee[];
   event_assets?: EventAsset[];
   ride_schedule_items?: RideScheduleItem[];
+   incidents?: Incident[];
   packingCategories?: EventPackingCategory[];
   packingItems?: EventPackingItem[];
   volunteers?: EventVolunteer[];
