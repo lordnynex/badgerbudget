@@ -51,3 +51,19 @@ output "static_origin_hostname" {
   description = "S3 website endpoint hostname (origin for Cloudflare)"
   value       = var.create_static_hosting_bucket ? module.static_hosting_bucket[0].website_endpoint : null
 }
+
+# SES (when enable_ses = true)
+output "ses_domain_identity_arn" {
+  description = "ARN of the SES domain identity (if created)"
+  value       = var.enable_ses ? module.ses[0].domain_identity_arn : null
+}
+
+output "ses_from_email" {
+  description = "Suggested From address for sending email (e.g. noreply@domain)"
+  value       = var.enable_ses ? module.ses[0].from_email : null
+}
+
+output "ses_dkim_records" {
+  description = "DKIM CNAME records for manual DNS (when SES DNS not managed by Terraform)"
+  value       = var.enable_ses ? module.ses[0].dkim_records : null
+}

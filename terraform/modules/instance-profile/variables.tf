@@ -15,6 +15,12 @@ variable "ecr_repository_arns" {
   default     = []
 }
 
+variable "ses_identity_arns" {
+  type        = list(string)
+  description = "ARNs of SES identities the role can send from (for least privilege); when empty, no SES policy is attached"
+  default     = []
+}
+
 variable "tags" {
   type        = map(string)
   description = "Tags to apply to IAM resources"

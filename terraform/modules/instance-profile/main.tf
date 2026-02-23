@@ -19,16 +19,38 @@ resource "aws_iam_role" "app" {
   tags = var.tags
 }
 
-# SES full access (per plan)
+# SES send + template management for verified identity/identities (least privilege)
+# Send actions are scoped to identity ARNs; template actions are account-scoped (Resource "*").
 resource "aws_iam_role_policy" "ses" {
+  count = length(var.ses_identity_arns) > 0 ? 1 : 0
+
   name   = "${var.name_prefix}-ses"
   role   = aws_iam_role.app.id
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
       {
-        Effect   = "Allow"
-        Action   = "ses:*"
+        Sid    = "SendEmail"
+        Effect = "Allow"
+        Action = [
+          "ses:SendEmail",
+          "ses:SendRawEmail",
+          "ses:SendTemplatedEmail",
+          "ses:SendBulkTemplatedEmail"
+        ]
+        Resource = var.ses_identity_arns
+      },
+      {
+        Sid    = "ManageTemplates"
+        Effect = "Allow"
+        Action = [
+          "ses:CreateTemplate",
+          "ses:GetTemplate",
+          "ses:UpdateTemplate",
+          "ses:DeleteTemplate",
+          "ses:ListTemplates",
+          "ses:TestRenderTemplate"
+        ]
         Resource = "*"
       }
     ]

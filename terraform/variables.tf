@@ -167,6 +167,19 @@ variable "cloudflare_cache_edge_ttl_seconds" {
   default     = 3600
 }
 
+# SES (email sending)
+variable "enable_ses" {
+  type        = bool
+  description = "Create SES domain identity and DKIM so the app can send email"
+  default     = true
+}
+
+variable "ses_domain" {
+  type        = string
+  description = "Domain to verify for SES and use for From address (e.g. nynex.io)"
+  default     = ""
+}
+
 # Tags
 variable "tags" {
   type        = map(string)

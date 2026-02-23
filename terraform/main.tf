@@ -20,6 +20,8 @@ module "static_hosting_bucket" {
 locals {
   static_bucket_arn              = var.create_static_hosting_bucket ? module.static_hosting_bucket[0].bucket_arn : null
   static_bucket_arns_for_profile = var.create_static_hosting_bucket ? [module.static_hosting_bucket[0].bucket_arn] : []
+  ses_domain                     = var.ses_domain != "" ? var.ses_domain : var.cloudflare_zone_domain
+  ses_in_cloudflare_zone         = var.enable_cloudflare && var.enable_ses && (local.ses_domain == var.cloudflare_zone_domain || endswith(local.ses_domain, ".${var.cloudflare_zone_domain}"))
 }
 
 # ---------------------------------------------------------------------------
@@ -67,6 +69,18 @@ locals {
 }
 
 # ---------------------------------------------------------------------------
+# SES (domain identity + DKIM, optional Cloudflare DNS)
+# ---------------------------------------------------------------------------
+module "ses" {
+  source = "./modules/ses"
+  count  = var.enable_ses ? 1 : 0
+
+  ses_domain             = local.ses_domain
+  cloudflare_zone_id     = local.ses_in_cloudflare_zone ? module.cloudflare[0].zone_id : ""
+  cloudflare_zone_domain = local.ses_in_cloudflare_zone ? var.cloudflare_zone_domain : ""
+}
+
+# ---------------------------------------------------------------------------
 # Instance profile / app role (SES + S3 + ECR pull for App Runner)
 # ---------------------------------------------------------------------------
 module "instance_profile" {
@@ -75,6 +89,7 @@ module "instance_profile" {
   name_prefix         = var.instance_profile_name_prefix
   s3_bucket_arns      = local.static_bucket_arns_for_profile
   ecr_repository_arns = var.create_ecr_repository ? [aws_ecr_repository.api[0].arn] : []
+  ses_identity_arns   = var.enable_ses ? [module.ses[0].domain_identity_arn] : []
   tags                = var.tags
 }
 
@@ -110,6 +125,10 @@ resource "aws_apprunner_service" "api" {
 
       image_configuration {
         port = tostring(var.app_runner_port)
+        runtime_environment_variables = var.enable_ses ? {
+          AWS_REGION     = var.aws_region
+          SES_FROM_EMAIL = "noreply@${local.ses_domain}"
+        } : {}
       }
     }
     auto_deployments_enabled = var.app_runner_auto_deployments_enabled
