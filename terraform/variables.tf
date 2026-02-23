@@ -98,6 +98,24 @@ variable "app_runner_auto_deployments_enabled" {
   default     = true
 }
 
+variable "app_runner_min_size" {
+  type        = number
+  description = "Minimum number of App Runner instances (set to 1 with max_size 1 for single instance)"
+  default     = 1
+}
+
+variable "app_runner_max_size" {
+  type        = number
+  description = "Maximum number of App Runner instances (set to 1 to cap at a single instance)"
+  default     = 1
+}
+
+variable "app_runner_max_concurrency" {
+  type        = number
+  description = "Maximum concurrent requests per instance before scaling up"
+  default     = 20
+}
+
 # Instance profile / app role
 variable "instance_profile_name_prefix" {
   type        = string

@@ -22,7 +22,10 @@ app_runner_cpu                      = "256"
 app_runner_memory                   = "512"
 app_runner_port                     = 3000
 app_runner_image_tag                = "latest"
-app_runner_auto_deployments_enabled = true
+app_runner_auto_deployments_enabled = false
+app_runner_min_size                 = 1
+app_runner_max_size                 = 1
+app_runner_max_concurrency          = 20
 
 # Instance profile / role
 instance_profile_name_prefix = "satyrsmc"

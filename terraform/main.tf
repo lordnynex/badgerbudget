@@ -77,12 +77,26 @@ module "instance_profile" {
 }
 
 # ---------------------------------------------------------------------------
+# App Runner auto scaling (optional, used when App Runner service is created)
+# ---------------------------------------------------------------------------
+resource "aws_apprunner_auto_scaling_configuration_version" "api" {
+  count = var.create_app_runner && var.create_ecr_repository ? 1 : 0
+
+  auto_scaling_configuration_name = "${var.app_runner_service_name}-scaling"
+  max_concurrency                 = var.app_runner_max_concurrency
+  max_size                        = var.app_runner_max_size
+  min_size                        = var.app_runner_min_size
+}
+
+# ---------------------------------------------------------------------------
 # App Runner (optional)
 # ---------------------------------------------------------------------------
 resource "aws_apprunner_service" "api" {
   count = var.create_app_runner && var.create_ecr_repository ? 1 : 0
 
   service_name = var.app_runner_service_name
+
+  auto_scaling_configuration_arn = aws_apprunner_auto_scaling_configuration_version.api[0].arn
 
   source_configuration {
     authentication_configuration {
