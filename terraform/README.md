@@ -67,7 +67,7 @@ sequenceDiagram
 
   Note over U,AR: API
   U->>CF: GET /api/... (API host)
-  opt API proxied
+  alt API proxied
     CF->>AR: Forward request
     AR-->>CF: Response
     CF-->>U: Response
