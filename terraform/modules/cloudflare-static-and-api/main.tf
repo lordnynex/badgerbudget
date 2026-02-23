@@ -27,7 +27,7 @@ resource "cloudflare_dns_record" "frontend" {
   type    = "CNAME"
   content = var.frontend_origin_host
   proxied = true
-  ttl     = 1
+  ttl     = 60
 }
 
 # Requires: DNS Write
@@ -39,7 +39,7 @@ resource "cloudflare_dns_record" "api" {
   type    = "CNAME"
   content = var.api_origin_host
   proxied = var.api_proxied
-  ttl     = 1
+  ttl     = 60
 }
 
 # Requires: Cache Settings Write (Cache Rules Edit)
