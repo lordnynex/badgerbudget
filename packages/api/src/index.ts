@@ -43,6 +43,14 @@ async function main() {
         return response;
       }
 
+      // GET /health — healthcheck endpoint (static 200)
+      if (request.method === "GET" && (path === "/health" || path === "/api/health")) {
+        const durationMs = Math.round(performance.now() - start);
+        const ip = server?.requestIP?.(request)?.address ?? "unknown";
+        logger.info({ method: request.method, path, status: 200, durationMs, ip }, "http request");
+        return new Response("OK", { status: 200 });
+      }
+
       // GET /api/members/:id/photo?size=thumbnail|medium|full
       const memberPhotoMatch = path.match(/^\/api\/members\/([^/]+)\/photo$/);
       if (request.method === "GET" && memberPhotoMatch) {
