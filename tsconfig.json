@@ -34,7 +34,11 @@
       "@/lib/*": ["./src/frontend/lib/*"],
       "@/export/*": ["./src/frontend/export/*"],
       "@/frontend/*": ["./src/frontend/*"],
-      "@/trpc": ["./src/frontend/trpc.ts"]
+      "@/trpc": ["./src/frontend/trpc.ts"],
+      "@app-admin": ["./packages/app-admin/src"],
+      "@app-admin/*": ["./packages/app-admin/src/*"],
+      "@web": ["./packages/web/src"],
+      "@web/*": ["./packages/web/src/*"]
     },
 
     // Some stricter flags (disabled by default)
