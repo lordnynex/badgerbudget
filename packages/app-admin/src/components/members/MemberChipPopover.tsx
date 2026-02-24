@@ -3,9 +3,9 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Button } from "@/components/ui/button";
 import { Users, User, Phone, Mail, MapPin, Trash2 } from "lucide-react";
 import { useApi } from "@/data/api";
-import { ALL_MEMBERS_ID } from "@badgerbudget/shared/lib/constants";
+import { ALL_MEMBERS_ID } from "@satyrsmc/shared/lib/constants";
 import { formatBirthday, formatMemberSince } from "./memberUtils";
-import type { Member } from "@badgerbudget/shared/types/budget";
+import type { Member } from "@satyrsmc/shared/types/budget";
 
 interface MemberChipPopoverProps {
   memberId: string;

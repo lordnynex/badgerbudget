@@ -1,0 +1,12 @@
+# Reduce build context and avoid copying local artifacts
+node_modules
+**/node_modules
+dist
+**/dist
+.git
+*.log
+.env*
+.cursor
+.idea
+*.md
+!packages/api/README.md

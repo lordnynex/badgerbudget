@@ -1,5 +1,5 @@
 import type { TrpcClient } from "./trpcClientContext";
-import type { QrCode, QrCodeConfig } from "@badgerbudget/shared/types/qrCode";
+import type { QrCode, QrCodeConfig } from "@satyrsmc/shared/types/qrCode";
 
 export class QrCodesApiClient {
   constructor(private client: TrpcClient) {}

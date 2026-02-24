@@ -5,7 +5,7 @@ import { EditableNumberInput } from "@/components/inputs/EditableNumberInput";
 import { useAppState } from "@/state/AppState";
 import { useApi } from "@/data/api";
 import { Check } from "lucide-react";
-import type { Inputs } from "@badgerbudget/shared/types/budget";
+import type { Inputs } from "@satyrsmc/shared/types/budget";
 
 const DEFAULT_INPUTS: Inputs = {
   profitTarget: 2500,

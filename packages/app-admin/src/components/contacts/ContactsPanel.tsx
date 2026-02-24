@@ -11,7 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useApi } from "@/data/api";
-import type { ContactSearchParams } from "@badgerbudget/shared/types/contact";
+import type { ContactSearchParams } from "@satyrsmc/shared/types/contact";
 import { contactsToVCardFileAsync } from "@/lib/vcard";
 import { Link } from "react-router-dom";
 import { Plus, Search, Download, Upload, List, Trash2 } from "lucide-react";

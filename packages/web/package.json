@@ -1,5 +1,5 @@
 {
-  "name": "@badgerbudget/web",
+  "name": "@satyrsmc/web",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -7,7 +7,7 @@
     "build": "bun run build.ts"
   },
   "dependencies": {
-    "@badgerbudget/api": "workspace:*",
+    "@satyrsmc/api": "workspace:*",
     "@tanstack/react-query": "^5.90.21",
     "@trpc/client": "^11.0.0-rc.0",
     "@trpc/react-query": "^11.0.0-rc.0",

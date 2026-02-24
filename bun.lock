@@ -5,12 +5,12 @@
     "": {
       "name": "bun-react-template",
       "dependencies": {
-        "@badgerbudget/api": "workspace:*",
         "@radix-ui/react-dropdown-menu": "^2.1.16",
         "@radix-ui/react-label": "^2.1.7",
         "@radix-ui/react-popover": "^1.1.15",
         "@radix-ui/react-select": "^2.2.6",
         "@radix-ui/react-slot": "^1.2.3",
+        "@satyrsmc/api": "workspace:*",
         "@tanstack/react-query": "^5.90.21",
         "@tiptap/extension-dropcursor": "^3.20.0",
         "@tiptap/extension-gapcursor": "^3.20.0",
@@ -67,10 +67,10 @@
       },
     },
     "packages/api": {
-      "name": "@badgerbudget/api",
+      "name": "@satyrsmc/api",
       "version": "0.1.0",
       "dependencies": {
-        "@badgerbudget/shared": "workspace:*",
+        "@satyrsmc/shared": "workspace:*",
         "@trpc/server": "^11.0.0-rc.0",
         "pino": "^10.3.1",
         "pino-pretty": "^13.1.3",
@@ -88,11 +88,11 @@
       },
     },
     "packages/app-admin": {
-      "name": "@badgerbudget/app-admin",
+      "name": "@satyrsmc/app-admin",
       "version": "0.1.0",
       "dependencies": {
-        "@badgerbudget/api": "workspace:*",
-        "@badgerbudget/shared": "workspace:*",
+        "@satyrsmc/api": "workspace:*",
+        "@satyrsmc/shared": "workspace:*",
         "@tanstack/react-query": "^5.90.21",
         "@trpc/client": "^11.0.0-rc.0",
         "@trpc/react-query": "^11.0.0-rc.0",
@@ -110,7 +110,7 @@
       },
     },
     "packages/shared": {
-      "name": "@badgerbudget/shared",
+      "name": "@satyrsmc/shared",
       "version": "0.1.0",
       "dependencies": {
         "pst-extractor": "^1.12.0",
@@ -120,10 +120,10 @@
       },
     },
     "packages/web": {
-      "name": "@badgerbudget/web",
+      "name": "@satyrsmc/web",
       "version": "0.1.0",
       "dependencies": {
-        "@badgerbudget/api": "workspace:*",
+        "@satyrsmc/api": "workspace:*",
         "@tanstack/react-query": "^5.90.21",
         "@trpc/client": "^11.0.0-rc.0",
         "@trpc/react-query": "^11.0.0-rc.0",
@@ -142,14 +142,6 @@
   },
   "packages": {
     "@babel/runtime": ["@babel/runtime@7.28.6", "", {}, "sha512-05WQkdpL9COIMz4LjTxGpPNCdlpyimKppYNoJ5Di5EUObifl8t4tuLuUBBZEpoLYOmfvIWrsp9fCl0HoPRVTdA=="],
-
-    "@badgerbudget/api": ["@badgerbudget/api@workspace:packages/api"],
-
-    "@badgerbudget/app-admin": ["@badgerbudget/app-admin@workspace:packages/app-admin"],
-
-    "@badgerbudget/shared": ["@badgerbudget/shared@workspace:packages/shared"],
-
-    "@badgerbudget/web": ["@badgerbudget/web@workspace:packages/web"],
 
     "@date-fns/tz": ["@date-fns/tz@1.4.1", "", {}, "sha512-P5LUNhtbj6YfI3iJjw5EL9eUAG6OitD0W3fWQcpQjDRc/QIsL0tRNuO1PcDvPccWL1fSTXXdE1ds+l95DV/OFA=="],
 
@@ -362,6 +354,14 @@
     "@radix-ui/rect": ["@radix-ui/rect@1.1.1", "", {}, "sha512-HPwpGIzkl28mWyZqG52jiqDJ12waP11Pa1lGoiyUkIEuMLBP0oeK/C89esbXrxsky5we7dfd8U58nm0SgAWpVw=="],
 
     "@remirror/core-constants": ["@remirror/core-constants@3.0.0", "", {}, "sha512-42aWfPrimMfDKDi4YegyS7x+/0tlzaqwPQCULLanv3DMIlu96KTJR0fM5isWX2UViOqlGnX6YFgqWepcX+XMNg=="],
+
+    "@satyrsmc/api": ["@satyrsmc/api@workspace:packages/api"],
+
+    "@satyrsmc/app-admin": ["@satyrsmc/app-admin@workspace:packages/app-admin"],
+
+    "@satyrsmc/shared": ["@satyrsmc/shared@workspace:packages/shared"],
+
+    "@satyrsmc/web": ["@satyrsmc/web@workspace:packages/web"],
 
     "@sqltools/formatter": ["@sqltools/formatter@1.2.5", "", {}, "sha512-Uy0+khmZqUrUGm5dmMqVlnvufZRSK0FbYzVgp0UMstm+F5+W2/jnEEQyc9vo1ZR/E5ZI/B1WjjoTqBqwJL6Krw=="],
 

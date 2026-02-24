@@ -13,9 +13,9 @@ import {
 import { Plus, Trash2, FileCheck, Users } from "lucide-react";
 import { useApi } from "@/data/api";
 import { MemberChipPopover } from "@/components/members/MemberChipPopover";
-import type { EventAttendee, RideMemberAttendee } from "@badgerbudget/shared/types/event";
-import type { Contact } from "@badgerbudget/shared/types/contact";
-import type { Member } from "@badgerbudget/shared/types/member";
+import type { EventAttendee, RideMemberAttendee } from "@satyrsmc/shared/types/event";
+import type { Contact } from "@satyrsmc/shared/types/contact";
+import type { Member } from "@satyrsmc/shared/types/member";
 
 interface RideAttendeesCardProps {
   eventId: string;

@@ -26,7 +26,7 @@ import { MemberSelectCombobox } from "@/components/members/MemberSelectCombobox"
 import { ArrowLeft, Pencil, X, Plus, Calendar, Trash2 } from "lucide-react";
 import { useApi } from "@/data/api";
 import { formatDateOnly } from "@/lib/date-utils";
-import type { Member } from "@badgerbudget/shared/types/budget";
+import type { Member } from "@satyrsmc/shared/types/budget";
 
 export function CommitteeDetailPage() {
   const api = useApi();

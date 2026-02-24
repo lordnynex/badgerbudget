@@ -16,7 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useApi } from "@/data/api";
-import type { MailingBatchRecipient } from "@badgerbudget/shared/types/contact";
+import type { MailingBatchRecipient } from "@satyrsmc/shared/types/contact";
 import { contactsToVCardFileAsync } from "@/lib/vcard";
 import { generatePdfLabels } from "@/lib/pdf-labels";
 import { ArrowLeft, ChevronDown } from "lucide-react";

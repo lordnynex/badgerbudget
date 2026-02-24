@@ -16,7 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useApi } from "@/data/api";
-import type { BudgetSummary, LineItem } from "@badgerbudget/shared/types/budget";
+import type { BudgetSummary, LineItem } from "@satyrsmc/shared/types/budget";
 import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 

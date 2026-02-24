@@ -8,7 +8,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ContactPhotoLightbox } from "./ContactPhotoLightbox";
-import type { ContactPhoto } from "@badgerbudget/shared/types/contact";
+import type { ContactPhoto } from "@satyrsmc/shared/types/contact";
 
 interface ContactPhotoCarouselProps {
   contactId: string;

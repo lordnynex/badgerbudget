@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useApi } from "@/data/api";
-import type { Incident } from "@badgerbudget/shared/types/event";
+import type { Incident } from "@satyrsmc/shared/types/event";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link } from "react-router-dom";

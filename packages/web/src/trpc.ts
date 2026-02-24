@@ -1,5 +1,5 @@
 import { createTRPCReact } from "@trpc/react-query";
-import type { AppRouter } from "@badgerbudget/api/trpc";
+import type { AppRouter } from "@satyrsmc/api/trpc";
 import { httpBatchLink } from "@trpc/client";
 
 declare const __BUILD_API_ORIGIN__: string | undefined;

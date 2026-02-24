@@ -1,5 +1,5 @@
 import type { TrpcClient } from "./trpcClientContext";
-import type { MailingList, ListPreview, MailingListStats } from "@badgerbudget/shared/types/contact";
+import type { MailingList, ListPreview, MailingListStats } from "@satyrsmc/shared/types/contact";
 
 async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
   const res = await fetch(url, {

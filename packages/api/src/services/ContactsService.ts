@@ -12,7 +12,7 @@ import type {
   Tag,
   ContactSearchParams,
   ContactSearchResult,
-} from "@badgerbudget/shared/types/contact";
+} from "@satyrsmc/shared/types/contact";
 import {
   Contact as ContactEntity,
   ContactEmail as ContactEmailEntity,
@@ -460,7 +460,7 @@ export class ContactsService {
 
   async create(body: Partial<Contact> & { display_name: string }) {
     const id = uuid();
-    const uid = body.uid ?? `contact-${id}@badgerbudget`;
+    const uid = body.uid ?? `contact-${id}@satyrsmc`;
     const displayName = body.display_name?.trim() ?? "Unknown";
     const type = body.type ?? "person";
     const status = body.status ?? "active";

@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Plus, Trash2, Pencil, Check } from "lucide-react";
 import { useApi } from "@/data/api";
 import { useInvalidateQueries } from "@/queries/hooks";
-import type { OldBusinessItem } from "@badgerbudget/shared/types/meeting";
+import type { OldBusinessItem } from "@satyrsmc/shared/types/meeting";
 
 interface OldBusinessCardProps {
   meetingId: string;

@@ -7,7 +7,7 @@ import type {
   ListPreview,
   MailingListStats,
   MailingListIncludedPage,
-} from "@badgerbudget/shared/types/contact";
+} from "@satyrsmc/shared/types/contact";
 import type { ContactsService } from "./ContactsService";
 import { IsNull } from "typeorm";
 import { Contact as ContactEntity, MailingList as MailingListEntity, MailingListMember as MailingListMemberEntity, ContactAddress as ContactAddressEntity } from "../entities";

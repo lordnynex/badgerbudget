@@ -4,7 +4,7 @@ import type {
   MeetingSummary,
   MotionsListResponse,
   OldBusinessItemWithMeeting,
-} from "@badgerbudget/shared/types/meeting";
+} from "@satyrsmc/shared/types/meeting";
 
 async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
   const res = await fetch(url, {

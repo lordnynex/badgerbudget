@@ -9,7 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useApi } from "@/data/api";
-import type { Contact } from "@badgerbudget/shared/types/contact";
+import type { Contact } from "@satyrsmc/shared/types/contact";
 
 interface AddContactToMailingListDialogProps {
   open: boolean;

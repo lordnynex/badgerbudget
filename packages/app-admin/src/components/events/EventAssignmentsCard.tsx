@@ -21,9 +21,9 @@ import {
 import { ChevronDown, ClipboardList, Plus, Trash2, UserPlus } from "lucide-react";
 import { MemberChipPopover } from "@/components/members/MemberChipPopover";
 import { MemberSelectCombobox } from "@/components/members/MemberSelectCombobox";
-import { ALL_MEMBERS_ID } from "@badgerbudget/shared/lib/constants";
+import { ALL_MEMBERS_ID } from "@satyrsmc/shared/lib/constants";
 import { useApi } from "@/data/api";
-import type { Event, EventAssignment, EventAssignmentCategory, Member } from "@badgerbudget/shared/types/budget";
+import type { Event, EventAssignment, EventAssignmentCategory, Member } from "@satyrsmc/shared/types/budget";
 
 const CATEGORY_LABELS: Record<EventAssignmentCategory, string> = {
   planning: "Event Planning",

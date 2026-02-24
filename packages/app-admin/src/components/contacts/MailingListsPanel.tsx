@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useApi } from "@/data/api";
-import type { MailingList, ListPreview } from "@badgerbudget/shared/types/contact";
+import type { MailingList, ListPreview } from "@satyrsmc/shared/types/contact";
 import { contactsToVCardFileAsync } from "@/lib/vcard";
 import { ArrowLeft, Plus, Pencil, Trash2, Download, Printer, Users, MapPin, Copy, ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { AddContactToMailingListDialog } from "./AddContactToMailingListDialog";

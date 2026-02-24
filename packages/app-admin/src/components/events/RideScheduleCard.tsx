@@ -11,7 +11,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Clock, Plus, Pencil, Trash2 } from "lucide-react";
-import type { RideScheduleItem } from "@badgerbudget/shared/types/event";
+import type { RideScheduleItem } from "@satyrsmc/shared/types/event";
 
 interface RideScheduleCardProps {
   eventId: string;

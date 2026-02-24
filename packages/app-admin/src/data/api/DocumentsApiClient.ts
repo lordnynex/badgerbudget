@@ -1,5 +1,5 @@
 import type { TrpcClient } from "./trpcClientContext";
-import type { Document, DocumentVersion } from "@badgerbudget/shared/types/document";
+import type { Document, DocumentVersion } from "@satyrsmc/shared/types/document";
 
 export class DocumentsApiClient {
   constructor(private client: TrpcClient) {}

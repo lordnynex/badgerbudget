@@ -14,7 +14,7 @@ import { useApi } from "@/data/api";
 import { useQuery } from "@tanstack/react-query";
 import { queryKeys } from "@/queries/keys";
 import { useInvalidateQueries } from "@/queries/hooks";
-import type { MeetingActionItem } from "@badgerbudget/shared/types/meeting";
+import type { MeetingActionItem } from "@satyrsmc/shared/types/meeting";
 
 interface ActionItemsCardProps {
   meetingId: string;

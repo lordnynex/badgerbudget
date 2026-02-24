@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { parseVCardFile, parsedToContactPayload, type ParsedVCardContact } from "@/lib/vcard";
 import { useApi } from "@/data/api";
-import type { Contact } from "@badgerbudget/shared/types/contact";
+import type { Contact } from "@satyrsmc/shared/types/contact";
 import { Upload, FileText, Mail } from "lucide-react";
 
 interface ImportContactsDialogProps {

@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { CalendarCheck } from "lucide-react";
-import type { Member } from "@badgerbudget/shared/types/budget";
+import type { Member } from "@satyrsmc/shared/types/budget";
 import { formatAnniversaryDate, getUpcomingAnniversaries } from "./memberUtils";
 
 interface UpcomingAnniversariesSectionProps {

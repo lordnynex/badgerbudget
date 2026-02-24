@@ -1,4 +1,4 @@
-# Badger Budget — root Makefile with colorful help and static/Docker targets
+# Satyrs M/C — root Makefile with colorful help and static/Docker targets
 # API_ORIGIN: optional; set for production static build (e.g. API_ORIGIN=https://satyrs-api.nynex.io)
 # S3_BUCKET: required for deploy-static; or run: terraform -chdir=terraform output -raw static_hosting_bucket_name
 
@@ -52,8 +52,8 @@ deploy-static-dry: build-static
 
 docker-api:
 	@printf '$(CYN)Building API Docker image (api-only)...$(RST)\n'
-	@docker build -t badgerbudget-api:latest -f packages/api/Dockerfile .
-	@printf '$(GRN)Image built: badgerbudget-api:latest$(RST)\n'
+	@docker build -t satyrsmc-api:latest -f packages/api/Dockerfile .
+	@printf '$(GRN)Image built: satyrsmc-api:latest$(RST)\n'
 
 dev:
 	@bun run dev

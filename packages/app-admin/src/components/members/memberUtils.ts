@@ -1,4 +1,4 @@
-import type { Member } from "@badgerbudget/shared/types/budget";
+import type { Member } from "@satyrsmc/shared/types/budget";
 import { jsPDF } from "jspdf";
 import { MONTHS } from "@/lib/date-utils";
 import { escapeVCardValue } from "@/lib/vcard";
@@ -180,7 +180,7 @@ export function downloadBirthdaysIcal(members: Member[]) {
   for (const m of withBirthday) {
     const dt = (m.birthday ?? "").replace(/-/g, "");
     lines.push("BEGIN:VEVENT");
-    lines.push(`UID:member-${m.id}-birthday@badgerbudget`);
+    lines.push(`UID:member-${m.id}-birthday@satyrsmc`);
     lines.push(`DTSTART;VALUE=DATE:${dt}`);
     lines.push("RRULE:FREQ=YEARLY");
     lines.push(`SUMMARY:${escapeIcalText(m.name)}'s Birthday`);

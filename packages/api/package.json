@@ -1,5 +1,5 @@
 {
-  "name": "@badgerbudget/api",
+  "name": "@satyrsmc/api",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -16,7 +16,7 @@
     "migrate": "bun run scripts/migrate.ts"
   },
   "dependencies": {
-    "@badgerbudget/shared": "workspace:*",
+    "@satyrsmc/shared": "workspace:*",
     "@trpc/server": "^11.0.0-rc.0",
     "pino": "^10.3.1",
     "pino-pretty": "^13.1.3",

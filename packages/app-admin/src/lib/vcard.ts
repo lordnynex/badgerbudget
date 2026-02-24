@@ -1,4 +1,4 @@
-import type { Contact, ContactEmail, ContactAddress } from "@badgerbudget/shared/types/contact";
+import type { Contact, ContactEmail, ContactAddress } from "@satyrsmc/shared/types/contact";
 
 export function escapeVCardValue(s: string): string {
   return s.replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\n/g, "\\n");
@@ -9,7 +9,7 @@ export function contactToVCard4(c: Contact, options?: { includeNotes?: boolean; 
   const opts = { includeNotes: true, includePhone: true, includeEmail: true, ...options };
   const lines: string[] = ["BEGIN:VCARD", "VERSION:4.0"];
 
-  const uid = c.uid ?? `contact-${c.id}@badgerbudget`;
+  const uid = c.uid ?? `contact-${c.id}@satyrsmc`;
   lines.push(`UID:${uid}`);
   lines.push(`REV:${(c.updated_at ?? c.created_at ?? new Date().toISOString()).replace(/[-:]/g, "").slice(0, 15)}Z`);
 
