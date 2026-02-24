@@ -1,17 +1,16 @@
-# Multi-stage: install deps for target platform, then run API with Bun (no compile).
-# Native deps (sharp, better-sqlite3) load from node_modules at runtime.
-# Build from repo root so workspace deps (e.g. @satyrsmc/shared) resolve.
-# Env at runtime: NODE_ENV, LOG_LEVEL, PORT (default 3000), DATA_DIR (dir containing data/badger.db).
+# Multi-stage: install only API + shared workspace deps (no frontend). Native deps load from node_modules.
+# Build context: repo root. Env at runtime: NODE_ENV, LOG_LEVEL, PORT (default 3000), DATA_DIR.
 
 FROM oven/bun:1 AS builder
 WORKDIR /app
 
-COPY package.json bun.lock* ./
-COPY packages ./packages
+# Slim root: only api and shared workspaces so node_modules has no web/app-admin deps.
+COPY packages/api/docker-root.package.json package.json
+COPY packages/api packages/api
+COPY packages/shared packages/shared
 
-# Install for target platform so sharp/better-sqlite3 get correct native binaries.
 ARG TARGETPLATFORM=linux/amd64
-RUN bun install --frozen-lockfile
+RUN bun install
 
 # Runtime: Bun + app + node_modules (sharp and other natives load from here).
 FROM oven/bun:1-slim
