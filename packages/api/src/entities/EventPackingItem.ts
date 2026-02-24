@@ -2,13 +2,13 @@ import { Entity, PrimaryColumn, Column } from "typeorm";
 
 @Entity("event_packing_items")
 export class EventPackingItem {
-  @PrimaryColumn()
+  @PrimaryColumn("text")
   id!: string;
 
-  @Column({ name: "event_id" })
+  @Column({ name: "event_id", type: "text" })
   eventId!: string;
 
-  @Column({ name: "category_id" })
+  @Column({ name: "category_id", type: "text" })
   categoryId!: string;
 
   @Column({ type: "text" })

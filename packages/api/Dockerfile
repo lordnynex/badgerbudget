@@ -8,13 +8,14 @@ WORKDIR /app
 COPY package.json bun.lock* ./
 COPY packages ./packages
 
-# Install only API workspace and its deps (avoids web/app-admin packages that can fail in Docker).
-RUN bun install --frozen-lockfile --filter @satyrsmc/api
+# Override better-sqlite3 (TypeORM peer) with stub in package.json so install succeeds in Docker.
+RUN bun install --frozen-lockfile
 
-RUN bun build ./packages/api/src/api-only.ts \
-  --compile \
-  --target=bun-linux-x64 \
-  --outfile=./api-server
+# Build for target platform (arm64 on Apple Silicon, x64 elsewhere). TARGETPLATFORM from --build-arg.
+ARG TARGETPLATFORM=linux/amd64
+RUN set -- "$TARGETPLATFORM" && \
+  case "$1" in linux/arm64) BUN_TARGET=bun-linux-arm64 ;; *) BUN_TARGET=bun-linux-x64 ;; esac && \
+  bun build ./packages/api/src/api-only.ts --compile --target="$BUN_TARGET" --outfile=./api-server
 
 # Minimal runtime: only the compiled binary.
 FROM gcr.io/distroless/base-debian13

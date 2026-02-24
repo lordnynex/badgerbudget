@@ -2,10 +2,10 @@ import { Entity, PrimaryColumn, Column } from "typeorm";
 
 @Entity("line_items")
 export class LineItem {
-  @PrimaryColumn()
+  @PrimaryColumn("text")
   id!: string;
 
-  @Column({ name: "budget_id" })
+  @Column({ name: "budget_id", type: "text" })
   budgetId!: string;
 
   @Column({ type: "text" })

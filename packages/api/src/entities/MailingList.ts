@@ -2,7 +2,7 @@ import { Entity, PrimaryColumn, Column } from "typeorm";
 
 @Entity("mailing_lists")
 export class MailingList {
-  @PrimaryColumn()
+  @PrimaryColumn("text")
   id!: string;
 
   @Column({ type: "text" })

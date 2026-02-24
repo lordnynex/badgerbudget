@@ -4,10 +4,10 @@ export type ContactPhotoType = "profile" | "contact";
 
 @Entity("contact_photos")
 export class ContactPhoto {
-  @PrimaryColumn()
+  @PrimaryColumn("text")
   id!: string;
 
-  @Column({ name: "contact_id" })
+  @Column({ name: "contact_id", type: "text" })
   contactId!: string;
 
   /** profile = main/primary photo; contact = additional photo */

@@ -2,13 +2,13 @@ import { Entity, PrimaryColumn, Column } from "typeorm";
 
 @Entity("mailing_list_members")
 export class MailingListMember {
-  @PrimaryColumn()
+  @PrimaryColumn("text")
   id!: string;
 
-  @Column({ name: "list_id" })
+  @Column({ name: "list_id", type: "text" })
   listId!: string;
 
-  @Column({ name: "contact_id" })
+  @Column({ name: "contact_id", type: "text" })
   contactId!: string;
 
   @Column({ name: "added_by", type: "text", nullable: true })

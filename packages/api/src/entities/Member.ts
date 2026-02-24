@@ -2,7 +2,7 @@ import { Entity, PrimaryColumn, Column } from "typeorm";
 
 @Entity("members")
 export class Member {
-  @PrimaryColumn()
+  @PrimaryColumn("text")
   id!: string;
 
   @Column({ type: "text" })

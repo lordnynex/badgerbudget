@@ -2,7 +2,7 @@ import { Entity, PrimaryColumn, Column } from "typeorm";
 
 @Entity("contacts")
 export class Contact {
-  @PrimaryColumn()
+  @PrimaryColumn("text")
   id!: string;
 
   @Column({ type: "text", default: "person" })
@@ -11,7 +11,7 @@ export class Contact {
   @Column({ type: "text", default: "active" })
   status!: string;
 
-  @Column({ name: "display_name" })
+  @Column({ name: "display_name", type: "text" })
   displayName!: string;
 
   @Column({ name: "first_name", type: "text", nullable: true })

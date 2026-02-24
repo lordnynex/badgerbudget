@@ -2,25 +2,25 @@ import { Entity, PrimaryColumn, Column } from "typeorm";
 
 @Entity("incidents")
 export class Incident {
-  @PrimaryColumn()
+  @PrimaryColumn("text")
   id!: string;
 
-  @Column({ name: "event_id" })
+  @Column({ name: "event_id", type: "text" })
   eventId!: string;
 
-  @Column({ name: "contact_id", nullable: true })
+  @Column({ name: "contact_id", type: "text", nullable: true })
   contactId!: string | null;
 
-  @Column({ name: "member_id", nullable: true })
+  @Column({ name: "member_id", type: "text", nullable: true })
   memberId!: string | null;
 
-  @Column()
+  @Column("text")
   type!: string;
 
-  @Column()
+  @Column("text")
   severity!: string;
 
-  @Column()
+  @Column("text")
   summary!: string;
 
   @Column({ type: "text", nullable: true })

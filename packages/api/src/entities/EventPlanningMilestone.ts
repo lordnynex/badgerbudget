@@ -2,10 +2,10 @@ import { Entity, PrimaryColumn, Column } from "typeorm";
 
 @Entity("event_planning_milestones")
 export class EventPlanningMilestone {
-  @PrimaryColumn()
+  @PrimaryColumn("text")
   id!: string;
 
-  @Column({ name: "event_id" })
+  @Column({ name: "event_id", type: "text" })
   eventId!: string;
 
   @Column({ type: "integer" })

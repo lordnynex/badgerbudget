@@ -2,10 +2,10 @@ import { Entity, PrimaryColumn, Column } from "typeorm";
 
 @Entity("event_photos")
 export class EventPhoto {
-  @PrimaryColumn()
+  @PrimaryColumn("text")
   id!: string;
 
-  @Column({ name: "event_id" })
+  @Column({ name: "event_id", type: "text" })
   eventId!: string;
 
   @Column({ name: "sort_order", type: "integer", default: 0 })

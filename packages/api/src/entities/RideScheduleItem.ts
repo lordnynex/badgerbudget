@@ -2,16 +2,16 @@ import { Entity, PrimaryColumn, Column } from "typeorm";
 
 @Entity("ride_schedule_items")
 export class RideScheduleItem {
-  @PrimaryColumn()
+  @PrimaryColumn("text")
   id!: string;
 
-  @Column({ name: "event_id" })
+  @Column({ name: "event_id", type: "text" })
   eventId!: string;
 
-  @Column({ name: "scheduled_time" })
+  @Column({ name: "scheduled_time", type: "text" })
   scheduledTime!: string;
 
-  @Column()
+  @Column("text")
   label!: string;
 
   @Column({ type: "text", nullable: true })

@@ -2,10 +2,10 @@ import { Entity, PrimaryColumn, Column } from "typeorm";
 
 @Entity("contact_addresses")
 export class ContactAddress {
-  @PrimaryColumn()
+  @PrimaryColumn("text")
   id!: string;
 
-  @Column({ name: "contact_id" })
+  @Column({ name: "contact_id", type: "text" })
   contactId!: string;
 
   @Column({ name: "address_line1", type: "text", nullable: true })

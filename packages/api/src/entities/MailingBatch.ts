@@ -2,10 +2,10 @@ import { Entity, PrimaryColumn, Column } from "typeorm";
 
 @Entity("mailing_batches")
 export class MailingBatch {
-  @PrimaryColumn()
+  @PrimaryColumn("text")
   id!: string;
 
-  @Column({ name: "list_id" })
+  @Column({ name: "list_id", type: "text" })
   listId!: string;
 
   @Column({ name: "event_id", type: "text", nullable: true })

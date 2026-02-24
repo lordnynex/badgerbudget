@@ -2,16 +2,16 @@ import { Entity, PrimaryColumn, Column } from "typeorm";
 
 @Entity("mailing_batch_recipients")
 export class MailingBatchRecipient {
-  @PrimaryColumn()
+  @PrimaryColumn("text")
   id!: string;
 
-  @Column({ name: "batch_id" })
+  @Column({ name: "batch_id", type: "text" })
   batchId!: string;
 
-  @Column({ name: "contact_id" })
+  @Column({ name: "contact_id", type: "text" })
   contactId!: string;
 
-  @Column({ name: "snapshot_name" })
+  @Column({ name: "snapshot_name", type: "text" })
   snapshotName!: string;
 
   @Column({ name: "snapshot_address_line1", type: "text", nullable: true })

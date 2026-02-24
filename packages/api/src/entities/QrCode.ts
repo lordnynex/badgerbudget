@@ -10,7 +10,7 @@ export interface QrCodeConfig {
 
 @Entity("qr_codes")
 export class QrCode {
-  @PrimaryColumn()
+  @PrimaryColumn("text")
   id!: string;
 
   @Column({ type: "text", nullable: true })

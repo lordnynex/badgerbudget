@@ -9,7 +9,7 @@ RST := \033[0m
 
 STATIC_DIR := dist
 
-.PHONY: help build-static deploy-static deploy-static-dry docker-api dev
+.PHONY: help build-static deploy-static deploy-static-dry docker-api docker-api-run dev run-api
 
 help:
 	@printf '$(CYN)Satyrs M/C$(RST)\n\n'
@@ -19,7 +19,9 @@ help:
 	@printf '  $(GRN)deploy-static$(RST)    Sync $(STATIC_DIR)/ to S3. Set S3_BUCKET or use terraform output$(RST)\n'
 	@printf '  $(GRN)deploy-static-dry$(RST) Same as deploy-static but with --dryrun$(RST)\n'
 	@printf '  $(GRN)docker-api$(RST)       Build API-only Docker image (packages/api)$(RST)\n'
+	@printf '  $(GRN)docker-api-run$(RST)   Run API container (port 3000, data in ./data)$(RST)\n'
 	@printf '  $(GRN)dev$(RST)              Run dev server (bun run dev)$(RST)\n'
+	@printf '  $(GRN)run-api$(RST)          Start API server only (port 3000)$(RST)\n'
 	@printf '\n$(CYN)Examples:$(RST)\n'
 	@printf '  make build-static\n'
 	@printf '  API_ORIGIN=https://satyrs-api.nynex.io make build-static\n'
@@ -50,10 +52,31 @@ deploy-static-dry: build-static
 	@printf '$(CYN)Dry run: $(STATIC_DIR)/ -> s3://$(S3_BUCKET)/$(RST)\n'
 	@aws s3 sync $(STATIC_DIR)/ s3://$(S3_BUCKET)/ --delete --dryrun --exclude '*.js.map'
 
+# Default to host platform so image runs natively (arm64 on Apple Silicon, amd64 on Intel/CI).
+UNAME_M := $(shell uname -m)
+ifeq ($(UNAME_M),arm64)
+DOCKER_PLATFORM := linux/arm64
+else
+ifeq ($(UNAME_M),aarch64)
+DOCKER_PLATFORM := linux/arm64
+else
+DOCKER_PLATFORM := linux/amd64
+endif
+endif
+
 docker-api:
-	@printf '$(CYN)Building API Docker image (api-only)...$(RST)\n'
-	@docker build -t satyrsmc-api:latest -f packages/api/Dockerfile .
+	@printf '$(CYN)Building API Docker image (api-only) for $(DOCKER_PLATFORM)...$(RST)\n'
+	@docker build --platform $(DOCKER_PLATFORM) --build-arg TARGETPLATFORM=$(DOCKER_PLATFORM) -t satyrsmc-api:latest -f packages/api/Dockerfile .
 	@printf '$(GRN)Image built: satyrsmc-api:latest$(RST)\n'
+
+docker-api-run:
+	@mkdir -p data/data
+	@printf '$(CYN)Starting API container at http://localhost:3000$(RST)\n'
+	@docker run --rm -p 3000:3000 -v "$(PWD)/data:/data" -e DATA_DIR=/data satyrsmc-api:latest
 
 dev:
 	@bun run dev
+
+run-api:
+	@printf '$(CYN)Starting API server on http://localhost:3000$(RST)\n'
+	@bun run start:api-only
