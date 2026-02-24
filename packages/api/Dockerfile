@@ -10,7 +10,7 @@ COPY packages/api packages/api
 COPY packages/shared packages/shared
 
 ARG TARGETPLATFORM=linux/amd64
-RUN bun install
+RUN bun install --production
 
 # Runtime: Bun + app + node_modules (sharp and other natives load from here).
 FROM oven/bun:1-slim
