@@ -2,7 +2,7 @@ import { Entity, PrimaryColumn, Column } from "typeorm";
 
 @Entity("site_settings")
 export class SiteSettings {
-  @PrimaryColumn({ default: "default" })
+  @PrimaryColumn({ type: "text", default: "default" })
   id!: string;
 
   @Column({ name: "title", type: "text", nullable: true })

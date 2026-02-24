@@ -76,8 +76,5 @@
   },
   "workspaces": [
     "packages/*"
-  ],
-  "overrides": {
-    "better-sqlite3": "file:./packages/better-sqlite3-stub"
-  }
+  ]
 }
