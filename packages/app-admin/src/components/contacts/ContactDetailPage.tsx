@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate, useLocation, Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useApi } from "@/data/api";
 import type {
   MailingList,
   ContactEmail,
@@ -17,9 +16,21 @@ import { ArrowLeft, Pencil, Download, Trash2, RotateCcw, Plus, Trash2Icon, User,
 import { EditContactDialog } from "./EditContactDialog";
 import { ContactPhotoCarousel } from "./ContactPhotoCarousel";
 import { ContactPhotoLightbox } from "./ContactPhotoLightbox";
-import { useContactSuspense, useInvalidateQueries, unwrapSuspenseData } from "@/queries/hooks";
-import { useQuery } from "@tanstack/react-query";
-import { queryKeys } from "@/queries/keys";
+import {
+  useContactSuspense,
+  useContactMailingLists,
+  useDeleteContact,
+  useRestoreContact,
+  useUpdateContact,
+  useContactNoteCreate,
+  useContactNoteUpdate,
+  useContactNoteDelete,
+  useContactPhotoAdd,
+  useContactPhotoDelete,
+  useContactPhotoSetProfile,
+  useInvalidateQueries,
+  unwrapSuspenseData,
+} from "@/queries/hooks";
 import {
   Dialog,
   DialogContent,
@@ -39,7 +50,6 @@ import {
 } from "@/components/ui/select";
 
 export function ContactDetailPage() {
-  const api = useApi();
   const { id } = useParams<{ id: string }>();
   if (!id) return null;
   return <ContactDetailContent id={id} />;
@@ -50,8 +60,17 @@ function ContactDetailContent({ id }: { id: string }) {
   const location = useLocation();
   const invalidate = useInvalidateQueries();
   const contact = unwrapSuspenseData(useContactSuspense(id))!;
+  const { data: listsWithContact = [] } = useContactMailingLists(id);
+  const deleteContactMutation = useDeleteContact();
+  const restoreContactMutation = useRestoreContact();
+  const updateContactMutation = useUpdateContact();
+  const createNoteMutation = useContactNoteCreate();
+  const updateNoteMutation = useContactNoteUpdate();
+  const deleteNoteMutation = useContactNoteDelete();
+  const addPhotoMutation = useContactPhotoAdd();
+  const deletePhotoMutation = useContactPhotoDelete();
+  const setProfilePhotoMutation = useContactPhotoSetProfile();
   const [editOpen, setEditOpen] = useState(false);
-  const [listsWithContact, setListsWithContact] = useState<MailingList[]>([]);
   const [addNoteOpen, setAddNoteOpen] = useState(false);
   const [newNoteContent, setNewNoteContent] = useState("");
   const [addingNote, setAddingNote] = useState(false);
@@ -103,25 +122,6 @@ function ContactDetailContent({ id }: { id: string }) {
   const [contactFieldError, setContactFieldError] = useState<string | null>(null);
   const [consentSavedField, setConsentSavedField] = useState<"email" | "mail" | "sms" | null>(null);
 
-  const { data: allLists = [] } = useQuery({
-    queryKey: queryKeys.mailingLists,
-    queryFn: () => api.mailingLists.list(),
-  });
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const members = await Promise.all(
-        allLists.map(async (l) => {
-          const mems = await api.mailingLists.getMembers(l.id);
-          return mems.some((m) => m.contact_id === id) ? l : null;
-        })
-      );
-      if (!cancelled) setListsWithContact(members.filter(Boolean) as MailingList[]);
-    })();
-    return () => { cancelled = true; };
-  }, [id, allLists]);
-
   const refresh = () => {
     invalidate.invalidateContact(id);
   };
@@ -139,12 +139,12 @@ function ContactDetailContent({ id }: { id: string }) {
 
   const handleDelete = async () => {
     if (!confirm("Soft delete this contact? You can restore it later.")) return;
-    await api.contacts.delete(id);
+    await deleteContactMutation.mutateAsync(id);
     navigate((location.state as { from?: string })?.from ?? "/contacts");
   };
 
   const handleRestore = async () => {
-    await api.contacts.restore(id);
+    await restoreContactMutation.mutateAsync(id);
     refresh();
   };
 
@@ -153,7 +153,7 @@ function ContactDetailContent({ id }: { id: string }) {
     if (!content) return;
     setAddingNote(true);
     try {
-      await api.contacts.notes.create(id, content);
+      await createNoteMutation.mutateAsync({ contactId: id, content });
       setNewNoteContent("");
       setAddNoteOpen(false);
       refresh();
@@ -167,7 +167,11 @@ function ContactDetailContent({ id }: { id: string }) {
     const content = editingNoteContent.trim();
     if (!content) return;
     try {
-      await api.contacts.notes.update(id, editingNoteId, content);
+      await updateNoteMutation.mutateAsync({
+        contactId: id,
+        noteId: editingNoteId,
+        content,
+      });
       setEditingNoteId(null);
       setEditingNoteContent("");
       refresh();
@@ -178,22 +182,26 @@ function ContactDetailContent({ id }: { id: string }) {
 
   const handleDeleteNote = async (noteId: string) => {
     if (!confirm("Delete this note?")) return;
-    await api.contacts.notes.delete(id, noteId);
+    await deleteNoteMutation.mutateAsync({ contactId: id, noteId });
     refresh();
   };
 
   const handleAddPhoto = async (file: File, setAsProfile?: boolean) => {
-    await api.contacts.photos.add(id, file, { set_as_profile: setAsProfile });
+    await addPhotoMutation.mutateAsync({
+      contactId: id,
+      file,
+      options: { set_as_profile: setAsProfile },
+    });
     refresh();
   };
 
   const handleDeletePhoto = async (photoId: string) => {
-    await api.contacts.photos.delete(id, photoId);
+    await deletePhotoMutation.mutateAsync({ contactId: id, photoId });
     refresh();
   };
 
   const handleSetProfilePhoto = async (photoId: string) => {
-    await api.contacts.photos.setProfile(id, photoId);
+    await setProfilePhotoMutation.mutateAsync({ contactId: id, photoId });
     refresh();
   };
 
@@ -231,8 +239,11 @@ function ContactDetailContent({ id }: { id: string }) {
     setContactFieldError(null);
     try {
       const valid = emails.filter((e) => (e.email ?? "").trim() !== "");
-      const updated = await api.contacts.update(id, {
-        emails: valid.map((e) => ({ ...toEmailPayload(e), id: "", contact_id: id })),
+      const updated = await updateContactMutation.mutateAsync({
+        id,
+        body: {
+          emails: valid.map((e) => ({ ...toEmailPayload(e), id: "", contact_id: id })),
+        },
       });
       if (updated) invalidate.setContactData(id, updated);
       setEditingEmailId(null);
@@ -250,8 +261,11 @@ function ContactDetailContent({ id }: { id: string }) {
     setContactFieldError(null);
     try {
       const valid = phones.filter((p) => normalizePhoneForStorage(p.phone).length > 0);
-      const updated = await api.contacts.update(id, {
-        phones: valid.map((p) => ({ ...toPhonePayload(p), id: "", contact_id: id })),
+      const updated = await updateContactMutation.mutateAsync({
+        id,
+        body: {
+          phones: valid.map((p) => ({ ...toPhonePayload(p), id: "", contact_id: id })),
+        },
       });
       if (updated) invalidate.setContactData(id, updated);
       setEditingPhoneId(null);
@@ -272,7 +286,10 @@ function ContactDetailContent({ id }: { id: string }) {
     setContactFieldError(null);
     setConsentSavedField(null);
     try {
-      const updated = await api.contacts.update(id, { [field]: value });
+      const updated = await updateContactMutation.mutateAsync({
+        id,
+        body: { [field]: value },
+      });
       if (updated) {
         invalidate.setContactData(id, updated);
         const feedbackKey =
@@ -292,8 +309,11 @@ function ContactDetailContent({ id }: { id: string }) {
     setContactFieldError(null);
     try {
       const valid = addresses.filter((a) => (a.address_line1 ?? "").trim() || (a.city ?? "").trim() || (a.postal_code ?? "").trim());
-      const updated = await api.contacts.update(id, {
-        addresses: valid.map((a) => ({ ...toAddressPayload(a), id: "", contact_id: id })),
+      const updated = await updateContactMutation.mutateAsync({
+        id,
+        body: {
+          addresses: valid.map((a) => ({ ...toAddressPayload(a), id: "", contact_id: id })),
+        },
       });
       if (updated) invalidate.setContactData(id, updated);
       setEditingAddressId(null);
@@ -389,8 +409,11 @@ function ContactDetailContent({ id }: { id: string }) {
       const valid = emergencyContacts.filter(
         (ec) => (ec.name ?? "").trim() && normalizePhoneForStorage(ec.phone).length > 0
       );
-      const updated = await api.contacts.update(id, {
-        emergency_contacts: valid.map(toEmergencyContactPayload),
+      const updated = await updateContactMutation.mutateAsync({
+        id,
+        body: {
+          emergency_contacts: valid.map(toEmergencyContactPayload),
+        },
       });
       if (updated) invalidate.setContactData(id, updated);
       setEditingEmergencyContactId(null);

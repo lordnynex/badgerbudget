@@ -22,7 +22,7 @@ import { ChevronDown, ClipboardList, Plus, Trash2, UserPlus } from "lucide-react
 import { MemberChipPopover } from "@/components/members/MemberChipPopover";
 import { MemberSelectCombobox } from "@/components/members/MemberSelectCombobox";
 import { ALL_MEMBERS_ID } from "@satyrsmc/shared/lib/constants";
-import { useApi } from "@/data/api";
+import { useMembersOptional } from "@/queries/hooks";
 import type { Event, EventAssignment, EventAssignmentCategory, Member } from "@satyrsmc/shared/types/budget";
 
 const CATEGORY_LABELS: Record<EventAssignmentCategory, string> = {
@@ -45,16 +45,11 @@ export function EventAssignmentsCard({
   onAddMember,
   onRemoveMember,
 }: EventAssignmentsCardProps) {
-  const api = useApi();
+  const { data: members = [] } = useMembersOptional();
   const [addRoleOpen, setAddRoleOpen] = useState(false);
   const [addMemberOpen, setAddMemberOpen] = useState<string | null>(null);
   const [roleName, setRoleName] = useState("");
   const [roleCategory, setRoleCategory] = useState<EventAssignmentCategory>("planning");
-  const [members, setMembers] = useState<Member[]>([]);
-
-  useEffect(() => {
-    api.members.list().then(setMembers);
-  }, []);
 
   const assignments = event.assignments ?? [];
   const planning = assignments.filter((a) => a.category === "planning").sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));

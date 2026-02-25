@@ -55,6 +55,11 @@ export function useEventsSuspense(type?: string) {
 export function useEventSuspense(id: string) {
   return trpc.admin.events.get.useSuspenseQuery({ id });
 }
+export function useEventsOptional(type?: string) {
+  return trpc.admin.events.list.useQuery(
+    type ? ({ type: type as "badger" | "anniversary" | "pioneer_run" | "rides" }) : undefined
+  );
+}
 
 // —— Members
 export function useMembersSuspense() {
@@ -67,6 +72,12 @@ export function useMembersOptional() {
 
 export function useMemberSuspense(id: string) {
   return trpc.admin.members.get.useSuspenseQuery({ id });
+}
+export function useMemberOptional(id: string, options?: { enabled?: boolean }) {
+  return trpc.admin.members.get.useQuery(
+    { id },
+    { enabled: options?.enabled !== false && !!id, ...options }
+  );
 }
 
 // —— Contacts
@@ -228,6 +239,37 @@ export function useWebsiteSettingsOptional() {
 
 export function useWebsiteMenusOptional() {
   return trpc.admin.website.getMenus.useQuery();
+}
+export function useWebsiteContactSubmissions() {
+  const api = useApi();
+  return useQuery({
+    queryKey: ["website", "contact-submissions"],
+    queryFn: () => api.website.listContactSubmissions(),
+  });
+}
+export function useWebsiteContactMemberSubmissions() {
+  const api = useApi();
+  return useQuery({
+    queryKey: ["website", "contact-member-submissions"],
+    queryFn: () => api.website.listContactMemberSubmissions(),
+  });
+}
+export function useWebsiteBlogAll() {
+  const api = useApi();
+  return useQuery({
+    queryKey: ["website", "blog", "admin"],
+    queryFn: () => api.website.listBlogAll(),
+  });
+}
+export function useWebsiteMembersFeed() {
+  const api = useApi();
+  return useQuery({
+    queryKey: ["website", "members-feed"],
+    queryFn: () => api.website.getMembersFeed(),
+  });
+}
+export function useWebsiteEventsFeed() {
+  return trpc.website.getEventsFeed.useQuery();
 }
 
 // —— Mutation hooks (use useApi + useMutation so Storybook mock API works)
@@ -485,6 +527,98 @@ export function useContactsListFetcher() {
   const api = useApi();
   return (params?: ContactSearchParams) => api.contacts.list(params);
 }
+export function useContactMailingLists(contactId: string | null) {
+  const api = useApi();
+  return useQuery({
+    queryKey: ["contact", contactId, "mailingLists"],
+    queryFn: async () => {
+      if (!contactId) return [];
+      const lists = await api.mailingLists.list();
+      const withContact = await Promise.all(
+        lists.map(async (l) => {
+          const mems = await api.mailingLists.getMembers(l.id);
+          return mems.some((m) => m.contact_id === contactId) ? l : null;
+        })
+      );
+      return withContact.filter(Boolean) as Awaited<ReturnType<typeof api.mailingLists.list>>;
+    },
+    enabled: !!contactId,
+  });
+}
+export function useContactNoteCreate() {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ contactId, content }: { contactId: string; content: string }) =>
+      api.contacts.notes.create(contactId, content),
+    onSuccess: (_, { contactId }) =>
+      qc.invalidateQueries({ queryKey: queryKeys.contact(contactId) }),
+  });
+}
+export function useContactNoteUpdate() {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      contactId,
+      noteId,
+      content,
+    }: {
+      contactId: string;
+      noteId: string;
+      content: string;
+    }) => api.contacts.notes.update(contactId, noteId, content),
+    onSuccess: (_, { contactId }) =>
+      qc.invalidateQueries({ queryKey: queryKeys.contact(contactId) }),
+  });
+}
+export function useContactNoteDelete() {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ contactId, noteId }: { contactId: string; noteId: string }) =>
+      api.contacts.notes.delete(contactId, noteId),
+    onSuccess: (_, { contactId }) =>
+      qc.invalidateQueries({ queryKey: queryKeys.contact(contactId) }),
+  });
+}
+export function useContactPhotoAdd() {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      contactId,
+      file,
+      options,
+    }: {
+      contactId: string;
+      file: File;
+      options?: { set_as_profile?: boolean };
+    }) => api.contacts.photos.add(contactId, file, options),
+    onSuccess: (_, { contactId }) =>
+      qc.invalidateQueries({ queryKey: queryKeys.contact(contactId) }),
+  });
+}
+export function useContactPhotoDelete() {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ contactId, photoId }: { contactId: string; photoId: string }) =>
+      api.contacts.photos.delete(contactId, photoId),
+    onSuccess: (_, { contactId }) =>
+      qc.invalidateQueries({ queryKey: queryKeys.contact(contactId) }),
+  });
+}
+export function useContactPhotoSetProfile() {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ contactId, photoId }: { contactId: string; photoId: string }) =>
+      api.contacts.photos.setProfile(contactId, photoId),
+    onSuccess: (_, { contactId }) =>
+      qc.invalidateQueries({ queryKey: queryKeys.contact(contactId) }),
+  });
+}
 
 // Members
 export function useCreateMember() {
@@ -504,6 +638,7 @@ export function useUpdateMember() {
     onSuccess: (_, { id }) => {
       qc.invalidateQueries({ queryKey: queryKeys.members });
       qc.invalidateQueries({ queryKey: queryKeys.member(id) });
+      qc.invalidateQueries({ queryKey: ["website", "members-feed"] });
     },
   });
 }
@@ -528,12 +663,14 @@ export function useCreateEvent() {
 export function useUpdateEvent() {
   const api = useApi();
   const qc = useQueryClient();
+  const utils = trpc.useUtils();
   return useMutation({
     mutationFn: ({ id, body }: { id: string; body: Record<string, unknown> }) =>
       api.events.update(id, body),
     onSuccess: (_, { id }) => {
       qc.invalidateQueries({ queryKey: queryKeys.events() });
       qc.invalidateQueries({ queryKey: queryKeys.event(id) });
+      void utils.website.getEventsFeed.invalidate();
     },
   });
 }
@@ -543,6 +680,448 @@ export function useDeleteEvent() {
   return useMutation({
     mutationFn: (id: string) => api.events.delete(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.events() }),
+  });
+}
+export function useEventIncidentUpdate() {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      eventId,
+      incidentId,
+      body,
+    }: {
+      eventId: string;
+      incidentId: string;
+      body: Record<string, unknown>;
+    }) => api.events.incidents.update(eventId, incidentId, body),
+    onSuccess: (_, { eventId }) =>
+      qc.invalidateQueries({ queryKey: queryKeys.event(eventId) }),
+  });
+}
+export function useEventIncidentDelete() {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ eventId, incidentId }: { eventId: string; incidentId: string }) =>
+      api.events.incidents.delete(eventId, incidentId),
+    onSuccess: (_, { eventId }) =>
+      qc.invalidateQueries({ queryKey: queryKeys.event(eventId) }),
+  });
+}
+export function useIncidentsList(page: number, perPage: number) {
+  const api = useApi();
+  return useQuery({
+    queryKey: ["incidents", page, perPage],
+    queryFn: () => api.incidents.list({ page, per_page: perPage }),
+  });
+}
+export function useEventIncidentCreate() {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      eventId,
+      body,
+    }: {
+      eventId: string;
+      body: Record<string, unknown>;
+    }) => api.events.incidents.create(eventId, body),
+    onSuccess: (_, { eventId }) =>
+      qc.invalidateQueries({ queryKey: queryKeys.event(eventId) }),
+  });
+}
+
+// Event sub-resources (attendees, schedule, assets, milestones, packing, volunteers, assignments, photos)
+export function useEventAttendeeAdd() {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      eventId,
+      body,
+    }: {
+      eventId: string;
+      body: { contact_id: string; waiver_signed?: boolean };
+    }) => api.events.attendees.add(eventId, body),
+    onSuccess: (_, { eventId }) =>
+      qc.invalidateQueries({ queryKey: queryKeys.event(eventId) }),
+  });
+}
+export function useEventAttendeeUpdate() {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      eventId,
+      attendeeId,
+      body,
+    }: {
+      eventId: string;
+      attendeeId: string;
+      body: { waiver_signed?: boolean };
+    }) => api.events.attendees.update(eventId, attendeeId, body),
+    onSuccess: (_, { eventId }) =>
+      qc.invalidateQueries({ queryKey: queryKeys.event(eventId) }),
+  });
+}
+export function useEventAttendeeDelete() {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      eventId,
+      attendeeId,
+    }: { eventId: string; attendeeId: string }) =>
+      api.events.attendees.delete(eventId, attendeeId),
+    onSuccess: (_, { eventId }) =>
+      qc.invalidateQueries({ queryKey: queryKeys.event(eventId) }),
+  });
+}
+export function useEventMemberAttendeeAdd() {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      eventId,
+      body,
+    }: {
+      eventId: string;
+      body: { member_id: string; waiver_signed?: boolean };
+    }) => api.events.memberAttendees.add(eventId, body),
+    onSuccess: (_, { eventId }) =>
+      qc.invalidateQueries({ queryKey: queryKeys.event(eventId) }),
+  });
+}
+export function useEventMemberAttendeeUpdate() {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      eventId,
+      attendeeId,
+      body,
+    }: {
+      eventId: string;
+      attendeeId: string;
+      body: { waiver_signed?: boolean };
+    }) => api.events.memberAttendees.update(eventId, attendeeId, body),
+    onSuccess: (_, { eventId }) =>
+      qc.invalidateQueries({ queryKey: queryKeys.event(eventId) }),
+  });
+}
+export function useEventMemberAttendeeDelete() {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      eventId,
+      attendeeId,
+    }: { eventId: string; attendeeId: string }) =>
+      api.events.memberAttendees.delete(eventId, attendeeId),
+    onSuccess: (_, { eventId }) =>
+      qc.invalidateQueries({ queryKey: queryKeys.event(eventId) }),
+  });
+}
+export function useEventScheduleItemCreate() {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      eventId,
+      body,
+    }: {
+      eventId: string;
+      body: { scheduled_time: string; label: string; location?: string };
+    }) => api.events.scheduleItems.create(eventId, body),
+    onSuccess: (_, { eventId }) =>
+      qc.invalidateQueries({ queryKey: queryKeys.event(eventId) }),
+  });
+}
+export function useEventScheduleItemUpdate() {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      eventId,
+      scheduleId,
+      body,
+    }: {
+      eventId: string;
+      scheduleId: string;
+      body: Record<string, unknown>;
+    }) => api.events.scheduleItems.update(eventId, scheduleId, body),
+    onSuccess: (_, { eventId }) =>
+      qc.invalidateQueries({ queryKey: queryKeys.event(eventId) }),
+  });
+}
+export function useEventScheduleItemDelete() {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      eventId,
+      scheduleId,
+    }: { eventId: string; scheduleId: string }) =>
+      api.events.scheduleItems.delete(eventId, scheduleId),
+    onSuccess: (_, { eventId }) =>
+      qc.invalidateQueries({ queryKey: queryKeys.event(eventId) }),
+  });
+}
+export function useEventAssetAdd() {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ eventId, file }: { eventId: string; file: File }) =>
+      api.events.assets.add(eventId, file),
+    onSuccess: (_, { eventId }) =>
+      qc.invalidateQueries({ queryKey: queryKeys.event(eventId) }),
+  });
+}
+export function useEventAssetDelete() {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      eventId,
+      assetId,
+    }: { eventId: string; assetId: string }) =>
+      api.events.assets.delete(eventId, assetId),
+    onSuccess: (_, { eventId }) =>
+      qc.invalidateQueries({ queryKey: queryKeys.event(eventId) }),
+  });
+}
+export function useEventMilestoneCreate() {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      eventId,
+      body,
+    }: {
+      eventId: string;
+      body: { month: number; year: number; description: string; due_date?: string };
+    }) => api.events.milestones.create(eventId, body),
+    onSuccess: (_, { eventId }) =>
+      qc.invalidateQueries({ queryKey: queryKeys.event(eventId) }),
+  });
+}
+export function useEventMilestoneUpdate() {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      eventId,
+      mid,
+      body,
+    }: {
+      eventId: string;
+      mid: string;
+      body: Record<string, unknown>;
+    }) => api.events.milestones.update(eventId, mid, body),
+    onSuccess: (_, { eventId }) =>
+      qc.invalidateQueries({ queryKey: queryKeys.event(eventId) }),
+  });
+}
+export function useEventMilestoneDelete() {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ eventId, mid }: { eventId: string; mid: string }) =>
+      api.events.milestones.delete(eventId, mid),
+    onSuccess: (_, { eventId }) =>
+      qc.invalidateQueries({ queryKey: queryKeys.event(eventId) }),
+  });
+}
+export function useEventMilestoneAddMember() {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      eventId,
+      mid,
+      memberId,
+    }: { eventId: string; mid: string; memberId: string }) =>
+      api.events.milestones.addMember(eventId, mid, memberId),
+    onSuccess: (_, { eventId }) =>
+      qc.invalidateQueries({ queryKey: queryKeys.event(eventId) }),
+  });
+}
+export function useEventMilestoneRemoveMember() {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      eventId,
+      mid,
+      memberId,
+    }: { eventId: string; mid: string; memberId: string }) =>
+      api.events.milestones.removeMember(eventId, mid, memberId),
+    onSuccess: (_, { eventId }) =>
+      qc.invalidateQueries({ queryKey: queryKeys.event(eventId) }),
+  });
+}
+export function useEventPackingCategoryCreate() {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      eventId,
+      body,
+    }: { eventId: string; body: { name: string } }) =>
+      api.events.packingCategories.create(eventId, body),
+    onSuccess: (_, { eventId }) =>
+      qc.invalidateQueries({ queryKey: queryKeys.event(eventId) }),
+  });
+}
+export function useEventPackingItemCreate() {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      eventId,
+      body,
+    }: {
+      eventId: string;
+      body: { category_id: string; name: string; quantity?: number; note?: string };
+    }) => api.events.packingItems.create(eventId, body),
+    onSuccess: (_, { eventId }) =>
+      qc.invalidateQueries({ queryKey: queryKeys.event(eventId) }),
+  });
+}
+export function useEventPackingItemUpdate() {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      eventId,
+      pid,
+      body,
+    }: {
+      eventId: string;
+      pid: string;
+      body: Record<string, unknown>;
+    }) => api.events.packingItems.update(eventId, pid, body),
+    onSuccess: (_, { eventId }) =>
+      qc.invalidateQueries({ queryKey: queryKeys.event(eventId) }),
+  });
+}
+export function useEventPackingItemDelete() {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      eventId,
+      pid,
+    }: { eventId: string; pid: string }) =>
+      api.events.packingItems.delete(eventId, pid),
+    onSuccess: (_, { eventId }) =>
+      qc.invalidateQueries({ queryKey: queryKeys.event(eventId) }),
+  });
+}
+export function useEventVolunteerCreate() {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      eventId,
+      body,
+    }: { eventId: string; body: { name: string; department: string } }) =>
+      api.events.volunteers.create(eventId, body),
+    onSuccess: (_, { eventId }) =>
+      qc.invalidateQueries({ queryKey: queryKeys.event(eventId) }),
+  });
+}
+export function useEventVolunteerDelete() {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      eventId,
+      vid,
+    }: { eventId: string; vid: string }) =>
+      api.events.volunteers.delete(eventId, vid),
+    onSuccess: (_, { eventId }) =>
+      qc.invalidateQueries({ queryKey: queryKeys.event(eventId) }),
+  });
+}
+export function useEventAssignmentCreate() {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      eventId,
+      body,
+    }: {
+      eventId: string;
+      body: { name: string; category: "planning" | "during" };
+    }) => api.events.assignments.create(eventId, body),
+    onSuccess: (_, { eventId }) =>
+      qc.invalidateQueries({ queryKey: queryKeys.event(eventId) }),
+  });
+}
+export function useEventAssignmentDelete() {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      eventId,
+      aid,
+    }: { eventId: string; aid: string }) =>
+      api.events.assignments.delete(eventId, aid),
+    onSuccess: (_, { eventId }) =>
+      qc.invalidateQueries({ queryKey: queryKeys.event(eventId) }),
+  });
+}
+export function useEventAssignmentAddMember() {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      eventId,
+      aid,
+      memberId,
+    }: { eventId: string; aid: string; memberId: string }) =>
+      api.events.assignments.addMember(eventId, aid, memberId),
+    onSuccess: (_, { eventId }) =>
+      qc.invalidateQueries({ queryKey: queryKeys.event(eventId) }),
+  });
+}
+export function useEventAssignmentRemoveMember() {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      eventId,
+      aid,
+      memberId,
+    }: { eventId: string; aid: string; memberId: string }) =>
+      api.events.assignments.removeMember(eventId, aid, memberId),
+    onSuccess: (_, { eventId }) =>
+      qc.invalidateQueries({ queryKey: queryKeys.event(eventId) }),
+  });
+}
+export function useEventPhotoAdd() {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ eventId, file }: { eventId: string; file: File }) =>
+      api.events.photos.add(eventId, file),
+    onSuccess: (_, { eventId }) =>
+      qc.invalidateQueries({ queryKey: queryKeys.event(eventId) }),
+  });
+}
+export function useEventPhotoDelete() {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      eventId,
+      photoId,
+    }: { eventId: string; photoId: string }) =>
+      api.events.photos.delete(eventId, photoId),
+    onSuccess: (_, { eventId }) =>
+      qc.invalidateQueries({ queryKey: queryKeys.event(eventId) }),
   });
 }
 
@@ -707,6 +1286,161 @@ export function useUpdateMeeting() {
       qc.invalidateQueries({ queryKey: queryKeys.meetings() });
       qc.invalidateQueries({ queryKey: queryKeys.meeting(id) });
     },
+  });
+}
+export function useDeleteMeeting() {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (args: {
+      id: string;
+      delete_agenda?: boolean;
+      delete_minutes?: boolean;
+    }) =>
+      api.meetings.delete(args.id, args.delete_agenda, args.delete_minutes),
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.meetings() }),
+  });
+}
+export function useOldBusinessCreate() {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      meetingId,
+      body,
+    }: {
+      meetingId: string;
+      body: { description: string; order_index?: number };
+    }) => api.meetings.oldBusiness.create(meetingId, body),
+    onSuccess: (_, { meetingId }) =>
+      qc.invalidateQueries({ queryKey: queryKeys.meeting(meetingId) }),
+  });
+}
+export function useOldBusinessUpdate() {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      meetingId,
+      id: oid,
+      body,
+    }: {
+      meetingId: string;
+      id: string;
+      body: Record<string, unknown>;
+    }) => api.meetings.oldBusiness.update(meetingId, oid, body),
+    onSuccess: (_, { meetingId }) =>
+      qc.invalidateQueries({ queryKey: queryKeys.meeting(meetingId) }),
+  });
+}
+export function useOldBusinessDelete() {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ meetingId, id: oid }: { meetingId: string; id: string }) =>
+      api.meetings.oldBusiness.delete(meetingId, oid),
+    onSuccess: (_, { meetingId }) =>
+      qc.invalidateQueries({ queryKey: queryKeys.meeting(meetingId) }),
+  });
+}
+export function useMotionCreate() {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      meetingId,
+      body,
+    }: {
+      meetingId: string;
+      body: {
+        description?: string | null;
+        result: "pass" | "fail";
+        order_index?: number;
+        mover_member_id: string;
+        seconder_member_id: string;
+      };
+    }) => api.meetings.motions.create(meetingId, body),
+    onSuccess: (_, { meetingId }) =>
+      qc.invalidateQueries({ queryKey: queryKeys.meeting(meetingId) }),
+  });
+}
+export function useMotionUpdate() {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      meetingId,
+      motionId,
+      body,
+    }: {
+      meetingId: string;
+      motionId: string;
+      body: Record<string, unknown>;
+    }) => api.meetings.motions.update(meetingId, motionId, body),
+    onSuccess: (_, { meetingId }) =>
+      qc.invalidateQueries({ queryKey: queryKeys.meeting(meetingId) }),
+  });
+}
+export function useMotionDelete() {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ meetingId, motionId }: { meetingId: string; motionId: string }) =>
+      api.meetings.motions.delete(meetingId, motionId),
+    onSuccess: (_, { meetingId }) =>
+      qc.invalidateQueries({ queryKey: queryKeys.meeting(meetingId) }),
+  });
+}
+export function useActionItemCreate() {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      meetingId,
+      body,
+    }: {
+      meetingId: string;
+      body: {
+        description: string;
+        assignee_member_id?: string | null;
+        due_date?: string | null;
+        order_index?: number;
+      };
+    }) => api.meetings.actionItems.create(meetingId, body),
+    onSuccess: (_, { meetingId }) =>
+      qc.invalidateQueries({ queryKey: queryKeys.meeting(meetingId) }),
+  });
+}
+export function useActionItemUpdate() {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      meetingId,
+      actionItemId,
+      body,
+    }: {
+      meetingId: string;
+      actionItemId: string;
+      body: Record<string, unknown>;
+    }) => api.meetings.actionItems.update(meetingId, actionItemId, body),
+    onSuccess: (_, { meetingId }) =>
+      qc.invalidateQueries({ queryKey: queryKeys.meeting(meetingId) }),
+  });
+}
+export function useActionItemDelete() {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      meetingId,
+      actionItemId,
+    }: {
+      meetingId: string;
+      actionItemId: string;
+    }) => api.meetings.actionItems.delete(meetingId, actionItemId),
+    onSuccess: (_, { meetingId }) =>
+      qc.invalidateQueries({ queryKey: queryKeys.meeting(meetingId) }),
   });
 }
 

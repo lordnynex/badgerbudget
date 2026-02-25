@@ -1,10 +1,14 @@
 import { useState, useCallback, useEffect } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
-import { useMeetingSuspense, useInvalidateQueries, unwrapSuspenseData } from "@/queries/hooks";
+import {
+  useMeetingSuspense,
+  useUpdateDocument,
+  useExportDocumentPdf,
+  unwrapSuspenseData,
+} from "@/queries/hooks";
 import { Button } from "@/components/ui/button";
 import { RichDocumentEditor } from "./RichDocumentEditor";
 import { ArrowLeft, Save, FileDown } from "lucide-react";
-import { useApi } from "@/data/api";
 
 type DocumentType = "agenda" | "minutes";
 
@@ -13,11 +17,11 @@ export function MeetingDocumentEditPage({
 }: {
   documentType: DocumentType;
 }) {
-  const api = useApi();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const meeting = unwrapSuspenseData(useMeetingSuspense(id!))!;
-  const invalidate = useInvalidateQueries();
+  const updateDocumentMutation = useUpdateDocument();
+  const exportPdfMutation = useExportDocumentPdf();
 
   const documentId =
     documentType === "agenda"
@@ -50,8 +54,10 @@ export function MeetingDocumentEditPage({
     if (!documentId) return;
     setSaving(true);
     try {
-      await api.documents.update(documentId, { content: editContent });
-      invalidate.invalidateMeeting(id!);
+      await updateDocumentMutation.mutateAsync({
+        id: documentId,
+        body: { content: editContent },
+      });
       setDirty(false);
       navigate(`/meetings/${id}`);
     } finally {
@@ -65,7 +71,7 @@ export function MeetingDocumentEditPage({
       documentType === "agenda"
         ? `meeting-${meeting.meeting_number}-agenda.pdf`
         : `meeting-${meeting.meeting_number}-minutes.pdf`;
-    await api.documents.exportPdf(documentId, filename);
+    await exportPdfMutation.mutateAsync({ documentId, filename });
   };
 
   const handleCancel = () => {

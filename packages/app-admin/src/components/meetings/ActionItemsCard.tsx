@@ -10,10 +10,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Plus, Trash2, Pencil, Check } from "lucide-react";
-import { useApi } from "@/data/api";
-import { useQuery } from "@tanstack/react-query";
-import { queryKeys } from "@/queries/keys";
-import { useInvalidateQueries } from "@/queries/hooks";
+import {
+  useMembersOptional,
+  useActionItemCreate,
+  useActionItemUpdate,
+  useActionItemDelete,
+} from "@/queries/hooks";
 import type { MeetingActionItem } from "@satyrsmc/shared/types/meeting";
 
 interface ActionItemsCardProps {
@@ -22,12 +24,10 @@ interface ActionItemsCardProps {
 }
 
 export function ActionItemsCard({ meetingId, actionItems }: ActionItemsCardProps) {
-  const api = useApi();
-  const { data: members = [] } = useQuery({
-    queryKey: queryKeys.members,
-    queryFn: () => api.members.list(),
-  });
-  const invalidate = useInvalidateQueries();
+  const { data: members = [] } = useMembersOptional();
+  const createMutation = useActionItemCreate();
+  const updateMutation = useActionItemUpdate();
+  const deleteMutation = useActionItemDelete();
   const [adding, setAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [description, setDescription] = useState("");
@@ -37,12 +37,14 @@ export function ActionItemsCard({ meetingId, actionItems }: ActionItemsCardProps
   const handleAdd = async () => {
     const trimmed = description.trim();
     if (!trimmed) return;
-    await api.meetings.actionItems.create(meetingId, {
-      description: trimmed,
-      assignee_member_id: assigneeMemberId || null,
-      due_date: dueDate || null,
+    await createMutation.mutateAsync({
+      meetingId,
+      body: {
+        description: trimmed,
+        assignee_member_id: assigneeMemberId || null,
+        due_date: dueDate || null,
+      },
     });
-    invalidate.invalidateMeeting(meetingId);
     setDescription("");
     setAssigneeMemberId("");
     setDueDate("");
@@ -52,12 +54,15 @@ export function ActionItemsCard({ meetingId, actionItems }: ActionItemsCardProps
   const handleUpdate = async (aid: string) => {
     const trimmed = description.trim();
     if (!trimmed) return;
-    await api.meetings.actionItems.update(meetingId, aid, {
-      description: trimmed,
-      assignee_member_id: assigneeMemberId || null,
-      due_date: dueDate || null,
+    await updateMutation.mutateAsync({
+      meetingId,
+      actionItemId: aid,
+      body: {
+        description: trimmed,
+        assignee_member_id: assigneeMemberId || null,
+        due_date: dueDate || null,
+      },
     });
-    invalidate.invalidateMeeting(meetingId);
     setEditingId(null);
     setDescription("");
     setAssigneeMemberId("");
@@ -65,13 +70,15 @@ export function ActionItemsCard({ meetingId, actionItems }: ActionItemsCardProps
   };
 
   const handleComplete = async (aid: string) => {
-    await api.meetings.actionItems.update(meetingId, aid, { status: "completed" });
-    invalidate.invalidateMeeting(meetingId);
+    await updateMutation.mutateAsync({
+      meetingId,
+      actionItemId: aid,
+      body: { status: "completed" },
+    });
   };
 
   const handleDelete = async (aid: string) => {
-    await api.meetings.actionItems.delete(meetingId, aid);
-    invalidate.invalidateMeeting(meetingId);
+    await deleteMutation.mutateAsync({ meetingId, actionItemId: aid });
   };
 
   const startEdit = (a: MeetingActionItem) => {

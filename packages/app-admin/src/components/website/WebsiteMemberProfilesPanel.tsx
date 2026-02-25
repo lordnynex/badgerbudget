@@ -1,6 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useApi } from "@/data/api";
-import { queryKeys } from "@/queries/keys";
+import { useMembersOptional, useWebsiteMembersFeed, useUpdateMember } from "@/queries/hooks";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users } from "lucide-react";
 import { Label } from "@/components/ui/label";
@@ -13,24 +11,9 @@ interface MemberWithShow {
 }
 
 export function WebsiteMemberProfilesPanel() {
-  const api = useApi();
-  const queryClient = useQueryClient();
-  const { data: members = [], isLoading } = useQuery({
-    queryKey: queryKeys.members,
-    queryFn: () => api.members.list(),
-  });
-  const { data: feedMembers = [] } = useQuery({
-    queryKey: ["website", "members-feed"],
-    queryFn: () => api.website.getMembersFeed(),
-  });
-  const updateMutation = useMutation({
-    mutationFn: ({ id, show_on_website }: { id: string; show_on_website: boolean }) =>
-      api.members.update(id, { show_on_website }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.members });
-      queryClient.invalidateQueries({ queryKey: ["website", "members-feed"] });
-    },
-  });
+  const { data: members = [], isLoading } = useMembersOptional();
+  const { data: feedMembers = [] } = useWebsiteMembersFeed();
+  const updateMutation = useUpdateMember();
 
   return (
     <div className="space-y-6">
@@ -69,7 +52,10 @@ export function WebsiteMemberProfilesPanel() {
                       id={`member-${member.id}`}
                       checked={member.show_on_website ?? false}
                       onChange={(e) =>
-                        updateMutation.mutate({ id: member.id, show_on_website: e.target.checked })
+                        updateMutation.mutate({
+                          id: member.id,
+                          body: { show_on_website: e.target.checked },
+                        })
                       }
                       disabled={updateMutation.isPending}
                       className="h-4 w-4 rounded border-input"

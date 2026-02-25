@@ -2,8 +2,12 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useApi } from "@/data/api";
-import { useMemberSuspense, useInvalidateQueries, unwrapSuspenseData } from "@/queries/hooks";
+import {
+  useMemberSuspense,
+  useUpdateMember,
+  useDeleteMember,
+  unwrapSuspenseData,
+} from "@/queries/hooks";
 import type { Member } from "@satyrsmc/shared/types/budget";
 import { MemberProfileCard } from "./MemberProfileCard";
 import { MemberEmergencyContactCard } from "./MemberEmergencyContactCard";
@@ -12,16 +16,15 @@ import { EditMemberDialog } from "./EditMemberDialog";
 import { ArrowLeft, Pencil, Trash2 } from "lucide-react";
 
 export function MemberDetailPage() {
-  const api = useApi();
   const { id } = useParams<{ id: string }>();
   if (!id) return null;
   return <MemberDetailContent id={id} />;
 }
 
 function MemberDetailContent({ id }: { id: string }) {
-  const api = useApi();
   const navigate = useNavigate();
-  const invalidate = useInvalidateQueries();
+  const updateMemberMutation = useUpdateMember();
+  const deleteMemberMutation = useDeleteMember();
   const member = unwrapSuspenseData(useMemberSuspense(id))! as Member;
   const [editOpen, setEditOpen] = useState(false);
   const [photoLightboxOpen, setPhotoLightboxOpen] = useState(false);
@@ -62,8 +65,6 @@ function MemberDetailContent({ id }: { id: string }) {
     setEditPhoto(member.photo_url ?? null);
   }, [member]);
 
-  const refresh = () => invalidate.invalidateMember(id);
-
   const handleSaveEdit = async () => {
     setEditSaving(true);
     try {
@@ -86,9 +87,8 @@ function MemberDetailContent({ id }: { id: string }) {
       if (editPhoto === null || (editPhoto && editPhoto.startsWith("data:"))) {
         updateBody.photo = editPhoto;
       }
-      await api.members.update(id, updateBody);
+      await updateMemberMutation.mutateAsync({ id, body: updateBody });
       setEditOpen(false);
-      refresh();
     } finally {
       setEditSaving(false);
     }
@@ -98,9 +98,7 @@ function MemberDetailContent({ id }: { id: string }) {
     if (!confirm(`Delete ${member.name}? This cannot be undone.`)) return;
     setDeleteDeleting(true);
     try {
-      await api.members.delete(id);
-      invalidate.invalidateMembers();
-      invalidate.invalidateMember(id);
+      await deleteMemberMutation.mutateAsync(id);
       navigate("/members");
     } finally {
       setDeleteDeleting(false);

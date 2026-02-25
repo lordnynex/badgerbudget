@@ -3,13 +3,13 @@ import { Link, useParams, useNavigate } from "react-router-dom";
 import {
   useCommitteeMeetingSuspense,
   useCommitteeSuspense,
-  useInvalidateQueries,
+  useUpdateDocument,
+  useExportDocumentPdf,
   unwrapSuspenseData,
 } from "@/queries/hooks";
 import { Button } from "@/components/ui/button";
 import { RichDocumentEditor } from "@/components/meetings/RichDocumentEditor";
 import { ArrowLeft, Save, FileDown } from "lucide-react";
-import { useApi } from "@/data/api";
 
 type DocumentType = "agenda" | "minutes";
 
@@ -18,7 +18,6 @@ export function CommitteeMeetingDocumentEditPage({
 }: {
   documentType: DocumentType;
 }) {
-  const api = useApi();
   const { id: committeeId, meetingId } = useParams<{
     id: string;
     meetingId: string;
@@ -28,7 +27,8 @@ export function CommitteeMeetingDocumentEditPage({
   const meeting = unwrapSuspenseData(
     useCommitteeMeetingSuspense(committeeId!, meetingId!)
   )!;
-  const invalidate = useInvalidateQueries();
+  const updateDocumentMutation = useUpdateDocument();
+  const exportPdfMutation = useExportDocumentPdf();
 
   const documentId =
     documentType === "agenda"
@@ -61,9 +61,10 @@ export function CommitteeMeetingDocumentEditPage({
     if (!documentId) return;
     setSaving(true);
     try {
-      await api.documents.update(documentId, { content: editContent });
-      invalidate.invalidateCommitteeMeeting(committeeId!, meetingId!);
-      invalidate.invalidateCommittee(committeeId!);
+      await updateDocumentMutation.mutateAsync({
+        id: documentId,
+        body: { content: editContent },
+      });
       setDirty(false);
       navigate(
         `/meetings/committees/${committeeId}/meetings/${meetingId}`
@@ -79,7 +80,7 @@ export function CommitteeMeetingDocumentEditPage({
       documentType === "agenda"
         ? `committee-${meeting.meeting_number}-agenda.pdf`
         : `committee-${meeting.meeting_number}-minutes.pdf`;
-    await api.documents.exportPdf(documentId, filename);
+    await exportPdfMutation.mutateAsync({ documentId, filename });
   };
 
   const handleCancel = () => {

@@ -11,7 +11,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Plus, Trash2, FileCheck, Users } from "lucide-react";
-import { useApi } from "@/data/api";
+import { useMembersOptional, useContactsListFetcher } from "@/queries/hooks";
 import { MemberChipPopover } from "@/components/members/MemberChipPopover";
 import type { EventAttendee, RideMemberAttendee } from "@satyrsmc/shared/types/event";
 import type { Contact } from "@satyrsmc/shared/types/contact";
@@ -40,12 +40,12 @@ export function RideAttendeesCard({
   onUpdateMemberWaiver,
   onRemoveMember,
 }: RideAttendeesCardProps) {
-  const api = useApi();
+  const fetchContactsList = useContactsListFetcher();
+  const { data: members = [] } = useMembersOptional();
   const [addOpen, setAddOpen] = useState(false);
   const [addMemberOpen, setAddMemberOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [contacts, setContacts] = useState<Contact[]>([]);
-  const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
@@ -59,22 +59,20 @@ export function RideAttendeesCard({
     if (!addOpen) return;
     const t = setTimeout(() => {
       setLoading(true);
-      api.contacts
-        .list({ q: search || undefined, status: "active", excludeDeceased: true, limit: 50 })
+      fetchContactsList({
+        q: search || undefined,
+        status: "active",
+        excludeDeceased: true,
+        limit: 50,
+      })
         .then((r) => setContacts(r.contacts))
         .finally(() => setLoading(false));
     }, 300);
     return () => clearTimeout(t);
-  }, [addOpen, search]);
-
-  useEffect(() => {
-    if (addMemberOpen) {
-      api.members.list().then(setMembers);
-    }
-  }, [addMemberOpen]);
+  }, [addOpen, search, fetchContactsList]);
 
   const availableContacts = contacts.filter((c) => !existingIds.has(c.id));
-  const availableMembers = members.filter((m) => !existingMemberIds.has(m.id));
+  const availableMembers = (members as Member[]).filter((m) => !existingMemberIds.has(m.id));
 
   const handleAdd = async (closeAfter = false) => {
     if (!selectedId) return;

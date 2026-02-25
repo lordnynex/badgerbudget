@@ -15,12 +15,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useApi } from "@/data/api";
 import type { MailingBatchRecipient } from "@satyrsmc/shared/types/contact";
 import { contactsToVCardFileAsync } from "@/lib/vcard";
 import { generatePdfLabels } from "@/lib/pdf-labels";
 import { ArrowLeft, ChevronDown } from "lucide-react";
-import { useMailingBatchSuspense, useInvalidateQueries, unwrapSuspenseData } from "@/queries/hooks";
+import {
+  useMailingBatchSuspense,
+  useUpdateMailingBatchRecipientStatus,
+  unwrapSuspenseData,
+} from "@/queries/hooks";
 
 function recipientToContact(r: MailingBatchRecipient): Parameters<typeof contactsToVCardFileAsync>[0][number] {
   return {
@@ -61,7 +64,6 @@ function recipientToContact(r: MailingBatchRecipient): Parameters<typeof contact
 }
 
 export function MailingBatchPage() {
-  const api = useApi();
   const { batchId } = useParams<{ batchId: string }>();
   if (!batchId) return null;
   return <MailingBatchContent batchId={batchId} />;
@@ -69,12 +71,10 @@ export function MailingBatchPage() {
 
 function MailingBatchContent({ batchId }: { batchId: string }) {
   const navigate = useNavigate();
-  const invalidate = useInvalidateQueries();
+  const updateStatusMutation = useUpdateMailingBatchRecipientStatus();
   const batch = unwrapSuspenseData(useMailingBatchSuspense(batchId));
   const [pdfFontSize, setPdfFontSize] = useState(10);
   const [pdfIncludeOrg, setPdfIncludeOrg] = useState(false);
-
-  const refresh = () => invalidate.invalidateMailingBatch(batchId);
 
   const handleExportVCard = async () => {
     if (!batch?.recipients?.length) return;
@@ -134,8 +134,7 @@ function MailingBatchContent({ batchId }: { batchId: string }) {
   };
 
   const handleStatusChange = async (recipientId: string, status: MailingBatchRecipient["status"], reason?: string) => {
-    await api.mailingBatches.updateRecipientStatus(batchId, recipientId, status, reason);
-    refresh();
+    await updateStatusMutation.mutateAsync({ batchId, recipientId, status, reason });
   };
 
   return (

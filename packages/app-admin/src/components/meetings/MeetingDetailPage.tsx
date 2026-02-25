@@ -1,6 +1,12 @@
 import { useState, useEffect } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
-import { useMeetingSuspense, useInvalidateQueries, unwrapSuspenseData } from "@/queries/hooks";
+import {
+  useMeetingSuspense,
+  useUpdateMeeting,
+  useExportDocumentPdf,
+  useDeleteMeeting,
+  unwrapSuspenseData,
+} from "@/queries/hooks";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DatePicker } from "@/components/ui/date-picker";
@@ -34,15 +40,15 @@ import {
   Video,
   X,
 } from "lucide-react";
-import { useApi } from "@/data/api";
 import { formatDateOnly } from "@/lib/date-utils";
 
 export function MeetingDetailPage() {
-  const api = useApi();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const meeting = unwrapSuspenseData(useMeetingSuspense(id!))!;
-  const invalidate = useInvalidateQueries();
+  const updateMeetingMutation = useUpdateMeeting();
+  const exportPdfMutation = useExportDocumentPdf();
+  const deleteMeetingMutation = useDeleteMeeting();
 
   const [editingMetadata, setEditingMetadata] = useState(false);
   const [metadataSaving, setMetadataSaving] = useState(false);
@@ -68,16 +74,17 @@ export function MeetingDetailPage() {
     }
     setMetadataSaving(true);
     try {
-      await api.meetings.update(id!, {
-        meeting_number: num,
-        date,
-        location: location.trim() || null,
-        start_time: startTime.trim() || null,
-        end_time: endTime.trim() || null,
-        video_conference_url: videoConferenceUrl.trim() || null,
+      await updateMeetingMutation.mutateAsync({
+        id: id!,
+        body: {
+          meeting_number: num,
+          date,
+          location: location.trim() || null,
+          start_time: startTime.trim() || null,
+          end_time: endTime.trim() || null,
+          video_conference_url: videoConferenceUrl.trim() || null,
+        },
       });
-      invalidate.invalidateMeeting(id!);
-      invalidate.invalidateMeetings();
       setEditingMetadata(false);
     } finally {
       setMetadataSaving(false);
@@ -97,13 +104,19 @@ export function MeetingDetailPage() {
   const handleAgendaExportPdf = async () => {
     if (!meeting.agenda_document_id) return;
     const filename = `meeting-${meeting.meeting_number}-agenda.pdf`;
-    await api.documents.exportPdf(meeting.agenda_document_id, filename);
+    await exportPdfMutation.mutateAsync({
+      documentId: meeting.agenda_document_id,
+      filename,
+    });
   };
 
   const handleMinutesExportPdf = async () => {
     if (!meeting.minutes_document_id) return;
     const filename = `meeting-${meeting.meeting_number}-minutes.pdf`;
-    await api.documents.exportPdf(meeting.minutes_document_id, filename);
+    await exportPdfMutation.mutateAsync({
+      documentId: meeting.minutes_document_id,
+      filename,
+    });
   };
 
   const isMinutesEmpty = (): boolean => {
@@ -139,12 +152,11 @@ export function MeetingDetailPage() {
   const handleDeleteMeeting = async () => {
     setDeleting(true);
     try {
-      await api.meetings.delete(id!, {
+      await deleteMeetingMutation.mutateAsync({
+        id: id!,
         delete_agenda: deleteAgenda,
         delete_minutes: deleteMinutes,
       });
-      invalidate.invalidateMeetings();
-      invalidate.invalidateMeeting(id!);
       navigate("/meetings");
     } finally {
       setDeleting(false);

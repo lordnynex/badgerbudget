@@ -10,10 +10,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Plus, Trash2, Pencil } from "lucide-react";
-import { useApi } from "@/data/api";
-import { useQuery } from "@tanstack/react-query";
-import { queryKeys } from "@/queries/keys";
-import { useInvalidateQueries } from "@/queries/hooks";
+import {
+  useMembersOptional,
+  useMotionCreate,
+  useMotionUpdate,
+  useMotionDelete,
+} from "@/queries/hooks";
 import { MemberChip } from "@/components/members/MemberChip";
 import type { MeetingMotion } from "@satyrsmc/shared/types/meeting";
 
@@ -23,12 +25,10 @@ interface MotionsCardProps {
 }
 
 export function MotionsCard({ meetingId, motions }: MotionsCardProps) {
-  const api = useApi();
-  const { data: members = [] } = useQuery({
-    queryKey: queryKeys.members,
-    queryFn: () => api.members.list(),
-  });
-  const invalidate = useInvalidateQueries();
+  const { data: members = [] } = useMembersOptional();
+  const createMutation = useMotionCreate();
+  const updateMutation = useMotionUpdate();
+  const deleteMutation = useMotionDelete();
   const [adding, setAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [description, setDescription] = useState("");
@@ -39,13 +39,15 @@ export function MotionsCard({ meetingId, motions }: MotionsCardProps) {
   const handleAdd = async () => {
     if (!moverMemberId || !seconderMemberId) return;
     if (moverMemberId === seconderMemberId) return; // Robert's Rules: seconded by another member
-    await api.meetings.motions.create(meetingId, {
-      description: description.trim() || null,
-      result,
-      mover_member_id: moverMemberId,
-      seconder_member_id: seconderMemberId,
+    await createMutation.mutateAsync({
+      meetingId,
+      body: {
+        description: description.trim() || null,
+        result,
+        mover_member_id: moverMemberId,
+        seconder_member_id: seconderMemberId,
+      },
     });
-    invalidate.invalidateMeeting(meetingId);
     setDescription("");
     setMoverMemberId("");
     setSeconderMemberId("");
@@ -56,13 +58,16 @@ export function MotionsCard({ meetingId, motions }: MotionsCardProps) {
   const handleUpdate = async (mid: string) => {
     if (!moverMemberId || !seconderMemberId) return;
     if (moverMemberId === seconderMemberId) return;
-    await api.meetings.motions.update(meetingId, mid, {
-      description: description.trim() || null,
-      result,
-      mover_member_id: moverMemberId,
-      seconder_member_id: seconderMemberId,
+    await updateMutation.mutateAsync({
+      meetingId,
+      motionId: mid,
+      body: {
+        description: description.trim() || null,
+        result,
+        mover_member_id: moverMemberId,
+        seconder_member_id: seconderMemberId,
+      },
     });
-    invalidate.invalidateMeeting(meetingId);
     setEditingId(null);
     setDescription("");
     setMoverMemberId("");
@@ -70,8 +75,7 @@ export function MotionsCard({ meetingId, motions }: MotionsCardProps) {
   };
 
   const handleDelete = async (mid: string) => {
-    await api.meetings.motions.delete(meetingId, mid);
-    invalidate.invalidateMeeting(meetingId);
+    await deleteMutation.mutateAsync({ meetingId, motionId: mid });
   };
 
   const startEdit = (m: MeetingMotion) => {

@@ -1,7 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useApi } from "@/data/api";
-import { trpc } from "@/trpc";
-import { queryKeys } from "@/queries/keys";
+import { useEventsOptional, useWebsiteEventsFeed, useUpdateEvent } from "@/queries/hooks";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar } from "lucide-react";
 import { Label } from "@/components/ui/label";
@@ -16,22 +13,9 @@ interface EventSummary {
 }
 
 export function WebsiteEventsFeedPanel() {
-  const api = useApi();
-  const queryClient = useQueryClient();
-  const trpcUtils = trpc.useUtils();
-  const { data: events = [], isLoading } = useQuery({
-    queryKey: queryKeys.events(),
-    queryFn: () => api.events.list(),
-  });
-  const { data: feedEvents = [] } = trpc.website.getEventsFeed.useQuery();
-  const updateMutation = useMutation({
-    mutationFn: ({ id, show_on_website }: { id: string; show_on_website: boolean }) =>
-      api.events.update(id, { show_on_website }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.events() });
-      void trpcUtils.website.getEventsFeed.invalidate();
-    },
-  });
+  const { data: events = [], isLoading } = useEventsOptional();
+  const { data: feedEvents = [] } = useWebsiteEventsFeed();
+  const updateMutation = useUpdateEvent();
 
   return (
     <div className="space-y-6">
@@ -71,7 +55,10 @@ export function WebsiteEventsFeedPanel() {
                       id={`event-${event.id}`}
                       checked={(event as EventSummary).show_on_website ?? false}
                       onChange={(e) =>
-                        updateMutation.mutate({ id: event.id, show_on_website: e.target.checked })
+                        updateMutation.mutate({
+                          id: event.id,
+                          body: { show_on_website: e.target.checked },
+                        })
                       }
                       disabled={updateMutation.isPending}
                       className="h-4 w-4 rounded border-input"

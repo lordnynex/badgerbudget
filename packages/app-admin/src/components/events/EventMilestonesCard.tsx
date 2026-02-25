@@ -22,7 +22,7 @@ import { Check, ChevronDown, Flag, Pencil, Plus, Trash2, UserPlus } from "lucide
 import { formatDueDate, getLastDayOfMonth, MONTHS } from "./eventUtils";
 import { MemberChipPopover } from "@/components/members/MemberChipPopover";
 import { MemberSelectCombobox } from "@/components/members/MemberSelectCombobox";
-import { useApi } from "@/data/api";
+import { useMembersOptional } from "@/queries/hooks";
 import type { Event, EventPlanningMilestone } from "@satyrsmc/shared/types/budget";
 import type { Member } from "@satyrsmc/shared/types/budget";
 
@@ -55,14 +55,9 @@ export function EventMilestonesCard({
   onAddMember,
   onRemoveMember,
 }: EventMilestonesCardProps) {
-  const api = useApi();
+  const { data: members = [] } = useMembersOptional();
   const [open, setOpen] = useState(false);
-  const [members, setMembers] = useState<Member[]>([]);
   const [addMemberMilestoneId, setAddMemberMilestoneId] = useState<string | null>(null);
-
-  useEffect(() => {
-    api.members.list().then(setMembers);
-  }, []);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [milestoneMonth, setMilestoneMonth] = useState(1);
   const [milestoneYear, setMilestoneYear] = useState(new Date().getFullYear());

@@ -3,7 +3,9 @@ import { Link, useParams, useNavigate } from "react-router-dom";
 import {
   useCommitteeMeetingSuspense,
   useCommitteeSuspense,
-  useInvalidateQueries,
+  useUpdateCommitteeMeeting,
+  useExportDocumentPdf,
+  useDeleteCommitteeMeeting,
   unwrapSuspenseData,
 } from "@/queries/hooks";
 import { Button } from "@/components/ui/button";
@@ -34,11 +36,9 @@ import {
   Trash2,
   Video,
 } from "lucide-react";
-import { useApi } from "@/data/api";
 import { formatDateOnly } from "@/lib/date-utils";
 
 export function CommitteeMeetingDetailPage() {
-  const api = useApi();
   const { id: committeeId, meetingId } = useParams<{
     id: string;
     meetingId: string;
@@ -48,7 +48,9 @@ export function CommitteeMeetingDetailPage() {
   const meeting = unwrapSuspenseData(
     useCommitteeMeetingSuspense(committeeId!, meetingId!)
   )!;
-  const invalidate = useInvalidateQueries();
+  const updateMeetingMutation = useUpdateCommitteeMeeting();
+  const exportPdfMutation = useExportDocumentPdf();
+  const deleteMeetingMutation = useDeleteCommitteeMeeting();
 
   const [editingMetadata, setEditingMetadata] = useState(false);
   const [metadataSaving, setMetadataSaving] = useState(false);
@@ -73,16 +75,18 @@ export function CommitteeMeetingDetailPage() {
     }
     setMetadataSaving(true);
     try {
-      await api.committees.updateMeeting(committeeId!, meetingId!, {
-        meeting_number: num,
-        date,
-        location: location.trim() || null,
-        start_time: startTime.trim() || null,
-        end_time: endTime.trim() || null,
-        video_conference_url: videoConferenceUrl.trim() || null,
+      await updateMeetingMutation.mutateAsync({
+        committeeId: committeeId!,
+        meetingId: meetingId!,
+        body: {
+          meeting_number: num,
+          date,
+          location: location.trim() || null,
+          start_time: startTime.trim() || null,
+          end_time: endTime.trim() || null,
+          video_conference_url: videoConferenceUrl.trim() || null,
+        },
       });
-      invalidate.invalidateCommittee(committeeId!);
-      invalidate.invalidateCommitteeMeeting(committeeId!, meetingId!);
       setEditingMetadata(false);
     } finally {
       setMetadataSaving(false);
@@ -102,21 +106,28 @@ export function CommitteeMeetingDetailPage() {
   const handleAgendaExportPdf = async () => {
     if (!meeting.agenda_document_id) return;
     const filename = `committee-${meeting.meeting_number}-agenda.pdf`;
-    await api.documents.exportPdf(meeting.agenda_document_id, filename);
+    await exportPdfMutation.mutateAsync({
+      documentId: meeting.agenda_document_id,
+      filename,
+    });
   };
 
   const handleMinutesExportPdf = async () => {
     if (!meeting.minutes_document_id) return;
     const filename = `committee-${meeting.meeting_number}-minutes.pdf`;
-    await api.documents.exportPdf(meeting.minutes_document_id, filename);
+    await exportPdfMutation.mutateAsync({
+      documentId: meeting.minutes_document_id,
+      filename,
+    });
   };
 
   const handleDelete = async () => {
     setDeleting(true);
     try {
-      await api.committees.deleteMeeting(committeeId!, meetingId!);
-      invalidate.invalidateCommittee(committeeId!);
-      invalidate.invalidateCommitteeMeetings(committeeId!);
+      await deleteMeetingMutation.mutateAsync({
+        committeeId: committeeId!,
+        meetingId: meetingId!,
+      });
       navigate(`/meetings/committees/${committeeId}`);
     } finally {
       setDeleting(false);

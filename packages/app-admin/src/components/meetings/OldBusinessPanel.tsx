@@ -1,10 +1,16 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { useOldBusinessSuspense, useMeetingsOptional, useInvalidateQueries, unwrapSuspenseData } from "@/queries/hooks";
+import {
+  useOldBusinessSuspense,
+  useMeetingsOptional,
+  useOldBusinessCreate,
+  useOldBusinessUpdate,
+  useOldBusinessDelete,
+  unwrapSuspenseData,
+} from "@/queries/hooks";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Trash2, Pencil, Check } from "lucide-react";
-import { useApi } from "@/data/api";
 import type { OldBusinessItemWithMeeting } from "@satyrsmc/shared/types/meeting";
 import {
   Dialog,
@@ -23,10 +29,11 @@ import { Label } from "@/components/ui/label";
 import { formatDateOnly } from "@/lib/date-utils";
 
 export function OldBusinessPanel() {
-  const api = useApi();
   const items = unwrapSuspenseData(useOldBusinessSuspense()) ?? [];
   const { data: meetings = [] } = useMeetingsOptional();
-  const invalidate = useInvalidateQueries();
+  const createMutation = useOldBusinessCreate();
+  const updateMutation = useOldBusinessUpdate();
+  const deleteMutation = useOldBusinessDelete();
   const [createOpen, setCreateOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [description, setDescription] = useState("");
@@ -44,9 +51,7 @@ export function OldBusinessPanel() {
     if (!trimmed || !meetingId) return;
     setSaving(true);
     try {
-      await api.meetings.oldBusiness.create(meetingId, { description: trimmed });
-      invalidate.invalidateOldBusiness();
-      invalidate.invalidateMeeting(meetingId);
+      await createMutation.mutateAsync({ meetingId, body: { description: trimmed } });
       setCreateOpen(false);
       setDescription("");
       setMeetingId("");
@@ -60,11 +65,11 @@ export function OldBusinessPanel() {
     if (!trimmed) return;
     setSaving(true);
     try {
-      await api.meetings.oldBusiness.update(ob.meeting_id, ob.id, {
-        description: trimmed,
+      await updateMutation.mutateAsync({
+        meetingId: ob.meeting_id,
+        id: ob.id,
+        body: { description: trimmed },
       });
-      invalidate.invalidateOldBusiness();
-      invalidate.invalidateMeeting(ob.meeting_id);
       setEditingId(null);
       setDescription("");
     } finally {
@@ -73,19 +78,16 @@ export function OldBusinessPanel() {
   };
 
   const handleClose = async (ob: OldBusinessItemWithMeeting) => {
-    await api.meetings.oldBusiness.update(ob.meeting_id, ob.id, {
-      status: "closed",
-      closed_in_meeting_id: ob.meeting_id,
+    await updateMutation.mutateAsync({
+      meetingId: ob.meeting_id,
+      id: ob.id,
+      body: { status: "closed", closed_in_meeting_id: ob.meeting_id },
     });
-    invalidate.invalidateOldBusiness();
-    invalidate.invalidateMeeting(ob.meeting_id);
   };
 
   const handleDelete = async (ob: OldBusinessItemWithMeeting) => {
     if (!confirm("Delete this open business item?")) return;
-    await api.meetings.oldBusiness.delete(ob.meeting_id, ob.id);
-    invalidate.invalidateOldBusiness();
-    invalidate.invalidateMeeting(ob.meeting_id);
+    await deleteMutation.mutateAsync({ meetingId: ob.meeting_id, id: ob.id });
   };
 
   const startEdit = (ob: OldBusinessItemWithMeeting) => {

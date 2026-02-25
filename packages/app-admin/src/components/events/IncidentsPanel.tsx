@@ -1,5 +1,9 @@
 import { useState } from "react";
-import { useApi } from "@/data/api";
+import {
+  useIncidentsList,
+  useEventIncidentUpdate,
+  useEventIncidentDelete,
+} from "@/queries/hooks";
 import type { Incident } from "@satyrsmc/shared/types/event";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,11 +28,11 @@ interface IncidentsResponse {
 }
 
 export function IncidentsPanel() {
-  const api = useApi();
   const [page, setPage] = useState(1);
   const perPage = 25;
-  const [data, setData] = useState<IncidentsResponse | null>(null);
-  const [loading, setLoading] = useState(false);
+  const { data, isLoading: loading, refetch } = useIncidentsList(page, perPage);
+  const updateIncidentMutation = useEventIncidentUpdate();
+  const deleteIncidentMutation = useEventIncidentDelete();
 
   const [editIncident, setEditIncident] = useState<Incident | null>(null);
   const [type, setType] = useState("");
@@ -39,22 +43,14 @@ export function IncidentsPanel() {
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const load = async (targetPage: number) => {
-    setLoading(true);
-    try {
-      const result = await api.incidents.list({ page: targetPage, per_page: perPage });
-      setData(result as IncidentsResponse);
-      setPage(targetPage);
-    } finally {
-      setLoading(false);
-    }
+  const dataAsResponse = data as IncidentsResponse | undefined;
+  const totalPages = dataAsResponse
+    ? Math.max(1, Math.ceil(dataAsResponse.total / dataAsResponse.per_page))
+    : 1;
+
+  const load = (targetPage: number) => {
+    setPage(targetPage);
   };
-
-  if (!data && !loading) {
-    void load(1);
-  }
-
-  const totalPages = data ? Math.max(1, Math.ceil(data.total / data.per_page)) : 1;
 
   const openEdit = (incident: Incident) => {
     setEditIncident(incident);
@@ -79,15 +75,19 @@ export function IncidentsPanel() {
     if (!editIncident || !type || !severity || !summary) return;
     setSaving(true);
     try {
-      await api.events.incidents.update(editIncident.event_id, editIncident.id, {
-        type,
-        severity,
-        summary,
-        details,
-        occurred_at: occurredAt || null,
+      await updateIncidentMutation.mutateAsync({
+        eventId: editIncident.event_id,
+        incidentId: editIncident.id,
+        body: {
+          type,
+          severity,
+          summary,
+          details,
+          occurred_at: occurredAt || null,
+        },
       });
       resetEditState();
-      void load(page);
+      refetch();
     } finally {
       setSaving(false);
     }
@@ -98,8 +98,11 @@ export function IncidentsPanel() {
     if (!confirm("Delete this incident?")) return;
     setDeletingId(incident.id);
     try {
-      await api.events.incidents.delete(incident.event_id, incident.id);
-      void load(page);
+      await deleteIncidentMutation.mutateAsync({
+        eventId: incident.event_id,
+        incidentId: incident.id,
+      });
+      refetch();
     } finally {
       setDeletingId(null);
     }
@@ -121,12 +124,12 @@ export function IncidentsPanel() {
         <CardContent>
           {loading && !data ? (
             <p className="text-sm text-muted-foreground">Loading incidents...</p>
-          ) : !data || data.items.length === 0 ? (
+          ) : !dataAsResponse || dataAsResponse.items.length === 0 ? (
             <p className="text-sm text-muted-foreground">No incidents recorded yet.</p>
           ) : (
             <>
               <div className="space-y-3">
-                {data.items.map((incident) => (
+                {dataAsResponse.items.map((incident) => (
                   <div
                     key={incident.id}
                     className="flex flex-col gap-1 rounded-md border p-3 md:flex-row md:items-center md:gap-3"
@@ -188,8 +191,8 @@ export function IncidentsPanel() {
 
               <div className="mt-4 flex items-center justify-between gap-2">
                 <p className="text-xs text-muted-foreground">
-                  Showing {(data.page - 1) * data.per_page + 1}–
-                  {Math.min(data.page * data.per_page, data.total)} of {data.total}
+                  Showing {(dataAsResponse.page - 1) * dataAsResponse.per_page + 1}–
+                  {Math.min(dataAsResponse.page * dataAsResponse.per_page, dataAsResponse.total)} of {dataAsResponse.total}
                 </p>
                 <div className="flex items-center gap-2 text-xs">
                   <Button

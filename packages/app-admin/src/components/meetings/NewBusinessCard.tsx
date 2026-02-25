@@ -3,25 +3,21 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus } from "lucide-react";
-import { useApi } from "@/data/api";
-import { useInvalidateQueries } from "@/queries/hooks";
+import { useOldBusinessCreate } from "@/queries/hooks";
 
 interface NewBusinessCardProps {
   meetingId: string;
 }
 
 export function NewBusinessCard({ meetingId }: NewBusinessCardProps) {
-  const api = useApi();
-  const invalidate = useInvalidateQueries();
+  const createMutation = useOldBusinessCreate();
   const [adding, setAdding] = useState(false);
   const [description, setDescription] = useState("");
 
   const handleAdd = async () => {
     const trimmed = description.trim();
     if (!trimmed) return;
-    await api.meetings.oldBusiness.create(meetingId, { description: trimmed });
-    invalidate.invalidateMeeting(meetingId);
-    invalidate.invalidateOldBusiness();
+    await createMutation.mutateAsync({ meetingId, body: { description: trimmed } });
     setDescription("");
     setAdding(false);
   };

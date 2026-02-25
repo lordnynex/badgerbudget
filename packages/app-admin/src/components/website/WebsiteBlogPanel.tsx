@@ -1,14 +1,9 @@
-import { useQuery } from "@tanstack/react-query";
-import { useApi } from "@/data/api";
+import { useWebsiteBlogAll } from "@/queries/hooks";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BookOpen } from "lucide-react";
 
 export function WebsiteBlogPanel() {
-  const api = useApi();
-  const { data: posts = [], isLoading } = useQuery({
-    queryKey: ["website", "blog", "admin"],
-    queryFn: () => api.website.listBlogAll(),
-  });
+  const { data: posts = [], isLoading } = useWebsiteBlogAll();
 
   return (
     <div className="space-y-6">

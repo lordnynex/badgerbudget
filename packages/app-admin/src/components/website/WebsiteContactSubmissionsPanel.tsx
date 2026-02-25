@@ -1,18 +1,15 @@
-import { useQuery } from "@tanstack/react-query";
-import { useApi } from "@/data/api";
+import {
+  useWebsiteContactSubmissions,
+  useWebsiteContactMemberSubmissions,
+} from "@/queries/hooks";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Mail } from "lucide-react";
 
 export function WebsiteContactSubmissionsPanel() {
-  const api = useApi();
-  const { data: contactSubmissions = [], isLoading: loadingContact } = useQuery({
-    queryKey: ["website", "contact-submissions"],
-    queryFn: () => api.website.listContactSubmissions(),
-  });
-  const { data: contactMemberSubmissions = [], isLoading: loadingMember } = useQuery({
-    queryKey: ["website", "contact-member-submissions"],
-    queryFn: () => api.website.listContactMemberSubmissions(),
-  });
+  const { data: contactSubmissions = [], isLoading: loadingContact } =
+    useWebsiteContactSubmissions();
+  const { data: contactMemberSubmissions = [], isLoading: loadingMember } =
+    useWebsiteContactMemberSubmissions();
   const isLoading = loadingContact || loadingMember;
 
   return (
