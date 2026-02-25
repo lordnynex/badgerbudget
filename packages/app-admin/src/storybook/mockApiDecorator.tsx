@@ -1,5 +1,5 @@
 import type { Decorator } from "@storybook/react";
-import { ApiProvider, createMockApi } from "@/data/api";
+import { ApiProvider, createMockApi } from "../data/api";
 
 /**
  * Wraps stories with a mock API context so components using useApi() render

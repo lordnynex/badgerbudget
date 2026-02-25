@@ -21,10 +21,11 @@ function aliasByImporterPlugin() {
     resolveId(source, importer) {
       if (!source.startsWith("@/") || !importer) return null;
       const rel = source.slice(2);
-      if (importer.includes("packages/app-admin")) {
+      const normalizedImporter = path.normalize(importer).replace(/\\/g, "/");
+      if (normalizedImporter.includes("packages/app-admin")) {
         return resolveWithExtensions(appAdminSrc, rel) ?? path.join(appAdminSrc, rel);
       }
-      if (importer.includes("packages/web")) {
+      if (normalizedImporter.includes("packages/web")) {
         return resolveWithExtensions(webSrc, rel) ?? path.join(webSrc, rel);
       }
       return null;

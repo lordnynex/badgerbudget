@@ -1,8 +1,8 @@
 import type { Decorator } from "@storybook/react";
 import { useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { trpc } from "@/trpc";
-import { TrpcClientProvider } from "@/data/api";
+import { trpc } from "../trpc";
+import { TrpcClientProvider } from "../data/api";
 import { createMockTrpcLink } from "./mockTrpcLink";
 
 const queryClient = new QueryClient({
