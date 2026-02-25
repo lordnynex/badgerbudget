@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useApi } from "@/data/api";
+import { useCreateMember } from "@/queries/hooks";
 import { MEMBER_POSITIONS } from "@satyrsmc/shared/types/budget";
 import { MONTHS } from "./memberUtils";
 import { fileToBase64 } from "./memberUtils";
@@ -29,7 +29,7 @@ interface AddMemberDialogProps {
 }
 
 export function AddMemberDialog({ open, onOpenChange, onSuccess }: AddMemberDialogProps) {
-  const api = useApi();
+  const createMemberMutation = useCreateMember();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -81,7 +81,7 @@ export function AddMemberDialog({ open, onOpenChange, onSuccess }: AddMemberDial
         memberSinceMonth && memberSinceYear
           ? `${memberSinceYear}-${memberSinceMonth.padStart(2, "0")}`
           : undefined;
-      await api.members.create({
+      await createMemberMutation.mutateAsync({
         name: name.trim(),
         phone_number: phone.trim() || undefined,
         email: email.trim() || undefined,

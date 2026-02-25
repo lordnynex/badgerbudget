@@ -12,18 +12,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { DatePicker } from "@/components/ui/date-picker";
-import { useMeetingTemplatesOptional } from "@/queries/hooks";
-import { useInvalidateQueries } from "@/queries/hooks";
+import {
+  useMeetingTemplatesOptional,
+  useCreateCommitteeMeeting,
+} from "@/queries/hooks";
 import { ArrowLeft } from "lucide-react";
-import { useApi } from "@/data/api";
 
 export function CreateCommitteeMeetingPage() {
-  const api = useApi();
+  const createCommitteeMeetingMutation = useCreateCommitteeMeeting();
   const { id: committeeId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const committee = unwrapSuspenseData(useCommitteeSuspense(committeeId!))!;
   const { data: templates = [] } = useMeetingTemplatesOptional("agenda");
-  const invalidate = useInvalidateQueries();
 
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [meetingNumber, setMeetingNumber] = useState<number | "">("");
@@ -49,19 +49,22 @@ export function CreateCommitteeMeetingPage() {
 
     setSaving(true);
     try {
-      const meeting = await api.committees.createMeeting(committeeId!, {
-        date,
-        meeting_number: Number(meetingNumber),
-        location: location.trim() || null,
-        start_time: startTime.trim() || null,
-        end_time: endTime.trim() || null,
-        video_conference_url: videoConferenceUrl.trim() || null,
-        agenda_template_id:
-          agendaTemplateId === "__none__" ? undefined : agendaTemplateId,
+      const meeting = await createCommitteeMeetingMutation.mutateAsync({
+        committeeId: committeeId!,
+        body: {
+          date,
+          meeting_number: Number(meetingNumber),
+          location: location.trim() || null,
+          start_time: startTime.trim() || null,
+          end_time: endTime.trim() || null,
+          video_conference_url: videoConferenceUrl.trim() || null,
+          agenda_template_id:
+            agendaTemplateId === "__none__" ? undefined : agendaTemplateId,
+        },
       });
-      invalidate.invalidateCommittee(committeeId!);
-      invalidate.invalidateCommitteeMeetings(committeeId!);
-      navigate(`/meetings/committees/${committeeId}/meetings/${meeting.id}`);
+      navigate(
+        `/meetings/committees/${committeeId}/meetings/${(meeting as { id: string }).id}`
+      );
     } finally {
       setSaving(false);
     }

@@ -7,8 +7,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { ArrowLeft, Pencil, Plus } from "lucide-react";
 import { useAppState } from "@/state/AppState";
-import { useInvalidateQueries } from "@/queries/hooks";
-import { trpc } from "@/trpc";
+import {
+  useCreateBudget,
+  useDeleteBudget,
+  useUpdateBudget,
+} from "@/queries/hooks";
 import {
   Dialog,
   DialogContent,
@@ -27,19 +30,9 @@ export function BudgetsPanel() {
     refreshBudgets,
     refreshBudget,
   } = useAppState();
-  const invalidate = useInvalidateQueries();
-  const createBudgetMutation = trpc.admin.budgets.create.useMutation({
-    onSuccess: () => invalidate.invalidateBudgets(),
-  });
-  const deleteBudgetMutation = trpc.admin.budgets.delete.useMutation({
-    onSuccess: () => invalidate.invalidateBudgets(),
-  });
-  const updateBudgetMutation = trpc.admin.budgets.update.useMutation({
-    onSuccess: (_, vars) => {
-      invalidate.invalidateBudgets();
-      invalidate.invalidateBudget(vars.id);
-    },
-  });
+  const createBudgetMutation = useCreateBudget();
+  const deleteBudgetMutation = useDeleteBudget();
+  const updateBudgetMutation = useUpdateBudget();
   const [createOpen, setCreateOpen] = useState(false);
   const [newName, setNewName] = useState("");
   const [newYear, setNewYear] = useState(new Date().getFullYear());
@@ -66,7 +59,7 @@ export function BudgetsPanel() {
 
   const handleDelete = async (id: string) => {
     if (!window.confirm("Delete this budget and all its line items?")) return;
-    await deleteBudgetMutation.mutateAsync({ id });
+    await deleteBudgetMutation.mutateAsync(id);
     await refreshBudgets();
     navigate("/budgeting/budget");
   };
@@ -82,8 +75,10 @@ export function BudgetsPanel() {
     if (!editingBudget || !editName.trim()) return;
     await updateBudgetMutation.mutateAsync({
       id: editingBudget.id,
-      name: editName.trim(),
-      description: editDescription.trim(),
+      body: {
+        name: editName.trim(),
+        description: editDescription.trim(),
+      },
     });
     await refreshBudgets();
     if (currentBudget?.id === editingBudget.id) {

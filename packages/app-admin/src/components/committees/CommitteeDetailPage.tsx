@@ -1,6 +1,14 @@
 import { useState } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
-import { useCommitteeSuspense, useMembersSuspense, useInvalidateQueries, unwrapSuspenseData } from "@/queries/hooks";
+import {
+  useCommitteeSuspense,
+  useMembersSuspense,
+  useUpdateCommittee,
+  useCommitteeAddMember,
+  useCommitteeRemoveMember,
+  useDeleteCommittee,
+  unwrapSuspenseData,
+} from "@/queries/hooks";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,17 +32,18 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MemberCard } from "@/components/members/MemberCard";
 import { MemberSelectCombobox } from "@/components/members/MemberSelectCombobox";
 import { ArrowLeft, Pencil, X, Plus, Calendar, Trash2 } from "lucide-react";
-import { useApi } from "@/data/api";
 import { formatDateOnly } from "@/lib/date-utils";
 import type { Member } from "@satyrsmc/shared/types/budget";
 
 export function CommitteeDetailPage() {
-  const api = useApi();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const committee = unwrapSuspenseData(useCommitteeSuspense(id!))!;
   const members = unwrapSuspenseData(useMembersSuspense()) ?? [];
-  const invalidate = useInvalidateQueries();
+  const updateCommitteeMutation = useUpdateCommittee();
+  const addMemberMutation = useCommitteeAddMember();
+  const removeMemberMutation = useCommitteeRemoveMember();
+  const deleteCommitteeMutation = useDeleteCommittee();
 
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -57,17 +66,18 @@ export function CommitteeDetailPage() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await api.committees.update(id!, {
-        name: name.trim(),
-        description: description.trim() || null,
-        purpose: purpose.trim() || null,
-        formed_date: formedDate,
-        closed_date: closedDate.trim() || null,
-        chairperson_member_id: chairpersonMemberId || null,
-        status,
+      await updateCommitteeMutation.mutateAsync({
+        id: id!,
+        body: {
+          name: name.trim(),
+          description: description.trim() || null,
+          purpose: purpose.trim() || null,
+          formed_date: formedDate,
+          closed_date: closedDate.trim() || null,
+          chairperson_member_id: chairpersonMemberId || null,
+          status,
+        },
       });
-      invalidate.invalidateCommittee(id!);
-      invalidate.invalidateCommittees();
       setEditing(false);
     } finally {
       setSaving(false);
@@ -86,23 +96,18 @@ export function CommitteeDetailPage() {
   };
 
   const handleAddMember = async (memberId: string) => {
-    await api.committees.addMember(id!, memberId);
-    invalidate.invalidateCommittee(id!);
-    invalidate.invalidateCommittees();
+    await addMemberMutation.mutateAsync({ committeeId: id!, memberId });
     setAddMemberOpen(false);
   };
 
   const handleRemoveMember = async (memberId: string) => {
-    await api.committees.removeMember(id!, memberId);
-    invalidate.invalidateCommittee(id!);
-    invalidate.invalidateCommittees();
+    await removeMemberMutation.mutateAsync({ committeeId: id!, memberId });
   };
 
   const handleDelete = async () => {
     setDeleting(true);
     try {
-      await api.committees.delete(id!);
-      invalidate.invalidateCommittees();
+      await deleteCommitteeMutation.mutateAsync(id!);
       navigate("/meetings/committees");
     } finally {
       setDeleting(false);

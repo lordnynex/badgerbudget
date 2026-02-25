@@ -6,6 +6,12 @@ import {
   type ReactNode,
 } from "react";
 import { trpc } from "@/trpc";
+import {
+  useUpdateScenario,
+  useAddLineItem,
+  useUpdateLineItem,
+  useDeleteLineItem,
+} from "@/queries/hooks";
 import type { Budget, Inputs, LineItem, Scenario } from "@satyrsmc/shared/types/budget";
 
 const DEFAULT_CATEGORIES = [
@@ -184,18 +190,10 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const utils = trpc.useUtils();
-  const updateScenarioInputsMutation = trpc.admin.scenarios.update.useMutation({
-    onSuccess: () => utils.admin.scenarios.list.invalidate(),
-  });
-  const addLineItemMutation = trpc.admin.budgets.addLineItem.useMutation({
-    onSuccess: () => utils.admin.budgets.list.invalidate(),
-  });
-  const updateLineItemMutation = trpc.admin.budgets.updateLineItem.useMutation({
-    onSuccess: () => utils.admin.budgets.list.invalidate(),
-  });
-  const deleteLineItemMutation = trpc.admin.budgets.deleteLineItem.useMutation({
-    onSuccess: () => utils.admin.budgets.list.invalidate(),
-  });
+  const updateScenarioInputsMutation = useUpdateScenario();
+  const addLineItemMutation = useAddLineItem();
+  const updateLineItemMutation = useUpdateLineItem();
+  const deleteLineItemMutation = useDeleteLineItem();
 
   const refreshBudget = useCallback(
     async (id: string) => {
@@ -233,7 +231,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       const merged = { ...current, ...inputs };
       await updateScenarioInputsMutation.mutateAsync({
         id: scenarioId,
-        inputs: merged,
+        body: { inputs: merged },
       });
       dispatch({ type: "UPDATE_SCENARIO_INPUTS_LOCAL", payload: inputs });
     },
@@ -246,12 +244,14 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       if (!budget || budget.id !== budgetId) return;
       const created = await addLineItemMutation.mutateAsync({
         budgetId,
-        name: item?.name ?? "New Item",
-        category: item?.category ?? state.categories[0] ?? "Miscellaneous",
-        comments: item?.comments,
-        unitCost: item?.unitCost ?? 0,
-        quantity: item?.quantity ?? 1,
-        historicalCosts: item?.historicalCosts,
+        body: {
+          name: item?.name ?? "New Item",
+          category: item?.category ?? state.categories[0] ?? "Miscellaneous",
+          comments: item?.comments,
+          unitCost: item?.unitCost ?? 0,
+          quantity: item?.quantity ?? 1,
+          historicalCosts: item?.historicalCosts,
+        },
       });
       dispatch({ type: "ADD_LINE_ITEM_LOCAL", payload: created as LineItem });
     },
@@ -260,7 +260,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
 
   const updateLineItem = useCallback(
     async (budgetId: string, id: string, updates: Partial<LineItem>) => {
-      await updateLineItemMutation.mutateAsync({ budgetId, itemId: id, ...updates });
+      await updateLineItemMutation.mutateAsync({ budgetId, itemId: id, body: updates });
       dispatch({ type: "UPDATE_LINE_ITEM_LOCAL", payload: { id, updates } });
     },
     [updateLineItemMutation]

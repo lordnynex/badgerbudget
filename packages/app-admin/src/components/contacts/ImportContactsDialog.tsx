@@ -9,7 +9,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { parseVCardFile, parsedToContactPayload, type ParsedVCardContact } from "@/lib/vcard";
-import { useApi } from "@/data/api";
+import {
+  useContactsImportPstPreview,
+  useContactsImportPstExecute,
+  useCreateContact,
+} from "@/queries/hooks";
 import type { Contact } from "@satyrsmc/shared/types/contact";
 import { Upload, FileText, Mail } from "lucide-react";
 
@@ -28,7 +32,9 @@ interface PstPreviewItem {
 }
 
 export function ImportContactsDialog({ open, onOpenChange, onSuccess }: ImportContactsDialogProps) {
-  const api = useApi();
+  const importPstPreviewMutation = useContactsImportPstPreview();
+  const importPstExecuteMutation = useContactsImportPstExecute();
+  const createContactMutation = useCreateContact();
   const [mode, setMode] = useState<ImportMode>(null);
   const [parsed, setParsed] = useState<ParsedVCardContact[]>([]);
   const [pstPreview, setPstPreview] = useState<PstPreviewItem[]>([]);
@@ -61,7 +67,7 @@ export function ImportContactsDialog({ open, onOpenChange, onSuccess }: ImportCo
         setParsed([]);
         setLoading(true);
         try {
-          const { contacts } = await api.contacts.importPstPreview(file);
+          const { contacts } = await importPstPreviewMutation.mutateAsync(file);
           setPstPreview(contacts);
           const newIndices = new Set(
             contacts
@@ -87,7 +93,7 @@ export function ImportContactsDialog({ open, onOpenChange, onSuccess }: ImportCo
       }
       e.target.value = "";
     },
-    []
+    [importPstPreviewMutation]
   );
 
   const togglePstSelected = (index: number) => {
@@ -117,7 +123,7 @@ export function ImportContactsDialog({ open, onOpenChange, onSuccess }: ImportCo
       if (toCreate.length === 0) return;
       setImporting(true);
       try {
-        await api.contacts.importPstExecute(toCreate);
+        await importPstExecuteMutation.mutateAsync(toCreate);
         onOpenChange(false);
         onSuccess();
       } catch (err) {
@@ -131,7 +137,9 @@ export function ImportContactsDialog({ open, onOpenChange, onSuccess }: ImportCo
       try {
         for (const p of parsed) {
           const payload = parsedToContactPayload(p);
-          await api.contacts.create(payload as Parameters<typeof api.contacts.create>[0]);
+          await createContactMutation.mutateAsync(
+            payload as Parameters<typeof createContactMutation.mutateAsync>[0]
+          );
         }
         onOpenChange(false);
         onSuccess();

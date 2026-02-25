@@ -14,8 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useApi } from "@/data/api";
-import type { MailingList } from "@satyrsmc/shared/types/contact";
+import { useMailingListsOptional, useMailingListAddMembersBulk } from "@/queries/hooks";
 
 interface AddToMailingListDialogProps {
   open: boolean;
@@ -25,23 +24,24 @@ interface AddToMailingListDialogProps {
 }
 
 export function AddToMailingListDialog({ open, onOpenChange, contactIds, onSuccess }: AddToMailingListDialogProps) {
-  const api = useApi();
-  const [lists, setLists] = useState<MailingList[]>([]);
+  const { data: lists = [] } = useMailingListsOptional();
+  const addMembersBulkMutation = useMailingListAddMembersBulk();
   const [selectedListId, setSelectedListId] = useState<string>("");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (open) {
-      api.mailingLists.list().then(setLists);
-      setSelectedListId("");
-    }
+    if (open) setSelectedListId("");
   }, [open]);
 
   const handleSubmit = async () => {
     if (!selectedListId || contactIds.length === 0) return;
     setSaving(true);
     try {
-      await api.mailingLists.addMembersBulk(selectedListId, contactIds, "manual");
+      await addMembersBulkMutation.mutateAsync({
+        listId: selectedListId,
+        contactIds,
+        source: "manual",
+      });
       onOpenChange(false);
       onSuccess();
     } finally {
@@ -67,7 +67,6 @@ export function AddToMailingListDialog({ open, onOpenChange, contactIds, onSucce
               {lists.map((l) => (
                 <SelectItem key={l.id} value={l.id}>
                   {l.name}
-                  {l.event ? ` (${l.event.name})` : ""}
                 </SelectItem>
               ))}
             </SelectContent>

@@ -1,8 +1,6 @@
 import { useState } from "react";
 import { Outlet, useNavigate, NavLink } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import { useApi } from "@/data/api";
-import { queryKeys } from "@/queries/keys";
+import { useMailingListsOptional } from "@/queries/hooks";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -19,13 +17,9 @@ const navLinkClass = ({ isActive }: { isActive: boolean }, collapsed?: boolean) 
 
 
 export function ContactsLayout() {
-  const api = useApi();
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
-  const { data: lists = [] } = useQuery({
-    queryKey: queryKeys.mailingLists,
-    queryFn: () => api.mailingLists.list(),
-  });
+  const { data: lists = [] } = useMailingListsOptional();
 
   const physicalLists = lists.filter((l) => (l.delivery_type ?? "both") === "physical");
   const emailLists = lists.filter((l) => (l.delivery_type ?? "both") === "email");

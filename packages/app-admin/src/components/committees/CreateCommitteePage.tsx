@@ -12,17 +12,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useMembersSuspense, useInvalidateQueries, unwrapSuspenseData } from "@/queries/hooks";
+import { useMembersSuspense, useCreateCommittee, unwrapSuspenseData } from "@/queries/hooks";
 import { MemberSelectCombobox } from "@/components/members/MemberSelectCombobox";
 import { ArrowLeft, X } from "lucide-react";
-import { useApi } from "@/data/api";
 import type { Member } from "@satyrsmc/shared/types/budget";
 
 export function CreateCommitteePage() {
-  const api = useApi();
+  const createCommitteeMutation = useCreateCommittee();
   const navigate = useNavigate();
   const members = unwrapSuspenseData(useMembersSuspense()) ?? [];
-  const invalidate = useInvalidateQueries();
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -52,7 +50,7 @@ export function CreateCommitteePage() {
 
     setSaving(true);
     try {
-      const committee = await api.committees.create({
+      const committee = await createCommitteeMutation.mutateAsync({
         name: name.trim(),
         description: description.trim() || null,
         purpose: purpose.trim() || null,
@@ -60,8 +58,7 @@ export function CreateCommitteePage() {
         chairperson_member_id: chairpersonMemberId || null,
         member_ids: memberIds.length > 0 ? memberIds : undefined,
       });
-      invalidate.invalidateCommittees();
-      navigate(`/meetings/committees/${committee.id}`);
+      navigate(`/meetings/committees/${(committee as { id: string }).id}`);
     } finally {
       setSaving(false);
     }

@@ -1,7 +1,10 @@
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useApi } from "@/data/api";
-import { queryKeys } from "@/queries/keys";
+import {
+  useWebsitePagesOptional,
+  useWebsiteCreatePage,
+  useWebsiteUpdatePage,
+  useWebsiteDeletePage,
+} from "@/queries/hooks";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,12 +44,10 @@ function plainTextToBody(text: string): string {
 }
 
 export function WebsitePagesPanel() {
-  const api = useApi();
-  const queryClient = useQueryClient();
-  const { data: pages = [], isLoading } = useQuery({
-    queryKey: queryKeys.websitePages,
-    queryFn: () => api.website.listPages(),
-  });
+  const { data: pages = [], isLoading } = useWebsitePagesOptional();
+  const createMutation = useWebsiteCreatePage();
+  const updateMutation = useWebsiteUpdatePage();
+  const deleteMutation = useWebsiteDeletePage();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingPage, setEditingPage] = useState<SitePageResponse | null>(null);
   const [slug, setSlug] = useState("");
@@ -55,33 +56,6 @@ export function WebsitePagesPanel() {
   const [metaTitle, setMetaTitle] = useState("");
   const [metaDescription, setMetaDescription] = useState("");
   const [saving, setSaving] = useState(false);
-  const createMutation = useMutation({
-    mutationFn: (body: { slug: string; title: string; body?: string; meta_title?: string | null; meta_description?: string | null }) =>
-      api.website.createPage(body),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.websitePages });
-      setDialogOpen(false);
-      resetForm();
-    },
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: ({ id, body }: { id: string; body: { slug?: string; title?: string; body?: string; meta_title?: string | null; meta_description?: string | null } }) =>
-      api.website.updatePage(id, body),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.websitePages });
-      setDialogOpen(false);
-      setEditingPage(null);
-      resetForm();
-    },
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: (id: string) => api.website.deletePage(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.websitePages });
-    },
-  });
 
   function resetForm() {
     setSlug("");
@@ -108,12 +82,12 @@ export function WebsitePagesPanel() {
     setDialogOpen(true);
   }
 
-  function handleSave() {
+  async function handleSave() {
     const body = plainTextToBody(bodyText);
     if (editingPage) {
       setSaving(true);
-      updateMutation
-        .mutate({
+      try {
+        await updateMutation.mutateAsync({
           id: editingPage.id,
           body: {
             slug: slug.trim() || undefined,
@@ -122,20 +96,29 @@ export function WebsitePagesPanel() {
             meta_title: metaTitle.trim() || null,
             meta_description: metaDescription.trim() || null,
           },
-        })
-        .finally(() => setSaving(false));
+        });
+        setDialogOpen(false);
+        setEditingPage(null);
+        resetForm();
+      } finally {
+        setSaving(false);
+      }
     } else {
       if (!slug.trim() || !title.trim()) return;
       setSaving(true);
-      createMutation
-        .mutate({
+      try {
+        await createMutation.mutateAsync({
           slug: slug.trim(),
           title: title.trim(),
           body,
           meta_title: metaTitle.trim() || null,
           meta_description: metaDescription.trim() || null,
-        })
-        .finally(() => setSaving(false));
+        });
+        setDialogOpen(false);
+        resetForm();
+      } finally {
+        setSaving(false);
+      }
     }
   }
 

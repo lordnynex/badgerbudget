@@ -10,7 +10,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useApi } from "@/data/api";
 import type { ContactSearchParams } from "@satyrsmc/shared/types/contact";
 import { contactsToVCardFileAsync } from "@/lib/vcard";
 import { Link } from "react-router-dom";
@@ -21,7 +20,14 @@ import { AddToMailingListDialog } from "./AddToMailingListDialog";
 import { ContactsExportDropdown } from "./ContactsExportDropdown";
 import { downloadContactsCsv, downloadContactsPdf } from "./contactUtils";
 import { ContactDirectoryTable } from "./ContactDirectoryTable";
-import { useContactsSuspense, useInvalidateQueries, unwrapSuspenseData } from "@/queries/hooks";
+import {
+  useContactsSuspense,
+  useInvalidateQueries,
+  useContactsBulkUpdate,
+  useDeleteContact,
+  useContactsListFetcher,
+  unwrapSuspenseData,
+} from "@/queries/hooks";
 
 function useDebounce<T>(value: T, delay: number): T {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -33,11 +39,13 @@ function useDebounce<T>(value: T, delay: number): T {
 }
 
 export function ContactsPanel() {
-  const api = useApi();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();
   const invalidate = useInvalidateQueries();
+  const bulkUpdateMutation = useContactsBulkUpdate();
+  const deleteContactMutation = useDeleteContact();
+  const fetchContactsList = useContactsListFetcher();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<ContactSearchParams["status"]>("active");
   const [hasPostal, setHasPostal] = useState<boolean | undefined>();
@@ -101,7 +109,7 @@ export function ContactsPanel() {
 
   const handleBulkMarkInactive = async () => {
     if (selectedIds.size === 0) return;
-    await api.contacts.bulkUpdate([...selectedIds], { status: "inactive" });
+    await bulkUpdateMutation.mutateAsync({ ids: [...selectedIds], updates: { status: "inactive" } });
     setSelectedIds(new Set());
     refresh();
   };
@@ -110,7 +118,7 @@ export function ContactsPanel() {
     if (selectedIds.size === 0) return;
     if (!confirm(`Delete ${selectedIds.size} contact${selectedIds.size !== 1 ? "s" : ""}? This cannot be undone.`)) return;
     for (const id of selectedIds) {
-      await api.contacts.delete(id);
+      await deleteContactMutation.mutateAsync(id);
     }
     setSelectedIds(new Set());
     refresh();
@@ -130,7 +138,7 @@ export function ContactsPanel() {
     let page = 1;
     let hasMore = true;
     while (hasMore) {
-      const result = await api.contacts.list({ ...baseParams, page });
+      const result = await fetchContactsList({ ...baseParams, page });
       all.push(...result.contacts);
       hasMore = result.contacts.length === 100 && all.length < result.total;
       page++;

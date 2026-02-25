@@ -18,8 +18,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useApi } from "@/data/api";
 import type { MailingList, ListPreview } from "@satyrsmc/shared/types/contact";
+import {
+  useCreateMailingList,
+  useDeleteMailingList,
+  useUpdateMailingList,
+  useMailingListRemoveMember,
+  useMailingListReinstateMember,
+  useInvalidateQueries,
+} from "@/queries/hooks";
 import { contactsToVCardFileAsync } from "@/lib/vcard";
 import { ArrowLeft, Plus, Pencil, Trash2, Download, Printer, Users, MapPin, Copy, ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { AddContactToMailingListDialog } from "./AddContactToMailingListDialog";
@@ -29,10 +36,9 @@ import { useMailingListsSuspense, useEventsSuspense, useMailingListSuspense, use
 import { PageLoading } from "@/components/layout/PageLoading";
 
 export function MailingListsPanel() {
-  const api = useApi();
   const { listId } = useParams<{ listId?: string }>();
   const navigate = useNavigate();
-  const invalidate = useInvalidateQueries();
+  const createMailingListMutation = useCreateMailingList();
   const listsData = unwrapSuspenseData(useMailingListsSuspense());
   const lists = Array.isArray(listsData) ? listsData : [];
   const eventsData = unwrapSuspenseData(useEventsSuspense());
@@ -45,15 +51,13 @@ export function MailingListsPanel() {
   const [newDeliveryType, setNewDeliveryType] = useState<MailingList["delivery_type"]>("both");
   const [newEventId, setNewEventId] = useState<string>("");
 
-  const refreshLists = () => invalidate.invalidateMailingLists();
-
   useEffect(() => {
     if (searchParams.get("create") === "1") setCreateOpen(true);
   }, [searchParams]);
 
   const handleCreate = async () => {
     if (!newName.trim()) return;
-    await api.mailingLists.create({
+    await createMailingListMutation.mutateAsync({
       name: newName.trim(),
       description: newDescription.trim() || undefined,
       list_type: newListType,
@@ -71,7 +75,6 @@ export function MailingListsPanel() {
       next.delete("create");
       return next;
     });
-    refreshLists();
   };
 
   if (listId) {
@@ -81,7 +84,6 @@ export function MailingListsPanel() {
           listId={listId}
           events={events}
           onBack={() => navigate("/contacts/lists")}
-          invalidate={invalidate}
         />
       </Suspense>
     );
@@ -216,14 +218,17 @@ function MailingListDetail({
   listId,
   events,
   onBack,
-  invalidate,
 }: {
   listId: string;
   events: Array<{ id: string; name: string }>;
   onBack: () => void;
-  invalidate: ReturnType<typeof useInvalidateQueries>;
 }) {
   const navigate = useNavigate();
+  const invalidate = useInvalidateQueries();
+  const deleteMailingListMutation = useDeleteMailingList();
+  const updateMailingListMutation = useUpdateMailingList();
+  const removeMemberMutation = useMailingListRemoveMember();
+  const reinstateMemberMutation = useMailingListReinstateMember();
   const selectedList = unwrapSuspenseData(useMailingListSuspense(listId));
   const { data: preview } = useMailingListPreview(listId);
   const [editOpen, setEditOpen] = useState(false);
@@ -275,13 +280,15 @@ function MailingListDetail({
 
   const handleDeleteList = async () => {
     if (!confirm("Delete this mailing list?")) return;
-    await api.mailingLists.delete(selectedList.id);
+    await deleteMailingListMutation.mutateAsync(selectedList.id);
     onBack();
-    invalidate.invalidateMailingLists();
   };
 
   const handleSaveEdit = async () => {
-    await api.mailingLists.update(selectedList.id, { name: editName, description: editDescription, delivery_type: editDeliveryType });
+    await updateMailingListMutation.mutateAsync({
+      id: selectedList.id,
+      body: { name: editName, description: editDescription, delivery_type: editDeliveryType },
+    });
     setEditOpen(false);
     refreshList();
   };
@@ -359,7 +366,10 @@ function MailingListDetail({
                               className="h-7 px-2"
                               onClick={async () => {
                                 try {
-                                  await api.mailingLists.reinstateMember(selectedList.id, e.contact.id);
+                                  await reinstateMemberMutation.mutateAsync({
+                                    listId: selectedList.id,
+                                    contactId: e.contact.id,
+                                  });
                                   refreshList();
                                 } catch (err) {
                                   console.error(err);
@@ -376,7 +386,10 @@ function MailingListDetail({
                               className="h-7 px-2 text-destructive hover:text-destructive"
                               onClick={async () => {
                                 try {
-                                  await api.mailingLists.removeMember(selectedList.id, e.contact.id);
+                                  await removeMemberMutation.mutateAsync({
+                                    listId: selectedList.id,
+                                    contactId: e.contact.id,
+                                  });
                                   refreshList();
                                 } catch (err) {
                                   console.error(err);
@@ -534,7 +547,10 @@ function MailingListDetail({
                             e.stopPropagation();
                             if (!confirm(`Remove ${contact.display_name} from this list?`)) return;
                             try {
-                              await api.mailingLists.removeMember(selectedList.id, contact.id);
+                              await removeMemberMutation.mutateAsync({
+                                listId: selectedList.id,
+                                contactId: contact.id,
+                              });
                               refreshList();
                             } catch (err) {
                               console.error(err);

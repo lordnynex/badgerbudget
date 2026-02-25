@@ -7,8 +7,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { ArrowLeft, Check, Pencil, Plus, Trash2 } from "lucide-react";
 import { useAppState } from "@/state/AppState";
-import { useInvalidateQueries } from "@/queries/hooks";
-import { useApi } from "@/data/api";
+import {
+  useCreateScenario,
+  useDeleteScenario,
+  useUpdateScenario,
+} from "@/queries/hooks";
 import {
   Dialog,
   DialogContent,
@@ -19,7 +22,6 @@ import {
 import { ScenarioInputsCard } from "./ScenarioInputsCard";
 
 export function ScenariosPanel() {
-  const api = useApi();
   const { id: scenarioId } = useParams<{ id?: string }>();
   const navigate = useNavigate();
   const {
@@ -28,7 +30,9 @@ export function ScenariosPanel() {
     refreshScenarios,
     refreshScenario,
   } = useAppState();
-  const invalidate = useInvalidateQueries();
+  const createScenarioMutation = useCreateScenario();
+  const deleteScenarioMutation = useDeleteScenario();
+  const updateScenarioMutation = useUpdateScenario();
   const [createOpen, setCreateOpen] = useState(false);
   const [newName, setNewName] = useState("");
   const [newDescription, setNewDescription] = useState("");
@@ -40,22 +44,20 @@ export function ScenariosPanel() {
 
   const handleCreate = async () => {
     if (!newName.trim()) return;
-    const created = await api.scenarios.create({
+    const created = await createScenarioMutation.mutateAsync({
       name: newName.trim(),
       description: newDescription.trim() || undefined,
     });
     setNewName("");
     setNewDescription("");
     setCreateOpen(false);
-    invalidate.invalidateScenarios();
     await refreshScenarios();
     navigate(`/budgeting/scenarios/${created.id}`);
   };
 
   const handleDelete = async (id: string) => {
     if (!window.confirm("Delete this scenario?")) return;
-    await api.scenarios.delete(id);
-    invalidate.invalidateScenarios();
+    await deleteScenarioMutation.mutateAsync(id);
     await refreshScenarios();
     navigate("/budgeting/scenarios");
   };
@@ -70,12 +72,13 @@ export function ScenariosPanel() {
 
   const handleSaveEdit = async () => {
     if (!editingScenario || !editName.trim()) return;
-    await api.scenarios.update(editingScenario.id, {
-      name: editName.trim(),
-      description: editDescription.trim(),
+    await updateScenarioMutation.mutateAsync({
+      id: editingScenario.id,
+      body: {
+        name: editName.trim(),
+        description: editDescription.trim(),
+      },
     });
-    invalidate.invalidateScenarios();
-    invalidate.invalidateScenario(editingScenario.id);
     await refreshScenarios();
     if (currentScenario?.id === editingScenario.id) {
       await refreshScenario(editingScenario.id);

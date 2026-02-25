@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { EditableNumberInput } from "@/components/inputs/EditableNumberInput";
 import { useAppState } from "@/state/AppState";
-import { useApi } from "@/data/api";
+import { useUpdateScenario } from "@/queries/hooks";
 import { Check } from "lucide-react";
 import type { Inputs } from "@satyrsmc/shared/types/budget";
 
@@ -25,7 +25,7 @@ const DEFAULT_INPUTS: Inputs = {
 };
 
 export function ScenarioInputsCard() {
-  const api = useApi();
+  const updateScenarioMutation = useUpdateScenario();
   const { currentScenario, selectedScenarioId, refreshScenario } = useAppState();
   const [inputs, setInputs] = useState<Inputs>(DEFAULT_INPUTS);
   const [saving, setSaving] = useState(false);
@@ -73,7 +73,10 @@ export function ScenarioInputsCard() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await api.scenarios.update(selectedScenarioId, { inputs });
+      await updateScenarioMutation.mutateAsync({
+        id: selectedScenarioId,
+        body: { inputs },
+      });
       await refreshScenario(selectedScenarioId);
       showSaved();
     } finally {

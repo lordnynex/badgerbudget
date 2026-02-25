@@ -11,16 +11,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { DatePicker } from "@/components/ui/date-picker";
-import { useApi } from "@/data/api";
-import { useMeetingsOptional } from "@/queries/hooks";
-import { useMeetingTemplatesOptional } from "@/queries/hooks";
-import { useInvalidateQueries } from "@/queries/hooks";
+import {
+  useMeetingsOptional,
+  useMeetingTemplatesOptional,
+  useCreateMeeting,
+} from "@/queries/hooks";
 import { ArrowLeft } from "lucide-react";
 
 export function CreateMeetingPage() {
-  const api = useApi();
+  const createMeetingMutation = useCreateMeeting();
   const navigate = useNavigate();
-  const invalidate = useInvalidateQueries();
   const { data: meetings = [] } = useMeetingsOptional();
   const { data: templates = [] } = useMeetingTemplatesOptional("agenda");
 
@@ -49,18 +49,14 @@ export function CreateMeetingPage() {
 
     setSaving(true);
     try {
-      const meeting = await api.meetings.create({
+      const meeting = await createMeetingMutation.mutateAsync({
         date,
         meeting_number: Number(meetingNumber),
         location: location.trim() || null,
-        start_time: startTime.trim() || null,
-        end_time: endTime.trim() || null,
-        video_conference_url: videoConferenceUrl.trim() || null,
         agenda_template_id:
           agendaTemplateId === "__none__" ? undefined : agendaTemplateId,
       });
-      invalidate.invalidateMeetings();
-      navigate(`/meetings/${meeting.id}`);
+      navigate(`/meetings/${(meeting as { id: string }).id}`);
     } finally {
       setSaving(false);
     }

@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useApi } from "@/data/api";
+import { useBudgetOptional } from "@/queries/hooks";
 import type { BudgetSummary, LineItem } from "@satyrsmc/shared/types/budget";
 import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -35,45 +35,26 @@ export function ImportLineItemsModal({
   budgets,
   onImport,
 }: ImportLineItemsModalProps) {
-  const api = useApi();
   const [sourceBudgetId, setSourceBudgetId] = useState<string>("");
-  const [sourceLineItems, setSourceLineItems] = useState<LineItem[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [loading, setLoading] = useState(false);
   const [importing, setImporting] = useState(false);
+
+  const { data: sourceBudget, isLoading: loading } = useBudgetOptional(sourceBudgetId, {
+    enabled: open && !!sourceBudgetId,
+  });
+  const sourceLineItems = sourceBudget?.lineItems ?? [];
 
   const otherBudgets = budgets.filter((b) => b.id !== currentBudgetId);
 
   useEffect(() => {
     if (!open) {
       setSourceBudgetId("");
-      setSourceLineItems([]);
       setSelectedIds(new Set());
     }
   }, [open]);
 
   useEffect(() => {
-    if (!sourceBudgetId) {
-      setSourceLineItems([]);
-      setSelectedIds(new Set());
-      return;
-    }
-    let cancelled = false;
-    setLoading(true);
-    api.budgets
-      .get(sourceBudgetId)
-      .then((budget) => {
-        if (!cancelled && budget) {
-          setSourceLineItems(budget.lineItems);
-          setSelectedIds(new Set());
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
+    setSelectedIds(new Set());
   }, [sourceBudgetId]);
 
   const toggleItem = (id: string) => {

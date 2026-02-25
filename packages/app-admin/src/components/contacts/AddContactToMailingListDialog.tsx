@@ -8,8 +8,13 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useApi } from "@/data/api";
-import type { Contact } from "@satyrsmc/shared/types/contact";
+import {
+  useMailingListMembers,
+  useContactsOptional,
+  useMailingListAddMembersBulk,
+  useMailingListAddAllContacts,
+  useMailingListAddAllHellenics,
+} from "@/queries/hooks";
 
 interface AddContactToMailingListDialogProps {
   open: boolean;
@@ -19,33 +24,34 @@ interface AddContactToMailingListDialogProps {
 }
 
 export function AddContactToMailingListDialog({ open, onOpenChange, listId, onSuccess }: AddContactToMailingListDialogProps) {
-  const api = useApi();
   const [search, setSearch] = useState("");
-  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [existingMemberIds, setExistingMemberIds] = useState<Set<string>>(new Set());
-
-  useEffect(() => {
-    if (open) {
-      api.mailingLists.getMembers(listId).then((members) => {
-        setExistingMemberIds(new Set(members.map((m) => m.contact_id)));
-      });
-    }
-  }, [open, listId]);
 
   useEffect(() => {
     if (!open) return;
-    const t = setTimeout(() => {
-      setLoading(true);
-      api.contacts
-        .list({ q: search || undefined, status: "active", excludeDeceased: true, limit: 50 })
-        .then((r) => setContacts(r.contacts))
-        .finally(() => setLoading(false));
-    }, 300);
+    const t = setTimeout(() => setDebouncedSearch(search), 300);
     return () => clearTimeout(t);
   }, [open, search]);
+
+  const { data: members = [] } = useMailingListMembers(open ? listId : null);
+  const existingMemberIds = new Set(members.map((m) => m.contact_id));
+
+  const { data: contactsResult, isLoading: loading } = useContactsOptional(
+    {
+      q: debouncedSearch || undefined,
+      status: "active",
+      excludeDeceased: true,
+      limit: 50,
+    },
+    { enabled: open }
+  );
+  const contacts = contactsResult?.contacts ?? [];
+
+  const addMembersBulkMutation = useMailingListAddMembersBulk();
+  const addAllContactsMutation = useMailingListAddAllContacts();
+  const addAllHellenicsMutation = useMailingListAddAllHellenics();
 
   const toggleSelect = (id: string) => {
     if (existingMemberIds.has(id)) return;
@@ -61,8 +67,34 @@ export function AddContactToMailingListDialog({ open, onOpenChange, listId, onSu
     if (selectedIds.size === 0) return;
     setSaving(true);
     try {
-      await api.mailingLists.addMembersBulk(listId, [...selectedIds], "manual");
+      await addMembersBulkMutation.mutateAsync({
+        listId,
+        contactIds: [...selectedIds],
+        source: "manual",
+      });
       setSelectedIds(new Set());
+      onOpenChange(false);
+      onSuccess();
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleAddAllContacts = async () => {
+    setSaving(true);
+    try {
+      await addAllContactsMutation.mutateAsync(listId);
+      onOpenChange(false);
+      onSuccess();
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleAddAllHellenics = async () => {
+    setSaving(true);
+    try {
+      await addAllHellenicsMutation.mutateAsync(listId);
       onOpenChange(false);
       onSuccess();
     } finally {
@@ -82,16 +114,7 @@ export function AddContactToMailingListDialog({ open, onOpenChange, listId, onSu
           <Button
             variant="outline"
             size="sm"
-            onClick={async () => {
-              setSaving(true);
-              try {
-                await api.mailingLists.addAllContacts(listId);
-                onOpenChange(false);
-                onSuccess();
-              } finally {
-                setSaving(false);
-              }
-            }}
+            onClick={handleAddAllContacts}
             disabled={saving}
           >
             {saving ? "Adding..." : "Add ALL contacts"}
@@ -99,16 +122,7 @@ export function AddContactToMailingListDialog({ open, onOpenChange, listId, onSu
           <Button
             variant="outline"
             size="sm"
-            onClick={async () => {
-              setSaving(true);
-              try {
-                await api.mailingLists.addAllHellenics(listId);
-                onOpenChange(false);
-                onSuccess();
-              } finally {
-                setSaving(false);
-              }
-            }}
+            onClick={handleAddAllHellenics}
             disabled={saving}
           >
             {saving ? "Adding..." : "Add all Hellenics"}

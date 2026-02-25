@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useApi } from "@/data/api";
+import { useUpdateContact } from "@/queries/hooks";
 import { isValidPhoneNumber, normalizePhoneForStorage } from "@/lib/phone";
 import type { Contact } from "@satyrsmc/shared/types/contact";
 
@@ -29,7 +29,7 @@ interface EditContactDialogProps {
 }
 
 export function EditContactDialog({ open, onOpenChange, contact, onSuccess }: EditContactDialogProps) {
-  const api = useApi();
+  const updateContactMutation = useUpdateContact();
   const [displayName, setDisplayName] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -123,22 +123,24 @@ export function EditContactDialog({ open, onOpenChange, contact, onSuccess }: Ed
     setPhoneError(null);
     setSaving(true);
     try {
-      await api.contacts.update(contact.id, {
-        display_name: name,
-        first_name: firstName.trim() || null,
-        last_name: lastName.trim() || null,
-        organization_name: orgName.trim() || null,
-        how_we_know_them: howWeKnow.trim() || null,
-        club_name: clubName.trim() || null,
-        role: role.trim() || null,
-        ok_to_email: okToEmail,
-        ok_to_mail: okToMail,
-        ok_to_sms: okToSms,
-        do_not_contact: doNotContact,
-        hellenic,
-        deceased,
-        deceased_year: deceased && deceasedYear.trim() ? parseInt(deceasedYear, 10) : null,
-        emails: emails.filter((e) => e.email.trim()).map((e) => ({
+      await updateContactMutation.mutateAsync({
+        id: contact.id,
+        body: {
+          display_name: name,
+          first_name: firstName.trim() || null,
+          last_name: lastName.trim() || null,
+          organization_name: orgName.trim() || null,
+          how_we_know_them: howWeKnow.trim() || null,
+          club_name: clubName.trim() || null,
+          role: role.trim() || null,
+          ok_to_email: okToEmail,
+          ok_to_mail: okToMail,
+          ok_to_sms: okToSms,
+          do_not_contact: doNotContact,
+          hellenic,
+          deceased,
+          deceased_year: deceased && deceasedYear.trim() ? parseInt(deceasedYear, 10) : null,
+          emails: emails.filter((e) => e.email.trim()).map((e) => ({
           id: "",
           contact_id: contact.id,
           email: e.email.trim(),
@@ -166,7 +168,8 @@ export function EditContactDialog({ open, onOpenChange, contact, onSuccess }: Ed
             type: (a.type as "home" | "work" | "postal" | "other") ?? "home",
             is_primary_mailing: a.is_primary_mailing,
           })),
-        tags: tagNames.filter(Boolean).map((name) => ({ id: "", name })),
+          tags: tagNames.filter(Boolean).map((name) => ({ id: "", name })),
+        },
       });
       onOpenChange(false);
       onSuccess();

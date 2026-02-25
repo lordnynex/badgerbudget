@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useMeetingTemplatesSuspense, useInvalidateQueries, unwrapSuspenseData } from "@/queries/hooks";
 import { Button } from "@/components/ui/button";
 import { Plus, FileText } from "lucide-react";
 import {
@@ -18,16 +17,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useApi } from "@/data/api";
+import {
+  useCreateMeetingTemplate,
+  useDeleteMeetingTemplate,
+  useMeetingTemplatesSuspense,
+  unwrapSuspenseData,
+} from "@/queries/hooks";
 import { RichDocumentEditor } from "./RichDocumentEditor";
 
 const EMPTY_DOC = JSON.stringify({ type: "doc", content: [{ type: "paragraph" }] });
 
 export function TemplatesPanel() {
-  const api = useApi();
   const navigate = useNavigate();
   const templates = unwrapSuspenseData(useMeetingTemplatesSuspense()) ?? [];
-  const invalidate = useInvalidateQueries();
+  const createTemplateMutation = useCreateMeetingTemplate();
+  const deleteTemplateMutation = useDeleteMeetingTemplate();
   const [createOpen, setCreateOpen] = useState(false);
   const [name, setName] = useState("");
   const [type, setType] = useState<"agenda" | "minutes">("agenda");
@@ -42,16 +46,15 @@ export function TemplatesPanel() {
     if (!trimmed) return;
     setSaving(true);
     try {
-      const t = await api.meetingTemplates.create({
+      const t = await createTemplateMutation.mutateAsync({
         name: trimmed,
         type,
         content: content || EMPTY_DOC,
       });
-      invalidate.invalidateMeetingTemplates();
       setCreateOpen(false);
       setName("");
       setContent(EMPTY_DOC);
-      navigate(`/meetings/templates/${t.id}`);
+      navigate(`/meetings/templates/${(t as { id: string }).id}`);
     } finally {
       setSaving(false);
     }
@@ -59,8 +62,7 @@ export function TemplatesPanel() {
 
   const handleDelete = async (templateId: string) => {
     if (!confirm("Delete this template?")) return;
-    await api.meetingTemplates.delete(templateId);
-    invalidate.invalidateMeetingTemplates();
+    await deleteTemplateMutation.mutateAsync(templateId);
   };
 
   return (

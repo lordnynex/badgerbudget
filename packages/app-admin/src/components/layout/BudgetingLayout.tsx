@@ -16,9 +16,13 @@ import {
 } from "@/components/ui/dialog";
 import { BudgetScenarioLayout } from "./BudgetScenarioLayout";
 import { ProjectionsSubNav } from "./ProjectionsSubNav";
-import { useBudgetsOptional, useScenariosOptional, useInvalidateQueries } from "@/queries/hooks";
+import {
+  useBudgetsOptional,
+  useScenariosOptional,
+  useCreateBudget,
+  useCreateScenario,
+} from "@/queries/hooks";
 import { useAppState } from "@/state/AppState";
-import { trpc } from "@/trpc";
 
 const navLinkClass = ({ isActive }: { isActive: boolean }, collapsed?: boolean) =>
   cn(
@@ -41,20 +45,9 @@ export function BudgetingLayout({ onPrint, onEmail }: BudgetingLayoutProps) {
   const [collapsed, setCollapsed] = useState(false);
   const { data: budgets = [], isLoading: budgetsLoading } = useBudgetsOptional();
   const { data: scenarios = [], isLoading: scenariosLoading } = useScenariosOptional();
-  const invalidate = useInvalidateQueries();
   const { refreshBudgets, refreshScenarios } = useAppState();
-  const createBudgetMutation = trpc.admin.budgets.create.useMutation({
-    onSuccess: () => {
-      invalidate.invalidateBudgets();
-      refreshBudgets();
-    },
-  });
-  const createScenarioMutation = trpc.admin.scenarios.create.useMutation({
-    onSuccess: () => {
-      invalidate.invalidateScenarios();
-      refreshScenarios();
-    },
-  });
+  const createBudgetMutation = useCreateBudget();
+  const createScenarioMutation = useCreateScenario();
 
   const [budgetCreateOpen, setBudgetCreateOpen] = useState(false);
   const [newBudgetName, setNewBudgetName] = useState("");

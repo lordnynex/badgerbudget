@@ -10,13 +10,18 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { useApi } from "@/data/api";
+import {
+  useCreateMailingList,
+  useMailingListAddAllHellenics,
+  useInvalidateQueries,
+  useContactsSuspense,
+  unwrapSuspenseData,
+} from "@/queries/hooks";
 import { contactsToVCardFileAsync } from "@/lib/vcard";
 import { BookOpen, Plus, Search, Download, List } from "lucide-react";
 import { AddContactDialog } from "./AddContactDialog";
 import { AddToMailingListDialog } from "./AddToMailingListDialog";
 import { ContactDirectoryTable } from "./ContactDirectoryTable";
-import { useContactsSuspense, useInvalidateQueries, unwrapSuspenseData } from "@/queries/hooks";
 import type { ContactSearchParams } from "@satyrsmc/shared/types/contact";
 
 function useDebounce<T>(value: T, delay: number): T {
@@ -29,9 +34,10 @@ function useDebounce<T>(value: T, delay: number): T {
 }
 
 export function HellenicsPanel() {
-  const api = useApi();
   const navigate = useNavigate();
   const invalidate = useInvalidateQueries();
+  const createMailingListMutation = useCreateMailingList();
+  const addAllHellenicsMutation = useMailingListAddAllHellenics();
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -93,17 +99,16 @@ export function HellenicsPanel() {
     const name = newListName.trim() || "Hellenics";
     setCreating(true);
     try {
-      const list = await api.mailingLists.create({
+      const list = await createMailingListMutation.mutateAsync({
         name,
         description: "Contact list created from Hellenics directory",
         list_type: "static",
         delivery_type: "both",
       });
-      await api.mailingLists.addAllHellenics(list.id);
+      await addAllHellenicsMutation.mutateAsync((list as { id: string }).id);
       setCreateListOpen(false);
       setNewListName("");
-      navigate(`/contacts/lists/${list.id}`);
-      invalidate.invalidateMailingLists();
+      navigate(`/contacts/lists/${(list as { id: string }).id}`);
     } finally {
       setCreating(false);
     }

@@ -16,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useApi } from "@/data/api";
+import { useCreateContact } from "@/queries/hooks";
 import { isValidPhoneNumber, normalizePhoneForStorage } from "@/lib/phone";
 import type { Contact } from "@satyrsmc/shared/types/contact";
 
@@ -29,7 +29,7 @@ interface AddContactDialogProps {
 }
 
 export function AddContactDialog({ open, onOpenChange, onSuccess, defaultHellenic }: AddContactDialogProps) {
-  const api = useApi();
+  const createContactMutation = useCreateContact();
   const [type, setType] = useState<Contact["type"]>("person");
   const [displayName, setDisplayName] = useState("");
   const [firstName, setFirstName] = useState("");
@@ -86,7 +86,7 @@ export function AddContactDialog({ open, onOpenChange, onSuccess, defaultHelleni
     setPhoneError(null);
     setSaving(true);
     try {
-      await api.contacts.create({
+      await createContactMutation.mutateAsync({
         type,
         display_name: name,
         first_name: type === "person" ? firstName.trim() || null : null,

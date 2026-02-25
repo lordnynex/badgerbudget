@@ -1,18 +1,26 @@
 import { useRef, useState, useEffect, useCallback } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
-import { useMeetingTemplateSuspense, useInvalidateQueries, unwrapSuspenseData } from "@/queries/hooks";
+import {
+  useMeetingTemplateSuspense,
+  useInvalidateQueries,
+  useUpdateMeetingTemplate,
+  useUpdateDocument,
+  useDeleteMeetingTemplate,
+  unwrapSuspenseData,
+} from "@/queries/hooks";
 import { Button } from "@/components/ui/button";
 import { RichDocumentEditor } from "./RichDocumentEditor";
 import { ExportPdfButton } from "./ExportPdfButton";
 import { ArrowLeft, Save, Trash2 } from "lucide-react";
-import { useApi } from "@/data/api";
 
 export function TemplateDetailPage() {
-  const api = useApi();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const template = unwrapSuspenseData(useMeetingTemplateSuspense(id!))!;
   const invalidate = useInvalidateQueries();
+  const updateTemplateMutation = useUpdateMeetingTemplate();
+  const updateDocumentMutation = useUpdateDocument();
+  const deleteTemplateMutation = useDeleteMeetingTemplate();
   const printRef = useRef<HTMLDivElement>(null);
 
   const [name, setName] = useState(() => template.name ?? "");
@@ -47,19 +55,20 @@ export function TemplateDetailPage() {
     try {
       const promises: Promise<unknown>[] = [];
       if (name !== (template.name ?? "")) {
-        promises.push(api.meetingTemplates.update(id!, { name }));
+        promises.push(updateTemplateMutation.mutateAsync({ id: id!, body: { name } }));
       }
       if (content !== (template.content ?? "") && template.document_id) {
-        promises.push(api.documents.update(template.document_id, { content }));
+        promises.push(
+          updateDocumentMutation.mutateAsync({
+            id: template.document_id,
+            body: { content },
+          })
+        );
       }
       await Promise.all(promises);
-      const updated = await api.meetingTemplates.get(id!);
-      if (updated) {
-        setName(updated.name);
-        setContent(updated.content);
-        setDirty(false);
-        invalidate.setMeetingTemplateData(id!, updated);
-      }
+      setName(name);
+      setContent(content);
+      setDirty(false);
       invalidate.invalidateMeetingTemplate(id!);
     } finally {
       setSaving(false);
@@ -68,7 +77,7 @@ export function TemplateDetailPage() {
 
   const handleDelete = async () => {
     if (!confirm("Delete this template? This cannot be undone.")) return;
-    await api.meetingTemplates.delete(id!);
+    await deleteTemplateMutation.mutateAsync(id!);
     navigate("/meetings/templates");
   };
 

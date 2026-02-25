@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { trpc } from "@/trpc";
+import { useCreateEvent } from "@/queries/hooks";
 import { EVENT_TYPE_LABELS } from "@/lib/event-constants";
 import type { EventType } from "@satyrsmc/shared/types/event";
 
@@ -42,7 +42,7 @@ export function AddEventDialog({
   const [eventDate, setEventDate] = useState("");
   const [description, setDescription] = useState("");
   const [saving, setSaving] = useState(false);
-  const createEventMutation = trpc.admin.events.create.useMutation();
+  const createEventMutation = useCreateEvent();
 
   useEffect(() => {
     if (open) {
@@ -70,7 +70,7 @@ export function AddEventDialog({
         year: year === "" ? undefined : Number(year),
         event_date: eventDate.trim() || undefined,
         description: description.trim() || undefined,
-      });
+      } as Record<string, unknown>);
       reset();
       onOpenChange(false);
       onSuccess(event.id);

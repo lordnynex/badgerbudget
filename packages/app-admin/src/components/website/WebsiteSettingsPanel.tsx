@@ -1,7 +1,5 @@
 import { useEffect, useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useApi } from "@/data/api";
-import { queryKeys } from "@/queries/keys";
+import { useWebsiteSettingsOptional, useWebsiteUpdateSettings } from "@/queries/hooks";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,12 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Settings } from "lucide-react";
 
 export function WebsiteSettingsPanel() {
-  const api = useApi();
-  const queryClient = useQueryClient();
-  const { data: settings, isLoading } = useQuery({
-    queryKey: queryKeys.websiteSettings,
-    queryFn: () => api.website.getSettings(),
-  });
+  const { data: settings, isLoading } = useWebsiteSettingsOptional();
+  const updateMutation = useWebsiteUpdateSettings();
 
   const [title, setTitle] = useState("");
   const [logoUrl, setLogoUrl] = useState("");
@@ -31,19 +25,6 @@ export function WebsiteSettingsPanel() {
       setContactEmail(settings.contact_email ?? "");
     }
   }, [settings]);
-
-  const updateMutation = useMutation({
-    mutationFn: (body: {
-      title?: string | null;
-      logo_url?: string | null;
-      footer_text?: string | null;
-      default_meta_description?: string | null;
-      contact_email?: string | null;
-    }) => api.website.updateSettings(body),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.websiteSettings });
-    },
-  });
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();

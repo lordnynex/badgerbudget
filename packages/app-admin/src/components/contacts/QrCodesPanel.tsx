@@ -17,9 +17,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useApi } from "@/data/api";
 import type { QrCode, QrCodeConfig } from "@satyrsmc/shared/types/qrCode";
-import { useQrCodesSuspense, useInvalidateQueries, unwrapSuspenseData } from "@/queries/hooks";
+import {
+  useQrCodesSuspense,
+  useInvalidateQueries,
+  useQrCodeImageUrl,
+  useCreateQrCode,
+  useUpdateQrCode,
+  useDeleteQrCode,
+  unwrapSuspenseData,
+} from "@/queries/hooks";
 import { useNavigate } from "react-router-dom";
 import { Plus, Pencil, Trash2, Download, ExternalLink } from "lucide-react";
 
@@ -32,7 +39,6 @@ const DEFAULT_CONFIG: QrCodeConfig = {
 };
 
 export function QrCodesPanel() {
-  const api = useApi();
   const codes = unwrapSuspenseData(useQrCodesSuspense()) ?? [];
   const invalidate = useInvalidateQueries();
   const [createOpen, setCreateOpen] = useState(false);
@@ -119,18 +125,8 @@ function QrCodeCard({
   onEdit: () => void;
   onDelete: () => void;
 }) {
-  const api = useApi();
   const navigate = useNavigate();
-  const [imageUrl, setImageUrl] = useState<string>("");
-  useEffect(() => {
-    let cancelled = false;
-    api.qrCodes.getImageUrl(qr.id).then((u) => {
-      if (!cancelled) setImageUrl(u);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [qr.id, api]);
+  const { data: imageUrl = "" } = useQrCodeImageUrl(qr.id);
 
   const handleCardClick = () => navigate(`/contacts/qr-codes/${qr.id}`);
   const handleEdit = (e: React.MouseEvent) => {
@@ -215,7 +211,7 @@ function CreateQrCodeDialog({
   onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
 }) {
-  const api = useApi();
+  const createMutation = useCreateQrCode();
   const [name, setName] = useState("");
   const [url, setUrl] = useState("");
   const [config, setConfig] = useState<QrCodeConfig>({ ...DEFAULT_CONFIG });
@@ -230,7 +226,7 @@ function CreateQrCodeDialog({
     setError(null);
     setSaving(true);
     try {
-      await api.qrCodes.create({
+      await createMutation.mutateAsync({
         name: name.trim() || null,
         url: url.trim(),
         config,
@@ -286,7 +282,7 @@ function EditQrCodeDialog({
   onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
 }) {
-  const api = useApi();
+  const updateMutation = useUpdateQrCode();
   const [name, setName] = useState(qr.name ?? "");
   const [url, setUrl] = useState(qr.url);
   const [config, setConfig] = useState<QrCodeConfig>(qr.config ?? { ...DEFAULT_CONFIG });
@@ -301,10 +297,13 @@ function EditQrCodeDialog({
     setError(null);
     setSaving(true);
     try {
-      await api.qrCodes.update(qr.id, {
-        name: name.trim() || null,
-        url: url.trim(),
-        config,
+      await updateMutation.mutateAsync({
+        id: qr.id,
+        body: {
+          name: name.trim() || null,
+          url: url.trim(),
+          config,
+        },
       });
       onOpenChange(false);
       onSuccess();
@@ -512,13 +511,13 @@ function DeleteQrCodeDialog({
   onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
 }) {
-  const api = useApi();
+  const deleteMutation = useDeleteQrCode();
   const [deleting, setDeleting] = useState(false);
 
   const handleDelete = async () => {
     setDeleting(true);
     try {
-      await api.qrCodes.delete(qr.id);
+      await deleteMutation.mutateAsync(qr.id);
       onOpenChange(false);
       onSuccess();
     } finally {

@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useApi } from "@/data/api";
+import { useWebsiteMenusOptional, useWebsiteUpdateMenu } from "@/queries/hooks";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,12 +17,8 @@ interface MenuItem {
 const MENU_KEYS = ["main", "footer"] as const;
 
 export function WebsiteMenusPanel() {
-  const api = useApi();
-  const queryClient = useQueryClient();
-  const { data: menus = {}, isLoading } = useQuery({
-    queryKey: ["website", "menus"],
-    queryFn: () => api.website.getMenus(),
-  });
+  const { data: menus = {}, isLoading } = useWebsiteMenusOptional();
+  const updateMutation = useWebsiteUpdateMenu();
   const [selectedKey, setSelectedKey] = useState<string>("main");
   const [items, setItems] = useState<Array<{ label: string; url: string; internal_ref: string }>>([]);
 
@@ -37,14 +32,6 @@ export function WebsiteMenusPanel() {
       }))
     );
   }, [selectedKey, menus]);
-
-  const updateMutation = useMutation({
-    mutationFn: (body: { items: Array<{ label: string; url?: string | null; internal_ref?: string | null; sort_order?: number }> }) =>
-      api.website.updateMenu(selectedKey, body),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["website", "menus"] });
-    },
-  });
 
   function addItem() {
     setItems((prev) => [...prev, { label: "", url: "", internal_ref: "" }]);
@@ -64,6 +51,7 @@ export function WebsiteMenusPanel() {
 
   function handleSave() {
     updateMutation.mutate({
+      key: selectedKey,
       items: items.map((it, i) => ({
         label: it.label.trim() || "Item",
         url: it.url.trim() || null,

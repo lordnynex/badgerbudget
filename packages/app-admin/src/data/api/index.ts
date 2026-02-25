@@ -1,5 +1,5 @@
-import { useMemo } from "react";
-import { useTrpcClient } from "./trpcClientContext";
+import React, { createContext, useContext, useMemo, type ReactNode } from "react";
+import { useTrpcClient, type TrpcClient } from "./trpcClientContext";
 import { EventsApiClient } from "./EventsApiClient";
 import { BudgetsApiClient } from "./BudgetsApiClient";
 import { MembersApiClient } from "./MembersApiClient";
@@ -17,7 +17,9 @@ import { IncidentsApiClient } from "./IncidentsApiClient";
 
 export type { TrpcClient } from "./trpcClientContext";
 
-export function buildApi(client: ReturnType<typeof useTrpcClient>) {
+export type Api = ReturnType<typeof buildApi>;
+
+export function buildApi(client: TrpcClient) {
   return {
     events: new EventsApiClient(client),
     budgets: new BudgetsApiClient(client),
@@ -36,12 +38,21 @@ export function buildApi(client: ReturnType<typeof useTrpcClient>) {
   };
 }
 
-export function useApi() {
+const ApiContext = createContext<Api | null>(null);
+
+export function ApiProvider({ api, children }: { api: Api; children: ReactNode }) {
+  return React.createElement(ApiContext.Provider, { value: api }, children);
+}
+
+export function useApi(): Api {
+  const injected = useContext(ApiContext);
+  if (injected) return injected;
   const client = useTrpcClient();
   return useMemo(() => buildApi(client), [client]);
 }
 
 export { TrpcClientProvider, useTrpcClient } from "./trpcClientContext";
+export { createMockApi } from "./mockApi";
 
 /** Pass-through for code that used to unwrap Eden responses. tRPC throws on error so we just return the value. */
 export async function unwrap<T>(promise: Promise<T>): Promise<T> {
