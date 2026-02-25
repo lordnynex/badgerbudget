@@ -5,7 +5,7 @@ import "@app-admin/index.css";
 
 const meta: Meta<typeof Button> = {
   component: Button,
-  title: "App Admin/Button",
+  title: "App Admin/UI/Button",
   tags: ["autodocs"],
 };
 
